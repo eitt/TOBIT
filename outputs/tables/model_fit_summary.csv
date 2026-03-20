@@ -1,0 +1,4 @@
+"Model","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2"
+"Main harmful-decision Tobit",569,58,170,27,-1458.90263917392,2963.80527834784,0.0136588700723242
+"Same-faculty harm Tobit",364,58,103,13,-941.866648442318,1925.73329688464,0.0132053259871566
+"Full-sample Tobit",1160,58,182,332,-2627.9992034763,5303.99840695259,0.116547562091712

@@ -1,0 +1,2 @@
+"Model","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2"
+"Full-sample Tobit",1160,58,182,332,-2627.9992034763,5303.99840695259,0.116547562091712

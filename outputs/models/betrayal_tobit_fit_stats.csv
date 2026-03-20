@@ -1,0 +1,2 @@
+"Model","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2"
+"Same-faculty harm Tobit",364,58,103,13,-941.866648442318,1925.73329688464,0.0132053259871566
