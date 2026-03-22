@@ -12,7 +12,7 @@
 \hypersetup{colorlinks=true,linkcolor=black,urlcolor=blue,citecolor=black}
 \title{Tobit Regression Analysis Report}
 \author{Automated Analysis Pipeline}
-\date{Generated on 2026-03-21 21:21 -05}
+\date{Generated on 2026-03-22 11:19 -05}
 \begin{document}
 \maketitle
 \begin{abstract}
@@ -49,7 +49,7 @@ Observer-first treatment in analysis sample & 29.000 \\
 \end{tabular}
 \end{table}
 \subsection{Data Cleaning and Step-by-Step Data Handling}
-Data cleaning proceeded in explicit steps. Step 1: validate that all required participant-level and scenario-level columns are present in the workbook. Step 2: preserve the raw participant-level file and derive IRI composite and subscale scores using row means with minimum non-missing thresholds. Step 3: compute the attention-check flag and define the primary analysis sample as participants who passed both checks and had a non-missing IRI composite. Step 4: reshape the repeated scenario variables into negotiator-level long format, yielding two judgment rows per stage per participant. Step 5: derive role, perpetrator alignment, victim alignment, same-group harm, and harmful-decision indicators. In this dataset, 5 participants fail at least one attention check and 0 participants have a missing IRI composite, leaving 58 participants in the primary sample.
+Data cleaning proceeded in explicit steps. Step 1: validate that all required participant-level and scenario-level columns are present in the workbook. Step 2: preserve the raw participant-level file, generate stage-specific role indicators, and derive IRI composite and subscale scores. Step 3: compute the attention-check flag and define the primary analysis sample as participants who passed both checks, had a non-missing IRI composite, and are in treatment 1 or 2. Step 4: reshape the repeated scenario variables into negotiator-level long format, yielding two judgment rows per stage per participant. Step 5: derive perpetrator alignment, victim alignment, same-group harm, and harmful-decision indicators. In this dataset, 0 participants were excluded for treatment = 0, 5 participants fail at least one attention check, and 0 participants have a missing IRI composite, leaving 58 participants in the primary sample.
 \subsection{Variable Transformation and Analysis Setup}
 Variable handling and transformation were kept close to the observed data structure. The dependent variable is the raw judgment score, bounded between -9 and 9, and it is modeled directly rather than transformed into a severity index. The empathy predictor is standardized as iri\_total\_z so its coefficient reflects a one-standard-deviation change in empathy. The main hypothesis models are restricted to harmful decisions where decision\_accept = 1, because the hypotheses concern condemnation of harmful conduct rather than neutral or prosocial choices. Control variables include observer role, participant faculty, sex, age, socioeconomic status, stage indicators, and negotiator-slot indicators.
 \subsection{Word-Friendly Model Equations}

@@ -1,5 +1,5 @@
 "Package","Available"
 "survival",TRUE
-"AER",FALSE
-"VGAM",FALSE
-"censReg",FALSE
+"AER",TRUE
+"VGAM",TRUE
+"censReg",TRUE

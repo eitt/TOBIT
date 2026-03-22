@@ -1,6 +1,6 @@
 # Tobit Regression Pipeline Report
 
-Generated on 2026-03-21 21:21 -05.
+Generated on 2026-03-22 11:19 -05.
 
 ## Inputs
 - Dataset: `data_final_FLORIDA.xlsx`
@@ -68,9 +68,9 @@ The local environment only has `survival` installed. `AER`, `VGAM`, and `censReg
 | Package | Available |
 | --- | --- |
 | survival | TRUE |
-| AER | FALSE |
-| VGAM | FALSE |
-| censReg | FALSE |
+| AER | TRUE |
+| VGAM | TRUE |
+| censReg | TRUE |
 
 ## Assumptions and Sample Size
 The Tobit model is appropriate here because the observed dependent variable is bounded at -9 and 9 and the sample includes observations piled up at both limits. In the harmful-decision sample there are 569 negotiator-level observations from 58 participants. The observed censoring shares are 29.9% at the lower bound and 4.7% at the upper bound. Substantive interpretation assumes a latent continuous evaluation process, approximately normal model errors, and correct specification of the linear predictor. Inference is clustered by participant to address repeated judgments within persons, but the estimates should still be read cautiously because the participant count is modest.
