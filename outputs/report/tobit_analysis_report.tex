@@ -1,0 +1,472 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{hyperref}
+\title{Scientific Analysis of Moral Judgments using Tobit Models}
+\author{Automated Research Pipeline}
+\date{marzo 23, 2026}
+\begin{document}
+\maketitle
+
+\section{Dataset and Sample Description}
+The empirical foundation of this project rests on two primary experimental datasets: FLORIDA and BUC.  The sample consists of students from the Bucaramanga Campus.  These datasets capture incentivized moral judgments from distinct socio-economic contexts. Participants were presented  with standardized negotiation scenarios where a negotiator's decision resulted in varying degrees of payoff for  themselves, their own group, and a victim group (either ingroup or outgroup).
+
+\section{Datacard and Variable Definitions}
+The following table defines the primary symbols and variables used in the mathematical specifications and hypothesis tests.
+\begin{table}[H]
+\centering
+\caption{Symbols and Variable Dictionary.}
+\label{tab:symbols}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{ll}
+\toprule
+Symbol & Definition \\
+\midrule
+$y_{ij}$ & Observed moral judgment of scenario $j$ by participant $i$. \\
+$y^*_{ij}$ & Latent moral preference score (unbounded). \\
+$\beta_1$ & Regression coefficient representing the marginal effect of the predictor. \\
+$\text{IRI}_i$ & Empathy score (Average composite of the Interpersonal Reactivity Index). \\
+$\text{OutgroupPerp}$ & Binary indicator: 1 if the scenario perpetrator is an outgroup member. \\
+$\text{SameGroupHarm}$ & Binary indicator: 1 if the harm is inflicted on the perpetrator's own group. \\
+$\text{ICC}$ & Intraclass Correlation: ratio of between-cluster variance to total variance. \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\section{Hypotheses to Test}
+\begin{itemize}
+  \item \textbf{H1 (Empathy):} Higher empathy predicts lower moral-judgment scores for harmful decisions.
+  \item \textbf{H2a (Betrayal):} Same-faculty harm receives lower moral-judgment scores than cross-faculty harm.
+  \item \textbf{H2b (Outgroup):} Outgroup perpetrators receive lower moral-judgment scores than ingroup perpetrators.
+  \item \textbf{H3 (Moderation):} The empathy effect is stronger in outgroup cases.
+\end{itemize}
+
+\section{Mathematical Approach and Theoretical Foundations}
+The analysis employs a Two-Limit Tobit model, which is theoretically appropriate for dependent variables that are 
+strictly bounded within a known interval. In this context, moral judgments ($y_{ij}$) are observed on a scale from -9 to 9. 
+The Tobit model assumes the existence of a latent, unobserved preference index ($y^*_{ij}$) that follows a linear relationship:
+
+$$y^*_{ij} = \mathbf{x}_{ij}'\beta + \epsilon_{ij}, \quad \epsilon_{ij} \sim N(0, \sigma^2)$$
+
+The actual observed judgment $y_{ij}$ relates to this latent variable via the censoring transformation:
+
+$$y_{ij} = \max(-9, \min(9, y^*_{ij}))$$
+
+This approach prevents the 'ceiling' and 'floor' effects from biasing the linear coefficients, as would occur in standard OLS regression.
+
+\section{Analysis of Sample Size Impact}
+The statistical validity of our inferences depends on the trade-off between False Positives (Type I error, $\alpha$) 
+and False Negatives (Type II error, $\beta$). Given the clustered nature of our data, sample size impact is not 
+merely a count of observations, but a function of cluster correlation.
+
+\subsubsection{Step-by-Step Sensitivity Analysis}
+To determine the impact of our sample size on our ability to detect effects, we follow these steps:
+
+1. **Calculate the Design Effect (Deff):** As multiple judgments are nested within individuals, we adjust for the Intraclass Correlation (ICC).
+$$Deff = 1 + (m - 1) \times ICC$$
+where $m$ is the average number of scenarios per participant. 
+
+2. **Determine the Effective Sample Size (ESS):** The ESS represents the number of independent observations that would provide the same statistical power as our clustered sample.
+$$ESS = \frac{n_{total}}{Deff}$$
+
+3. **Inference Impact:** A higher ICC reduces the ESS, thereby increasing the Standard Error of our Tobit coefficients. 
+If the ESS is low, our models become 'conservative', increasing the risk of Type II errors (failing to support a hypothesis). 
+By using clustered robust standard errors, we ensure that our p-values acknowledge this reduced information density, 
+protecting the integrity of our Type I error threshold ($\alpha = 0.05$).
+
+Based on the current run, the observed Intraclass Correlation (ICC) is 0.704, with an Effective Sample Size (ESS) of 104.8.
+
+\section{Descriptive Statistics}
+The empathy profile of the sample is visualized in Figure \ref{fig:radar}, showing the average scores across the four IRI latent variables.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_03_empathy_radar.png}
+\caption{IRI Latent Variable Averages (Radar Plot profile).}
+\label{fig:radar}
+\end{figure}
+Judgment severity distributions segmented by experimental conditions are presented in Figure \ref{fig:dist_panels}.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_04_severity_panels.png}
+\caption{Judgment Severity Distribution (Ingroup vs. Outgroup).}
+\label{fig:dist_panels}
+\end{figure}
+
+\section{Bi-variate Statistics}
+The correlation matrix between the psychometric subscales and the mean moral judgment is presented below.
+\begin{table}[H]
+\centering
+\caption{Correlation Matrix: IRI Subscales and Moral Judgment.}
+\label{tab:bivar}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llllll}
+\toprule
+Fantasy & Empathic Concern & Perspective Taking & Personal Distress & Total IRI & Mean Judgment \\
+\midrule
+1.000 & 0.432 & 0.482 & 0.480 & 0.793 & 0.062 \\
+0.432 & 1.000 & 0.454 & 0.641 & 0.799 & -0.003 \\
+0.482 & 0.454 & 1.000 & 0.301 & 0.744 & 0.162 \\
+0.480 & 0.641 & 0.301 & 1.000 & 0.756 & -0.009 \\
+0.793 & 0.799 & 0.744 & 0.756 & 1.000 & 0.075 \\
+0.062 & -0.003 & 0.162 & -0.009 & 0.075 & 1.000 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+Visual representations of these relationships are provided in Figure \ref{fig:bivar_scatters}.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_05_bivariate_scatters.png}
+\caption{Bivariate Scatters: IRI Scales vs. Mean Judgment.}
+\label{fig:bivar_scatters}
+\end{figure}
+
+\section{Hypothesis Validation and Results}
+Detailed coefficient tables for each Tobit model, coupled with natural language interpretive narratives and non-parametric normality diagnostic tests, are provided below.
+
+\subsection{H1: Empathy Effect}
+This section evaluates the primary effect of empathy on moral judgments.
+\subsubsection{Model A: Composite Empathy}
+\begin{table}[H]
+\centering
+\caption{H1 Model A: Composite Empathy Regression Coefficients.}
+\label{tab:h1_a}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & -9.592 & 6.858 & 0.162 \\
+Empathy composite (average) & -1.668 & 2.337 & 0.475 \\
+Outgroup perpetrator (ref = ingroup) & -2.077 & 2.725 & 0.446 \\
+Control label hidden (ref = ingroup) & -2.658 & 3.346 & 0.427 \\
+Victim outgroup (ref = ingroup) & 0.278 & 0.910 & 0.760 \\
+Observer role (ref = victim) & 0.545 & 0.798 & 0.494 \\
+Engineering participant (ref = humanities) & 0.188 & 1.556 & 0.904 \\
+Man (ref = woman) & -1.765 & 1.744 & 0.312 \\
+Age & 0.478 & 0.241 & 0.047 \\
+Socioeconomic status & -0.247 & 0.706 & 0.726 \\
+Negotiator 2 (ref = negotiator 1) & 0.124 & 0.458 & 0.787 \\
+Empathy x outgroup perpetrator & 0.885 & 1.245 & 0.477 \\
+Empathy x control label hidden & 1.578 & 1.589 & 0.321 \\
+Scale variance (log) & 1.993 & 0.096 & 0.000 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The **Intercept** represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at -9.592 (p=0.162). The term **iri\_total** (representing the average composite of empathetic propensity across the participant) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.668**. The p-value of 0.475 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup** (representing whether the perpetrator belonged to a faculty different from the participant (Outgroup)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-2.077**. The p-value of 0.446 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_control** (representing whether the perpetrator's organizational alignment was explicitly hidden (Control label)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-2.658**. The p-value of 0.427 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **victim\_outgroup** (representing whether the victim was affiliated with a different faculty than the participant) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.278**. The p-value of 0.760 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **role\_observer** (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.545**. The p-value of 0.494 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **participant\_engineering** (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.188**. The p-value of 0.904 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **sex\_man** (representing whether the participant identified as a man instead of a woman) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.765**. The p-value of 0.312 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **age** (representing the participant's biological age in years) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.478**. The p-value of 0.047 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term **economic\_status** (representing the socioeconomic contextual stratum of the participant's background) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.247**. The p-value of 0.726 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_total:perp\_outgroup** (representing the combined interaction effect between overall empathy and an outgroup perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.885**. The p-value of 0.477 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_total:perp\_control** (representing the combined interaction effect between overall empathy and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **1.578**. The p-value of 0.321 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The **Log(scale)** is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.993, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.934, p = 8.055e-18). Consequently, standard clustered errors might be inefficient. For maximum robustness in future analyses, we recommend exploring a non-parametric alternative such as Censored Least Absolute Deviations (CLAD) or specifying bootstrapped standard errors for the Tobit estimator.
+
+\subsubsection{Model B: Separated Empathy Constructs}
+\begin{table}[H]
+\centering
+\caption{H1 Model B: Separated Constructs Regression Coefficients.}
+\label{tab:h1_b}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & -11.669 & 7.497 & 0.120 \\
+Empathy: Fantasy scale & -1.347 & 1.766 & 0.446 \\
+Empathy: Empathic concern & -1.294 & 2.639 & 0.624 \\
+Empathy: Perspective taking & 2.558 & 1.815 & 0.159 \\
+Empathy: Personal distress & -1.397 & 1.866 & 0.454 \\
+Outgroup perpetrator (ref = ingroup) & -0.751 & 3.182 & 0.813 \\
+Control label hidden (ref = ingroup) & -1.828 & 4.018 & 0.649 \\
+Victim outgroup (ref = ingroup) & 0.180 & 0.880 & 0.838 \\
+Observer role (ref = victim) & 0.425 & 0.783 & 0.587 \\
+Engineering participant (ref = humanities) & 0.530 & 1.660 & 0.749 \\
+Man (ref = woman) & -1.794 & 1.825 & 0.325 \\
+Age & 0.489 & 0.233 & 0.036 \\
+Socioeconomic status & -0.300 & 0.688 & 0.663 \\
+Negotiator 2 (ref = negotiator 1) & 0.140 & 0.452 & 0.757 \\
+Fantasy x outgroup perpetrator & -0.571 & 1.157 & 0.622 \\
+Empathic concern x outgroup perpetrator & -0.959 & 1.289 & 0.457 \\
+Perspective taking x outgroup perpetrator & -0.953 & 1.145 & 0.405 \\
+Personal distress x outgroup perpetrator & 3.287 & 1.317 & 0.013 \\
+Fantasy x control label hidden & -0.107 & 1.477 & 0.942 \\
+Empathic concern x control label hidden & 0.102 & 1.568 & 0.948 \\
+Perspective taking x control label hidden & 0.357 & 1.836 & 0.846 \\
+Personal distress x control label hidden & 0.840 & 1.247 & 0.501 \\
+Scale variance (log) & 1.976 & 0.093 & 0.000 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The **Intercept** represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at -11.669 (p=0.120). The term **iri\_fs** (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.347**. The p-value of 0.446 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_ec** (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.294**. The p-value of 0.624 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pt** (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **2.558**. The p-value of 0.159 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pd** (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.397**. The p-value of 0.454 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup** (representing whether the perpetrator belonged to a faculty different from the participant (Outgroup)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.751**. The p-value of 0.813 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_control** (representing whether the perpetrator's organizational alignment was explicitly hidden (Control label)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.828**. The p-value of 0.649 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **victim\_outgroup** (representing whether the victim was affiliated with a different faculty than the participant) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.180**. The p-value of 0.838 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **role\_observer** (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.425**. The p-value of 0.587 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **participant\_engineering** (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.530**. The p-value of 0.749 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **sex\_man** (representing whether the participant identified as a man instead of a woman) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.794**. The p-value of 0.325 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **age** (representing the participant's biological age in years) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.489**. The p-value of 0.036 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term **economic\_status** (representing the socioeconomic contextual stratum of the participant's background) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.300**. The p-value of 0.663 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_fs:perp\_outgroup** (representing the combined interaction effect between the Fantasy scale and an outgroup perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.571**. The p-value of 0.622 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_ec:perp\_outgroup** (representing the combined interaction effect between Empathic Concern and an outgroup perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.959**. The p-value of 0.457 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pt:perp\_outgroup** (representing the combined interaction effect between Perspective Taking and an outgroup perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.953**. The p-value of 0.405 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pd:perp\_outgroup** (representing the combined interaction effect between Personal Distress and an outgroup perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **3.287**. The p-value of 0.013 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term **iri\_fs:perp\_control** (representing the combined interaction effect between the Fantasy scale and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.107**. The p-value of 0.942 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_ec:perp\_control** (representing the combined interaction effect between Empathic Concern and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.102**. The p-value of 0.948 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pt:perp\_control** (representing the combined interaction effect between Perspective Taking and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.357**. The p-value of 0.846 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pd:perp\_control** (representing the combined interaction effect between Personal Distress and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.840**. The p-value of 0.501 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The **Log(scale)** is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.976, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.951, p = 3.347e-15). Consequently, standard clustered errors might be inefficient. For maximum robustness in future analyses, we recommend exploring a non-parametric alternative such as Censored Least Absolute Deviations (CLAD) or specifying bootstrapped standard errors for the Tobit estimator.
+
+
+\subsection{H2a: Ingroup Betrayal}
+This section tests whether harm directed at the perpetrator's own group is judged differently.
+\subsubsection{Model A: Composite Empathy Control}
+\begin{table}[H]
+\centering
+\caption{H2a Model A: Composite Empathy Regression Coefficients.}
+\label{tab:h2a_a}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & -11.054 & 6.721 & 0.100 \\
+Negotiator and victim share faculty & 0.081 & 0.802 & 0.920 \\
+Empathy composite (average) & -1.552 & 2.327 & 0.505 \\
+Outgroup perpetrator (ref = ingroup) & -0.004 & 0.707 & 0.995 \\
+Victim outgroup (ref = ingroup) & 0.465 & 1.236 & 0.707 \\
+Observer role (ref = victim) & 0.564 & 0.840 & 0.502 \\
+Engineering participant (ref = humanities) & -0.526 & 1.602 & 0.743 \\
+Man (ref = woman) & -2.123 & 1.867 & 0.256 \\
+Age & 0.541 & 0.227 & 0.017 \\
+Socioeconomic status & -0.070 & 0.722 & 0.923 \\
+Negotiator 2 (ref = negotiator 1) & 0.147 & 0.597 & 0.806 \\
+Scale variance (log) & 2.006 & 0.101 & 0.000 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The **Intercept** represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at -11.054 (p=0.100). The term **same\_group\_harm** (representing whether the harm inflicted by the perpetrator targeted a victim from their own faculty (Ingroup Betrayal)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.081**. The p-value of 0.920 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_total** (representing the average composite of empathetic propensity across the participant) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.552**. The p-value of 0.505 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup** (representing whether the perpetrator belonged to a faculty different from the participant (Outgroup)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.004**. The p-value of 0.995 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **victim\_outgroup** (representing whether the victim was affiliated with a different faculty than the participant) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.465**. The p-value of 0.707 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **role\_observer** (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.564**. The p-value of 0.502 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **participant\_engineering** (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.526**. The p-value of 0.743 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **sex\_man** (representing whether the participant identified as a man instead of a woman) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-2.123**. The p-value of 0.256 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **age** (representing the participant's biological age in years) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.541**. The p-value of 0.017 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term **economic\_status** (representing the socioeconomic contextual stratum of the participant's background) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.070**. The p-value of 0.923 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The **Log(scale)** is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 2.006, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.932, p = 2.246e-14). Consequently, standard clustered errors might be inefficient. For maximum robustness in future analyses, we recommend exploring a non-parametric alternative such as Censored Least Absolute Deviations (CLAD) or specifying bootstrapped standard errors for the Tobit estimator.
+
+\subsubsection{Model B: Separated Construct Controls}
+\begin{table}[H]
+\centering
+\caption{H2a Model B: Separated Constructs Regression Coefficients.}
+\label{tab:h2a_b}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & -12.446 & 7.706 & 0.106 \\
+Negotiator and victim share faculty & 0.125 & 0.819 & 0.879 \\
+Empathy: Fantasy scale & -1.818 & 1.800 & 0.312 \\
+Empathy: Empathic concern & -1.449 & 2.800 & 0.605 \\
+Empathy: Perspective taking & 1.893 & 1.716 & 0.270 \\
+Empathy: Personal distress & -0.019 & 1.707 & 0.991 \\
+Outgroup perpetrator (ref = ingroup) & 0.129 & 0.678 & 0.849 \\
+Victim outgroup (ref = ingroup) & 0.501 & 1.211 & 0.679 \\
+Observer role (ref = victim) & 0.425 & 0.827 & 0.607 \\
+Engineering participant (ref = humanities) & -0.197 & 1.746 & 0.910 \\
+Man (ref = woman) & -2.103 & 2.028 & 0.300 \\
+Age & 0.547 & 0.225 & 0.015 \\
+Socioeconomic status & -0.186 & 0.729 & 0.798 \\
+Negotiator 2 (ref = negotiator 1) & 0.053 & 0.564 & 0.925 \\
+Scale variance (log) & 1.998 & 0.099 & 0.000 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The **Intercept** represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at -12.446 (p=0.106). The term **same\_group\_harm** (representing whether the harm inflicted by the perpetrator targeted a victim from their own faculty (Ingroup Betrayal)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.125**. The p-value of 0.879 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_fs** (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.818**. The p-value of 0.312 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_ec** (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.449**. The p-value of 0.605 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pt** (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **1.893**. The p-value of 0.270 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pd** (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.019**. The p-value of 0.991 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup** (representing whether the perpetrator belonged to a faculty different from the participant (Outgroup)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.129**. The p-value of 0.849 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **victim\_outgroup** (representing whether the victim was affiliated with a different faculty than the participant) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.501**. The p-value of 0.679 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **role\_observer** (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.425**. The p-value of 0.607 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **participant\_engineering** (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.197**. The p-value of 0.910 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **sex\_man** (representing whether the participant identified as a man instead of a woman) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-2.103**. The p-value of 0.300 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **age** (representing the participant's biological age in years) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.547**. The p-value of 0.015 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term **economic\_status** (representing the socioeconomic contextual stratum of the participant's background) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.186**. The p-value of 0.798 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The **Log(scale)** is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.998, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.943, p = 6.339e-13). Consequently, standard clustered errors might be inefficient. For maximum robustness in future analyses, we recommend exploring a non-parametric alternative such as Censored Least Absolute Deviations (CLAD) or specifying bootstrapped standard errors for the Tobit estimator.
+
+
+\subsection{H2b: Outgroup Derogation}
+This section examines the difference in judgment when the perpetrator is an outgroup member compared to an ingroup member.
+\subsubsection{Model A: Composite Empathy Control}
+\begin{table}[H]
+\centering
+\caption{H2b Model A: Composite Empathy Regression Coefficients.}
+\label{tab:h2b_a}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & -9.592 & 6.858 & 0.162 \\
+Outgroup perpetrator (ref = ingroup) & -2.077 & 2.725 & 0.446 \\
+Empathy composite (average) & -1.668 & 2.337 & 0.475 \\
+Control label hidden (ref = ingroup) & -2.658 & 3.346 & 0.427 \\
+Victim outgroup (ref = ingroup) & 0.278 & 0.910 & 0.760 \\
+Observer role (ref = victim) & 0.545 & 0.798 & 0.494 \\
+Engineering participant (ref = humanities) & 0.188 & 1.556 & 0.904 \\
+Man (ref = woman) & -1.765 & 1.744 & 0.312 \\
+Age & 0.478 & 0.241 & 0.047 \\
+Socioeconomic status & -0.247 & 0.706 & 0.726 \\
+Negotiator 2 (ref = negotiator 1) & 0.124 & 0.458 & 0.787 \\
+perp\_outgroup:iri\_total & 0.885 & 1.245 & 0.477 \\
+Empathy x control label hidden & 1.578 & 1.589 & 0.321 \\
+Scale variance (log) & 1.993 & 0.096 & 0.000 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The **Intercept** represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at -9.592 (p=0.162). The term **perp\_outgroup** (representing whether the perpetrator belonged to a faculty different from the participant (Outgroup)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-2.077**. The p-value of 0.446 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_total** (representing the average composite of empathetic propensity across the participant) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.668**. The p-value of 0.475 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_control** (representing whether the perpetrator's organizational alignment was explicitly hidden (Control label)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-2.658**. The p-value of 0.427 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **victim\_outgroup** (representing whether the victim was affiliated with a different faculty than the participant) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.278**. The p-value of 0.760 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **role\_observer** (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.545**. The p-value of 0.494 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **participant\_engineering** (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.188**. The p-value of 0.904 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **sex\_man** (representing whether the participant identified as a man instead of a woman) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.765**. The p-value of 0.312 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **age** (representing the participant's biological age in years) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.478**. The p-value of 0.047 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term **economic\_status** (representing the socioeconomic contextual stratum of the participant's background) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.247**. The p-value of 0.726 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup:iri\_total** (representing the term 'perp\_outgroup:iri\_total') has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.885**. The p-value of 0.477 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_total:perp\_control** (representing the combined interaction effect between overall empathy and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **1.578**. The p-value of 0.321 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The **Log(scale)** is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.993, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.934, p = 8.055e-18). Consequently, standard clustered errors might be inefficient. For maximum robustness in future analyses, we recommend exploring a non-parametric alternative such as Censored Least Absolute Deviations (CLAD) or specifying bootstrapped standard errors for the Tobit estimator.
+
+\subsubsection{Model B: Separated Construct Controls}
+\begin{table}[H]
+\centering
+\caption{H2b Model B: Separated Constructs Regression Coefficients.}
+\label{tab:h2b_b}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & -11.669 & 7.497 & 0.120 \\
+Outgroup perpetrator (ref = ingroup) & -0.751 & 3.182 & 0.813 \\
+Empathy: Fantasy scale & -1.347 & 1.766 & 0.446 \\
+Empathy: Empathic concern & -1.294 & 2.639 & 0.624 \\
+Empathy: Perspective taking & 2.558 & 1.815 & 0.159 \\
+Empathy: Personal distress & -1.397 & 1.866 & 0.454 \\
+Control label hidden (ref = ingroup) & -1.828 & 4.018 & 0.649 \\
+Victim outgroup (ref = ingroup) & 0.180 & 0.880 & 0.838 \\
+Observer role (ref = victim) & 0.425 & 0.783 & 0.587 \\
+Engineering participant (ref = humanities) & 0.530 & 1.660 & 0.749 \\
+Man (ref = woman) & -1.794 & 1.825 & 0.325 \\
+Age & 0.489 & 0.233 & 0.036 \\
+Socioeconomic status & -0.300 & 0.688 & 0.663 \\
+Negotiator 2 (ref = negotiator 1) & 0.140 & 0.452 & 0.757 \\
+perp\_outgroup:iri\_fs & -0.571 & 1.157 & 0.622 \\
+perp\_outgroup:iri\_ec & -0.959 & 1.289 & 0.457 \\
+perp\_outgroup:iri\_pt & -0.953 & 1.145 & 0.405 \\
+perp\_outgroup:iri\_pd & 3.287 & 1.317 & 0.013 \\
+Fantasy x control label hidden & -0.107 & 1.477 & 0.942 \\
+Empathic concern x control label hidden & 0.102 & 1.568 & 0.948 \\
+Perspective taking x control label hidden & 0.357 & 1.836 & 0.846 \\
+Personal distress x control label hidden & 0.840 & 1.247 & 0.501 \\
+Scale variance (log) & 1.976 & 0.093 & 0.000 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The **Intercept** represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at -11.669 (p=0.120). The term **perp\_outgroup** (representing whether the perpetrator belonged to a faculty different from the participant (Outgroup)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.751**. The p-value of 0.813 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_fs** (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.347**. The p-value of 0.446 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_ec** (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.294**. The p-value of 0.624 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pt** (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **2.558**. The p-value of 0.159 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pd** (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.397**. The p-value of 0.454 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_control** (representing whether the perpetrator's organizational alignment was explicitly hidden (Control label)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.828**. The p-value of 0.649 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **victim\_outgroup** (representing whether the victim was affiliated with a different faculty than the participant) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.180**. The p-value of 0.838 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **role\_observer** (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.425**. The p-value of 0.587 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **participant\_engineering** (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.530**. The p-value of 0.749 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **sex\_man** (representing whether the participant identified as a man instead of a woman) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.794**. The p-value of 0.325 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **age** (representing the participant's biological age in years) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.489**. The p-value of 0.036 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term **economic\_status** (representing the socioeconomic contextual stratum of the participant's background) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.300**. The p-value of 0.663 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup:iri\_fs** (representing the term 'perp\_outgroup:iri\_fs') has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.571**. The p-value of 0.622 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup:iri\_ec** (representing the term 'perp\_outgroup:iri\_ec') has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.959**. The p-value of 0.457 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup:iri\_pt** (representing the term 'perp\_outgroup:iri\_pt') has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.953**. The p-value of 0.405 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup:iri\_pd** (representing the term 'perp\_outgroup:iri\_pd') has an estimated \$\textbackslash\{\}beta\$ coefficient of **3.287**. The p-value of 0.013 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term **iri\_fs:perp\_control** (representing the combined interaction effect between the Fantasy scale and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.107**. The p-value of 0.942 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_ec:perp\_control** (representing the combined interaction effect between Empathic Concern and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.102**. The p-value of 0.948 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pt:perp\_control** (representing the combined interaction effect between Perspective Taking and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.357**. The p-value of 0.846 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pd:perp\_control** (representing the combined interaction effect between Personal Distress and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.840**. The p-value of 0.501 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The **Log(scale)** is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.976, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.951, p = 3.347e-15). Consequently, standard clustered errors might be inefficient. For maximum robustness in future analyses, we recommend exploring a non-parametric alternative such as Censored Least Absolute Deviations (CLAD) or specifying bootstrapped standard errors for the Tobit estimator.
+
+
+\subsection{H3: Interaction Moderation}
+This section tests the interaction and moderation between absolute empathy dimensions and the outgroup status of the perpetrator.
+\subsubsection{Model A: Composite Empathy Interaction}
+\begin{table}[H]
+\centering
+\caption{H3 Model A: Composite Empathy Regression Coefficients.}
+\label{tab:h3_a}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & -9.592 & 6.858 & 0.162 \\
+Empathy composite (average) & -1.668 & 2.337 & 0.475 \\
+Outgroup perpetrator (ref = ingroup) & -2.077 & 2.725 & 0.446 \\
+Control label hidden (ref = ingroup) & -2.658 & 3.346 & 0.427 \\
+Victim outgroup (ref = ingroup) & 0.278 & 0.910 & 0.760 \\
+Observer role (ref = victim) & 0.545 & 0.798 & 0.494 \\
+Engineering participant (ref = humanities) & 0.188 & 1.556 & 0.904 \\
+Man (ref = woman) & -1.765 & 1.744 & 0.312 \\
+Age & 0.478 & 0.241 & 0.047 \\
+Socioeconomic status & -0.247 & 0.706 & 0.726 \\
+Negotiator 2 (ref = negotiator 1) & 0.124 & 0.458 & 0.787 \\
+Empathy x outgroup perpetrator & 0.885 & 1.245 & 0.477 \\
+Empathy x control label hidden & 1.578 & 1.589 & 0.321 \\
+Scale variance (log) & 1.993 & 0.096 & 0.000 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The **Intercept** represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at -9.592 (p=0.162). The term **iri\_total** (representing the average composite of empathetic propensity across the participant) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.668**. The p-value of 0.475 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup** (representing whether the perpetrator belonged to a faculty different from the participant (Outgroup)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-2.077**. The p-value of 0.446 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_control** (representing whether the perpetrator's organizational alignment was explicitly hidden (Control label)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-2.658**. The p-value of 0.427 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **victim\_outgroup** (representing whether the victim was affiliated with a different faculty than the participant) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.278**. The p-value of 0.760 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **role\_observer** (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.545**. The p-value of 0.494 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **participant\_engineering** (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.188**. The p-value of 0.904 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **sex\_man** (representing whether the participant identified as a man instead of a woman) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.765**. The p-value of 0.312 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **age** (representing the participant's biological age in years) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.478**. The p-value of 0.047 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term **economic\_status** (representing the socioeconomic contextual stratum of the participant's background) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.247**. The p-value of 0.726 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_total:perp\_outgroup** (representing the combined interaction effect between overall empathy and an outgroup perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.885**. The p-value of 0.477 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_total:perp\_control** (representing the combined interaction effect between overall empathy and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **1.578**. The p-value of 0.321 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The **Log(scale)** is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.993, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.934, p = 8.055e-18). Consequently, standard clustered errors might be inefficient. For maximum robustness in future analyses, we recommend exploring a non-parametric alternative such as Censored Least Absolute Deviations (CLAD) or specifying bootstrapped standard errors for the Tobit estimator.
+
+\subsubsection{Model B: Separated Constructs Interaction}
+\begin{table}[H]
+\centering
+\caption{H3 Model B: Separated Constructs Regression Coefficients.}
+\label{tab:h3_b}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & -11.669 & 7.497 & 0.120 \\
+Empathy: Fantasy scale & -1.347 & 1.766 & 0.446 \\
+Outgroup perpetrator (ref = ingroup) & -0.751 & 3.182 & 0.813 \\
+Empathy: Empathic concern & -1.294 & 2.639 & 0.624 \\
+Empathy: Perspective taking & 2.558 & 1.815 & 0.159 \\
+Empathy: Personal distress & -1.397 & 1.866 & 0.454 \\
+Control label hidden (ref = ingroup) & -1.828 & 4.018 & 0.649 \\
+Victim outgroup (ref = ingroup) & 0.180 & 0.880 & 0.838 \\
+Observer role (ref = victim) & 0.425 & 0.783 & 0.587 \\
+Engineering participant (ref = humanities) & 0.530 & 1.660 & 0.749 \\
+Man (ref = woman) & -1.794 & 1.825 & 0.325 \\
+Age & 0.489 & 0.233 & 0.036 \\
+Socioeconomic status & -0.300 & 0.688 & 0.663 \\
+Negotiator 2 (ref = negotiator 1) & 0.140 & 0.452 & 0.757 \\
+Fantasy x outgroup perpetrator & -0.571 & 1.157 & 0.622 \\
+perp\_outgroup:iri\_ec & -0.959 & 1.289 & 0.457 \\
+perp\_outgroup:iri\_pt & -0.953 & 1.145 & 0.405 \\
+perp\_outgroup:iri\_pd & 3.287 & 1.317 & 0.013 \\
+Fantasy x control label hidden & -0.107 & 1.477 & 0.942 \\
+Empathic concern x control label hidden & 0.102 & 1.568 & 0.948 \\
+Perspective taking x control label hidden & 0.357 & 1.836 & 0.846 \\
+Personal distress x control label hidden & 0.840 & 1.247 & 0.501 \\
+Scale variance (log) & 1.976 & 0.093 & 0.000 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The **Intercept** represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at -11.669 (p=0.120). The term **iri\_fs** (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.347**. The p-value of 0.446 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup** (representing whether the perpetrator belonged to a faculty different from the participant (Outgroup)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.751**. The p-value of 0.813 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_ec** (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.294**. The p-value of 0.624 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pt** (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **2.558**. The p-value of 0.159 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pd** (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.397**. The p-value of 0.454 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_control** (representing whether the perpetrator's organizational alignment was explicitly hidden (Control label)) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.828**. The p-value of 0.649 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **victim\_outgroup** (representing whether the victim was affiliated with a different faculty than the participant) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.180**. The p-value of 0.838 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **role\_observer** (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.425**. The p-value of 0.587 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **participant\_engineering** (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.530**. The p-value of 0.749 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **sex\_man** (representing whether the participant identified as a man instead of a woman) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-1.794**. The p-value of 0.325 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **age** (representing the participant's biological age in years) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.489**. The p-value of 0.036 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term **economic\_status** (representing the socioeconomic contextual stratum of the participant's background) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.300**. The p-value of 0.663 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_fs:perp\_outgroup** (representing the combined interaction effect between the Fantasy scale and an outgroup perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.571**. The p-value of 0.622 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup:iri\_ec** (representing the term 'perp\_outgroup:iri\_ec') has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.959**. The p-value of 0.457 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup:iri\_pt** (representing the term 'perp\_outgroup:iri\_pt') has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.953**. The p-value of 0.405 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **perp\_outgroup:iri\_pd** (representing the term 'perp\_outgroup:iri\_pd') has an estimated \$\textbackslash\{\}beta\$ coefficient of **3.287**. The p-value of 0.013 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term **iri\_fs:perp\_control** (representing the combined interaction effect between the Fantasy scale and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **-0.107**. The p-value of 0.942 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_ec:perp\_control** (representing the combined interaction effect between Empathic Concern and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.102**. The p-value of 0.948 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pt:perp\_control** (representing the combined interaction effect between Perspective Taking and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.357**. The p-value of 0.846 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term **iri\_pd:perp\_control** (representing the combined interaction effect between Personal Distress and an unidentified perpetrator) has an estimated \$\textbackslash\{\}beta\$ coefficient of **0.840**. The p-value of 0.501 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The **Log(scale)** is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.976, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.951, p = 3.347e-15). Consequently, standard clustered errors might be inefficient. For maximum robustness in future analyses, we recommend exploring a non-parametric alternative such as Censored Least Absolute Deviations (CLAD) or specifying bootstrapped standard errors for the Tobit estimator.
+
+
+\section{Discussion and Limitations}
+While the Tobit model corrects for bounded outcomes, several limitations remain. First, the clustering logic assumes  independence between participants, which may be violated by shared institutional affiliations. Second, we assume a  normal distribution for the latent errors $\epsilon_{ij}$; departures from normality could affect the consistency of  the maximum likelihood estimators. Finally, the use of unstandardized averages for empathy assumes  a linear mapping between the psychometric scale and the latent moral preference.
+
+\section{Conclusion}
+Based on the nested interval-censored maximum likelihood estimations, the structural effects of empathy, group dynamics, and betrayal have been documented alongside their theoretical assumptions above.
+\end{document}

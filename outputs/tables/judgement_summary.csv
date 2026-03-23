@@ -1,8 +1,6 @@
 "Metric","Value"
-"Negotiator-level judgments in analysis sample",1160
-"Harmful decisions in primary model sample",569
-"Acceptance rate in analysis sample",0.49051724137931
-"Mean raw judgment for rejected decisions",6.21150592216582
-"Mean raw judgment for accepted decisions",-3.19156414762742
-"Left-censored share at -9 in accepted sample",0.298769771528998
-"Right-censored share at 9 in accepted sample",0.0474516695957821
+"Judgments in analysis sample",1540
+"Harmful decisions in primary model sample",755
+"Acceptance rate",0.49025974025974
+"Left-censored share at -9",0.300662251655629
+"Right-censored share at 9",0.0317880794701987

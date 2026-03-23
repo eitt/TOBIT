@@ -1,0 +1,2 @@
+"Model","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2"
+"H2a_Betrayal_Tobit",503,77,160,18,-1277.90612427513,2579.81224855026,0.0103625754505754

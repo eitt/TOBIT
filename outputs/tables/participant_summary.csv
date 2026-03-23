@@ -1,12 +1,9 @@
 "Metric","Value"
-"Participants in workbook",63
-"Participants passing both attention checks",58
-"Participants in primary analysis",58
-"Mean age (analysis sample)",20.2931034482759
-"SD age (analysis sample)",4.8774764135308
-"Women in analysis sample",27
-"Men in analysis sample",31
-"Humanities in analysis sample",27
-"Engineering in analysis sample",31
-"Victim-first treatment in analysis sample",29
-"Observer-first treatment in analysis sample",29
+"Participants in workbook",86
+"Participants passing attention checks",81
+"Participants in primary analysis",77
+"Mean age",20.012987012987
+"Women in sample",30
+"Men in sample",47
+"Humanities",28
+"Engineering",49

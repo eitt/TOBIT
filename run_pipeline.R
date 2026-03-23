@@ -1,20 +1,65 @@
-args <- commandArgs(trailingOnly = TRUE) # Read optional command-line arguments passed to the script.
-project_root <- if (length(args) >= 1L) args[[1]] else "." # Use the supplied project folder, or default to the current directory.
+# run_pipeline.R
+# Main Orchestrator Script for the TOBIT Pipeline
+# Executes the function-oriented project pipeline sequentially.
 
-source(file.path(project_root, "R", "pipeline_functions.R")) # Load the reusable functions that score scales, fit Tobit models, and export reports.
+message("==========================================")
+message("Starting the TOBIT Analysis Pipeline")
+message("--- Checking Environmental Requirements ---")
 
-results <- run_full_pipeline(project_root) # Execute the full statistical workflow from raw workbook to fitted models and report files.
+# --- User Configuration ---
+# Choose which dataset to analyze: "FLORIDA", "BUC", or "BOTH"
+dataset_mode <- "BUC" 
+options(tobit.dataset_mode = dataset_mode)
 
-cat("Pipeline completed.\n") # Signal that the script reached the end without an error.
-cat("Markdown report:", results$paths$report_md, "\n") # Report the main human-readable output path first.
-if (isTRUE(results$word_exported)) {
-  cat("Word report:", results$paths$report_docx, "\n") # Pandoc was available, so the Markdown report was converted to Word.
-} else {
-  cat("Word report was not created because Pandoc was not found.\n") # Missing Pandoc prevents document conversion but not the analysis itself.
+# Ensure project structure & dependencies
+source("R/00_config.R")
+paths <- get_project_paths()
+
+if (!ensure_pipeline_dependencies()) {
+  stop("Environmental requirements not met. Please check the logs above.", call. = FALSE)
 }
-cat("LaTeX report:", results$paths$report_tex, "\n") # The LaTeX source is always written so the report can be compiled later if needed.
-if (isTRUE(results$pdf_exported)) {
-  cat("PDF report:", results$paths$report_pdf, "\n") # pdflatex succeeded, so the publication-style PDF is available.
-} else {
-  cat("PDF report was not created because pdflatex was not found or LaTeX compilation failed.\n") # Separate the analysis result from optional rendering failures.
+message("--- Preparation Complete ---")
+message("==========================================")
+
+# Core Pipeline Sequencer
+pipeline_scripts <- c(
+  "R/01_import_data.R",
+  "R/02_clean_data.R",
+  "R/03_transform_data.R",
+  "R/04_generate_variables.R",
+  "R/05_descriptive_statistics.R"
+)
+
+for (script in pipeline_scripts) {
+  message(sprintf("\n--- Running %s ---", script))
+  source(script)
 }
+
+# Run Hypothesis Tests
+hypothesis_scripts <- c(
+  "R/hypotheses/H1_test.R",
+  "R/hypotheses/H2a_test.R",
+  "R/hypotheses/H2b_test.R",
+  "R/hypotheses/H3_test.R"
+)
+
+message("\n==========================================")
+message("Starting Hypothesis Testing")
+message("==========================================")
+
+for (script in hypothesis_scripts) {
+  message(sprintf("\n--- Running %s ---", script))
+  source(script)
+}
+
+message("\n==========================================")
+message("Starting Dynamic Report Generation")
+message("==========================================")
+
+source("R/06_generate_report.R")
+
+message("\n==========================================")
+message("Pipeline Finished Successfully!")
+message("Check the 'outputs/' directory for tables, figures, models, and generated reports.")
+message("Check the 'data/processed/' directory for the clean analytical datasets.")
+message("==========================================")
