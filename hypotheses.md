@@ -133,7 +133,11 @@ where \( \theta \in \{\beta_1, \alpha_2, \beta_2, \beta_5\} \), and the theoreti
 
 **Method and Operationalization**
 
-Participants are undergraduate students from the Universidad Industrial de Santander in Colombia. Each participant evaluates ten previously recorded bribery-game scenarios and rates each negotiator on the bounded `-9` to `9` moral-judgment scale. Five evaluations occur in the victim role and five in the observer role, with role order determined by the treatment sequence.
+Participants are undergraduate students from the Universidad Industrial de Santander in Colombia. Each participant evaluates ten previously recorded bribery-game scenarios and rates each negotiator on the bounded `-9` to `9` moral-judgment scale. Five evaluations occur in the victim role and five in the observer role, with role order determined by the treatment sequence. The column treatment indicates the treatment condition for each participant. The value 1 2 and 3 indicate the treatment condition for each participant. 
+- `1` = Victim first, observer second
+- `2` = Observer first, victim second
+- `0` = Drop these observations and record teh process during the EDA
+Thus, create a varaible called role_s{i} where i indicate the stage,  generating 9 variables. As an example, if treatment = 1, and stage between 1 and 5, then the role is = 2, and between stage 6 and 10, then the role is = 1. Now if tratment = 2, and stage between 1 and 5, then the role is = 1, and between stage 6 and 10, then the role is = 2. (generate the needed variables)
 
 The dataset includes:
 

@@ -168,12 +168,12 @@ python_excel_fallback_available <- function() {
     return(FALSE)
   }
 
-  check_output <- system2(
+  check_output <- suppressWarnings(system2(
     command = python_cmd,
     args = c("-c", shQuote("import pandas, openpyxl")),
     stdout = TRUE,
     stderr = TRUE
-  )
+  ))
 
   status <- attr(check_output, "status")
   is.null(status) || identical(status, 0L)
@@ -181,8 +181,11 @@ python_excel_fallback_available <- function() {
 
 ensure_pipeline_dependencies <- function() {
   install_r_package_if_missing("survival", required = TRUE)
+  install_r_package_if_missing("AER", required = FALSE)
+  install_r_package_if_missing("VGAM", required = FALSE)
+  install_r_package_if_missing("censReg", required = FALSE)
 
-  readxl_available <- install_r_package_if_missing("readxl", required = FALSE)
+  readxl_available <- install_r_package_if_missing("readxl", required = TRUE)
   if (!readxl_available && !python_excel_fallback_available()) {
     stop(
       "The pipeline needs either the R package 'readxl' or a Python fallback with both 'pandas' and 'openpyxl'.",
@@ -190,13 +193,36 @@ ensure_pipeline_dependencies <- function() {
     )
   }
 
+  pandoc_path <- find_pandoc_path()
+  if (!nzchar(pandoc_path) && .Platform$OS.type == "windows") {
+    if (install_r_package_if_missing("installr", required = FALSE)) {
+      message("Attempting to install Pandoc via installr...")
+      try(installr::install.pandoc(), silent = TRUE)
+      pandoc_path <- find_pandoc_path()
+    }
+  }
+
+  pdflatex_path <- find_pdflatex_path()
+  if (!nzchar(pdflatex_path)) {
+    if (install_r_package_if_missing("tinytex", required = FALSE)) {
+      if (!tinytex::is_tinytex()) {
+        message("Attempting to install TinyTeX for PDF generation...")
+        try(tinytex::install_tinytex(force = TRUE), silent = TRUE)
+      }
+      pdflatex_path <- find_pdflatex_path()
+      if (!nzchar(pdflatex_path) && tinytex::is_tinytex()) {
+        pdflatex_path <- "tinytex_fallback"
+      }
+    }
+  }
+
   invisible(
     list(
       survival = TRUE,
       readxl = readxl_available,
       python_excel_fallback = python_excel_fallback_available(),
-      pandoc = nzchar(find_pandoc_path()),
-      pdflatex = nzchar(find_pdflatex_path())
+      pandoc = nzchar(pandoc_path),
+      pdflatex = nzchar(pdflatex_path)
     )
   )
 }
@@ -529,28 +555,22 @@ score_iri <- function(df) {
     )
   }
 
+  for (i in 1:10) {
+    scored[[sprintf("role_s%d", i)]] <- ifelse(
+      scored$treatment == 1,
+      ifelse(i <= 5, 2, 1),
+      ifelse(scored$treatment == 2,
+             ifelse(i <= 5, 1, 2),
+             NA_real_)
+    )
+  }
+
   scored$sex_label <- ifelse(scored$sex == 2, "Man", "Woman") # Human-readable labels make summaries and plots easier to read.
   scored$faculty_player_label <- ifelse(scored$faculty_player == 2, "Engineering", "Humanities")
   scored$treatment_label <- ifelse(scored$treatment == 2, "Observer first", "Victim first")
   scored$attention_pass <- scored$ac1 == 1 & scored$ac2 == 1 # Primary sample quality screen.
-  scored$analysis_include <- scored$attention_pass & !is.na(scored$iri_total) # The main models keep only valid empathy scores plus passed checks.
+  scored$analysis_include <- scored$attention_pass & !is.na(scored$iri_total) & scored$treatment %in% c(1, 2) # The main models keep only valid empathy scores, passed checks, and standard treatments.
   scored
-}
-
-# Treatment assignment changes whether earlier stages are experienced as victim
-# or observer trials, so role must be reconstructed from treatment plus stage.
-derive_role <- function(treatment, stage) {
-  if (treatment == 1L) {
-    if (stage <= 5L) {
-      return("victim") # Treatment 1 starts with the participant in the victim perspective.
-    }
-    return("observer") # Later stages switch to the observer perspective.
-  }
-
-  if (stage <= 5L) {
-    return("observer") # Treatment 2 uses the opposite ordering.
-  }
-  "victim"
 }
 
 # Reshape the wide workbook into negotiator-level rows, which is the unit used
@@ -565,7 +585,8 @@ prepare_analysis_data <- function(df) {
     row <- participants[row_id, , drop = FALSE] # Keep a one-row data frame so name-based indexing stays consistent.
 
     for (stage in 1:10) {
-      role <- derive_role(as.integer(row$treatment), stage) # Recover the participant's role in this stage from the crossover design.
+      role_numeric <- as.integer(row[[sprintf("role_s%d", stage)]])
+      role <- ifelse(is.na(role_numeric), NA_character_, ifelse(role_numeric == 2, "victim", "observer")) # Match the numeric codes 1 and 2 to descriptive factors.
 
       for (slot in 1:2) {
         neg_faculty <- as.integer(row[[sprintf("faculty_neg_%d_s%d", slot, stage)]]) # Faculty identity of the focal negotiator.
@@ -969,13 +990,74 @@ plot_harmful_group_means <- function(prep, paths) {
   invisible(file_path)
 }
 
+# Bar plot of judgment frequencies to illustrate censoring
+plot_judgement_frequency <- function(prep, paths) {
+  analysis <- prep$judgments_analysis
+  style <- get_plot_style()
+  file_path <- file.path(paths$figures_dir, "figure_eda_judgement_frequency.png")
+
+  open_accessible_png(file_path)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  apply_accessible_theme()
+
+  counts <- table(factor(analysis$judgement, levels = -9:9))
+  
+  bp <- graphics::barplot(
+    counts,
+    col = style$primary,
+    border = NA,
+    xlab = "Moral Judgment (-9 to 9)",
+    ylab = "Frequency",
+    main = "Frequency of Moral Judgments (Illustrating Censoring)",
+    las = 1,
+    ylim = c(0, max(counts) * 1.1)
+  )
+  
+  invisible(file_path)
+}
+
+# Plot judgments vs the 4 IRI subscales
+plot_judgement_by_iri_subscales <- function(prep, paths) {
+  analysis <- prep$judgments_analysis
+  style <- get_plot_style()
+  file_path <- file.path(paths$figures_dir, "figure_eda_judgement_by_iri.png")
+
+  open_accessible_png(file_path, width = 10, height = 8)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  apply_accessible_theme()
+  
+  graphics::par(mfrow = c(2, 2)) # 2x2 grid
+  
+  subscales <- c("iri_fs" = "Fantasy", "iri_ec" = "Empathic Concern", 
+                 "iri_pt" = "Perspective Taking", "iri_pd" = "Personal Distress")
+  
+  for (var in names(subscales)) {
+    graphics::plot(
+      analysis[[var]],
+      analysis$judgement,
+      pch = 16,
+      col = paste0(style$primary_dark, "40"), # Add transparency 
+      xlab = subscales[[var]],
+      ylab = "Moral Judgment",
+      main = paste("Judgment by", subscales[[var]])
+    )
+    # Add trend line
+    fit <- stats::lm(judgement ~ analysis[[var]], data = analysis)
+    graphics::abline(fit, col = style$ink, lwd = 2)
+  }
+  
+  invisible(file_path)
+}
+
 # Create all figures in one pass so the report can refer to a single bundle.
 make_figures <- function(prep, paths) {
   list(
     age = plot_age_histogram(prep, paths),
     empathy = plot_empathy_histogram(prep, paths),
     decision = plot_severity_by_decision(prep, paths),
-    group = plot_harmful_group_means(prep, paths)
+    group = plot_harmful_group_means(prep, paths),
+    judgement_freq = plot_judgement_frequency(prep, paths),
+    iri_scatter = plot_judgement_by_iri_subscales(prep, paths)
   )
 }
 
@@ -1432,15 +1514,16 @@ compose_data_cleaning_narrative <- function(prep) {
   analysis_participants <- participants[participants$analysis_include, , drop = FALSE]
   missing_iri <- sum(is.na(participants$iri_total))
   dropped_attention <- sum(!participants$attention_pass, na.rm = TRUE)
+  dropped_treatment <- sum(!participants$treatment %in% c(1, 2), na.rm = TRUE)
 
   paste(
     "Data cleaning proceeded in explicit steps.",
     "Step 1: validate that all required participant-level and scenario-level columns are present in the workbook.",
-    "Step 2: preserve the raw participant-level file and derive IRI composite and subscale scores using row means with minimum non-missing thresholds.",
-    "Step 3: compute the attention-check flag and define the primary analysis sample as participants who passed both checks and had a non-missing IRI composite.",
+    "Step 2: preserve the raw participant-level file, generate stage-specific role indicators, and derive IRI composite and subscale scores.",
+    "Step 3: compute the attention-check flag and define the primary analysis sample as participants who passed both checks, had a non-missing IRI composite, and are in treatment 1 or 2.",
     "Step 4: reshape the repeated scenario variables into negotiator-level long format, yielding two judgment rows per stage per participant.",
-    "Step 5: derive role, perpetrator alignment, victim alignment, same-group harm, and harmful-decision indicators.",
-    "In this dataset,", dropped_attention, "participants fail at least one attention check and", missing_iri, "participants have a missing IRI composite, leaving", nrow(analysis_participants), "participants in the primary sample."
+    "Step 5: derive perpetrator alignment, victim alignment, same-group harm, and harmful-decision indicators.",
+    "In this dataset,", dropped_treatment, "participants were excluded for treatment = 0,", dropped_attention, "participants fail at least one attention check, and", missing_iri, "participants have a missing IRI composite, leaving", nrow(analysis_participants), "participants in the primary sample."
   )
 }
 
@@ -1530,6 +1613,30 @@ relative_markdown_path <- function(from_dir, to_file) {
   gsub("\\\\", "/", rel)
 }
 
+# Generate Pearson correlations between judgments and empathy subscales.
+build_eda_correlations <- function(prep) {
+  analysis <- prep$judgments_analysis
+  
+  subscales <- c("iri_total", "iri_fs", "iri_ec", "iri_pt", "iri_pd")
+  rows <- lapply(subscales, function(var) {
+    if (var %in% names(analysis) && !all(is.na(analysis[[var]]))) {
+      cor_test <- stats::cor.test(analysis$judgement, analysis[[var]], method = "pearson")
+      data.frame(
+        Subscale = var,
+        Pearson_r = cor_test$estimate,
+        P_value = cor_test$p.value,
+        CI_low = cor_test$conf.int[1],
+        CI_high = cor_test$conf.int[2],
+        stringsAsFactors = FALSE
+      )
+    }
+  })
+  
+  res <- do.call(rbind, rows)
+  rownames(res) <- NULL
+  res
+}
+
 # Write all summary tables to disk and return them for immediate report assembly.
 write_tables <- function(prep, model_results, hypothesis_table, paths) {
   participant_summary <- build_participant_summary(prep)
@@ -1549,7 +1656,8 @@ write_tables <- function(prep, model_results, hypothesis_table, paths) {
     harmful_summary = harmful_summary,
     package_summary = package_summary,
     model_fit_summary = model_fit_summary,
-    hypothesis_summary = hypothesis_table
+    hypothesis_summary = hypothesis_table,
+    eda_correlations = build_eda_correlations(prep)
   )
 
   for (table_name in names(table_bundle)) {
@@ -1646,6 +1754,12 @@ build_latex_report <- function(prep, model_results, hypothesis_table, tables, fi
     "\\subsection{Empathy Scale Quality}",
     to_latex_table(tables$empathy_summary, "Empathy scale summary.", "tab:empathy_summary"),
     "\\section{Results}",
+    "\\subsection{Exploratory Data Analysis}",
+    escape_latex("We first explore the raw dependent variable, showing its bounded nature and the piling up at the endpoints which justifies the Tobit approach."),
+    latex_include_graphic(file.path("..", "figures", basename(figures$judgement_freq)), "Frequency of moral judgments illustrating censoring.", "fig:eda_freq"),
+    escape_latex("Additionally, the following table and scatterplots summarize the relationship between moral judgments and each empathy subscale."),
+    to_latex_table(tables$eda_correlations, "Pearson correlations between judgements and empathy subscales.", "tab:eda_correlations"),
+    latex_include_graphic(file.path("..", "figures", basename(figures$iri_scatter)), "Scatterplots of judgment by IRI subscales.", "fig:eda_scatter"),
     "\\subsection{Descriptive Results}",
     escape_latex(compose_descriptive_narrative(prep)),
     to_latex_table(tables$judgement_summary, "Judgment summary.", "tab:judgement_summary"),
@@ -1681,7 +1795,16 @@ build_latex_report <- function(prep, model_results, hypothesis_table, tables, fi
 # Compile the LaTeX article twice so references and tables settle correctly.
 render_pdf_report <- function(paths) {
   pdflatex_path <- find_pdflatex_path()
-  if (!nzchar(pdflatex_path) || !file.exists(paths$report_tex)) {
+  use_tinytex <- FALSE
+  if (!nzchar(pdflatex_path)) {
+    if (requireNamespace("tinytex", quietly = TRUE) && tinytex::is_tinytex()) {
+      use_tinytex <- TRUE
+    } else {
+      return(FALSE)
+    }
+  }
+
+  if (!file.exists(paths$report_tex)) {
     return(FALSE)
   }
 
@@ -1690,6 +1813,15 @@ render_pdf_report <- function(paths) {
   setwd(paths$report_dir)
 
   tex_name <- basename(paths$report_tex)
+
+  if (use_tinytex) {
+    status <- tryCatch({
+      tinytex::pdflatex(tex_name)
+      TRUE
+    }, error = function(e) FALSE)
+    return(status)
+  }
+
   first_status <- system2(
     command = pdflatex_path,
     args = c("-interaction=nonstopmode", "-halt-on-error", tex_name),
@@ -1759,6 +1891,17 @@ build_report <- function(prep, model_results, hypothesis_table, tables, figures,
     "",
     "## Assumptions and Sample Size",
     compose_assumptions_narrative(prep, tables),
+    "",
+    "## Exploratory Data Analysis",
+    "We first explore the raw dependent variable, showing its bounded nature and the piling up at the endpoints which justifies the Tobit approach.",
+    "",
+    paste0("![Judgment Frequency](", relative_markdown_path(paths$report_dir, figures$judgement_freq), ")"),
+    "",
+    "Additionally, the following table and scatterplots summarize the relationship between moral judgments and each empathy subscale.",
+    "",
+    to_markdown_table(tables$eda_correlations, digits = 3),
+    "",
+    paste0("![Subscale Scatterplots](", relative_markdown_path(paths$report_dir, figures$iri_scatter), ")"),
     "",
     "## Descriptive Patterns",
     compose_descriptive_narrative(prep),
