@@ -23,11 +23,7 @@ rhs_a <- paste(
   "role_observer + participant_engineering + sex_man + age + economic_status +",
   "factor(negotiator_slot)"
 )
-fit_a <- fit_clustered_tobit(judgments_betrayal, rhs_a)
-
-write.csv(extract_model_table(fit_a), file.path(paths$models_dir, "H2a_A_coefficients.csv"), row.names = FALSE)
-saveRDS(fit_a, file.path(paths$models_dir, "H2a_A_model.rds"))
-write.csv(extract_model_stats(fit_a, judgments_betrayal, "H2a_A_Total"), file.path(paths$models_dir, "H2a_A_fit_stats.csv"), row.names = FALSE)
+run_estimation_suite(judgments_betrayal, rhs_a, "H2a_A", "H2a_A_Total", paths$models_dir)
 
 # Model B
 rhs_b <- paste(
@@ -35,10 +31,6 @@ rhs_b <- paste(
   "role_observer + participant_engineering + sex_man + age + economic_status +",
   "factor(negotiator_slot)"
 )
-fit_b <- fit_clustered_tobit(judgments_betrayal, rhs_b)
-
-write.csv(extract_model_table(fit_b), file.path(paths$models_dir, "H2a_B_coefficients.csv"), row.names = FALSE)
-saveRDS(fit_b, file.path(paths$models_dir, "H2a_B_model.rds"))
-write.csv(extract_model_stats(fit_b, judgments_betrayal, "H2a_B_Constructs"), file.path(paths$models_dir, "H2a_B_fit_stats.csv"), row.names = FALSE)
+run_estimation_suite(judgments_betrayal, rhs_b, "H2a_B", "H2a_B_Constructs", paths$models_dir)
 
 message("H2a test completed. Outputs saved to models/.")

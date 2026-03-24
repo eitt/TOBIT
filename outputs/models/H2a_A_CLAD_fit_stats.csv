@@ -1,0 +1,2 @@
+"Model","Approach","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2","Quantile","Converged","Iterations","Status","ErrorMessage"
+"H2a_A_Total_CLAD","CLAD",503,77,160,18,NA,NA,NA,0.5,TRUE,23,"completed",NA

@@ -1,5 +1,5 @@
 # R/utils/transform_functions.R
-# Purpose: Helpers for psychometric scoring, z-scores, and safe statistics.
+# Purpose: Helpers for psychometric scoring and safe statistics.
 # Dependencies: None
 
 #' Calculate a row mean, returning NA if missingness exceeds a threshold.
@@ -31,12 +31,6 @@ cronbach_alpha <- function(df, cols) {
   
   k <- ncol(item_frame)
   (k / (k - 1)) * (1 - sum(item_vars) / total_var)
-}
-
-#' Standardize a vector (z-score), handling NAs securely.
-z_score <- function(x) {
-  if (all(is.na(x))) return(rep(NA_real_, length(x)))
-  as.numeric((x - mean(x, na.rm = TRUE)) / stats::sd(x, na.rm = TRUE))
 }
 
 #' Safe mean computation

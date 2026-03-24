@@ -25,7 +25,7 @@ get_dataset_narration <- function(dataset_mode = "BOTH") {
 #' Get Mathematical Foundations (Tobit and Latent Variables)
 get_math_foundations <- function() {
   c(
-    "The analysis employs a Two-Limit Tobit model, which is theoretically appropriate for dependent variables that are ",
+    "The analysis employs two complementary estimators for bounded moral judgments. The primary specification is a Two-Limit Tobit model, which is theoretically appropriate for dependent variables that are ",
     "strictly bounded within a known interval. In this context, moral judgments ($y_{ij}$) are observed on a scale from -9 to 9. ",
     "The Tobit model assumes the existence of a latent, unobserved preference index ($y^*_{ij}$) that follows a linear relationship:",
     "",
@@ -35,7 +35,14 @@ get_math_foundations <- function() {
     "",
     "$$y_{ij} = \\max(-9, \\min(9, y^*_{ij}))$$",
     "",
-    "This approach prevents the 'ceiling' and 'floor' effects from biasing the linear coefficients, as would occur in standard OLS regression."
+    "This approach prevents the 'ceiling' and 'floor' effects from biasing the linear coefficients, as would occur in standard OLS regression.",
+    "",
+    "Because the Tobit model relies on a Gaussian latent-error assumption, the pipeline also fits a CLAD robustness specification implemented as interval-censored median quantile regression ($p = 0.5$). ",
+    "This complementary estimator targets the conditional median of the latent bounded outcome and is less sensitive to heavy tails and non-normal disturbances:",
+    "",
+    "$$Q_{0.5}(y^*_{ij} \\mid \\mathbf{x}_{ij}) = \\mathbf{x}_{ij}'\\beta_{0.5}$$",
+    "",
+    "The CLAD branch preserves the censoring structure while relaxing the parametric normality assumption. The Tobit and CLAD results should therefore be interpreted jointly: Tobit provides the clustered parametric benchmark, while CLAD serves as a robustness check against misspecified latent-error distributions."
   )
 }
 
@@ -49,14 +56,14 @@ get_error_analysis_narration <- function() {
     "\\subsubsection{Step-by-Step Sensitivity Analysis}",
     "To determine the impact of our sample size on our ability to detect effects, we follow these steps:",
     "",
-    "1. **Calculate the Design Effect (Deff):** As multiple judgments are nested within individuals, we adjust for the Intraclass Correlation (ICC).",
+    "1. Calculate the Design Effect (Deff): As multiple judgments are nested within individuals, we adjust for the Intraclass Correlation (ICC).",
     "$$Deff = 1 + (m - 1) \\times ICC$$",
     "where $m$ is the average number of scenarios per participant. ",
     "",
-    "2. **Determine the Effective Sample Size (ESS):** The ESS represents the number of independent observations that would provide the same statistical power as our clustered sample.",
+    "2. Determine the Effective Sample Size (ESS): The ESS represents the number of independent observations that would provide the same statistical power as our clustered sample.",
     "$$ESS = \\frac{n_{total}}{Deff}$$",
     "",
-    "3. **Inference Impact:** A higher ICC reduces the ESS, thereby increasing the Standard Error of our Tobit coefficients. ",
+    "3. Inference Impact: A higher ICC reduces the ESS, thereby increasing the Standard Error of our Tobit coefficients. ",
     "If the ESS is low, our models become 'conservative', increasing the risk of Type II errors (failing to support a hypothesis). ",
     "By using clustered robust standard errors, we ensure that our p-values acknowledge this reduced information density, ",
     "protecting the integrity of our Type I error threshold ($\\alpha = 0.05$)."
@@ -66,11 +73,13 @@ get_error_analysis_narration <- function() {
 #' Get Symbols and Variables Dictionary (LaTeX format)
 get_symbols_dictionary <- function() {
   data.frame(
-    Symbol = c("$y_{ij}$", "$y^*_{ij}$", "$\\beta_1$", "$\\text{IRI}_i$", "$\\text{OutgroupPerp}$", "$\\text{SameGroupHarm}$", "$\\text{ICC}$"),
+    Symbol = c("$y_{ij}$", "$y^*_{ij}$", "$\\beta_1$", "$\\beta_{0.5}$", "$Q_{0.5}(y^*_{ij} \\mid \\mathbf{x}_{ij})$", "$\\text{IRI}_i$", "$\\text{OutgroupPerp}$", "$\\text{SameGroupHarm}$", "$\\text{ICC}$"),
     Definition = c(
       "Observed moral judgment of scenario $j$ by participant $i$.",
       "Latent moral preference score (unbounded).",
       "Regression coefficient representing the marginal effect of the predictor.",
+      "Median-regression coefficient from the CLAD robustness model.",
+      "Conditional median of the latent bounded outcome given the predictors.",
       "Empathy score (Average composite of the Interpersonal Reactivity Index).",
       "Binary indicator: 1 if the scenario perpetrator is an outgroup member.",
       "Binary indicator: 1 if the harm is inflicted on the perpetrator's own group.",
@@ -83,10 +92,10 @@ get_symbols_dictionary <- function() {
 #' Get limitations and discussion points
 get_limitations_narration <- function() {
   c(
-    "While the Tobit model corrects for bounded outcomes, several limitations remain. First, the clustering logic assumes ",
+    "While the dual-estimator strategy strengthens the analysis, several limitations remain. First, the Tobit clustering logic assumes ",
     "independence between participants, which may be violated by shared institutional affiliations. Second, we assume a ",
-    "normal distribution for the latent errors $\\epsilon_{ij}$; departures from normality could affect the consistency of ",
-    "the maximum likelihood estimators. Finally, the use of unstandardized averages for empathy assumes ",
-    "a linear mapping between the psychometric scale and the latent moral preference."
+    "normal distribution for the latent errors $\\epsilon_{ij}$ in the Tobit branch; departures from normality could affect the consistency of ",
+    "the maximum likelihood estimators. The CLAD robustness branch reduces dependence on that assumption, but its current implementation relies on asymptotic covariance estimates rather than clustered sandwich errors. ",
+    "Finally, the use of unstandardized averages for empathy assumes a linear mapping between the psychometric scale and the latent moral preference across both estimators."
   )
 }

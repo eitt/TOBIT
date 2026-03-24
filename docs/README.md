@@ -1,6 +1,6 @@
-# Tobit Analysis Pipeline
+# Tobit and CLAD Analysis Pipeline
 
-This repository implements a reproducible, function-oriented R pipeline for analyzing bounded moral judgments using Tobit regression models.
+This repository implements a reproducible, function-oriented R pipeline for analyzing bounded moral judgments using Tobit regression models plus CLAD robustness checks.
 
 ## Project Purpose
 
@@ -20,7 +20,7 @@ The project has been reorganized into a strict function-oriented architecture:
 - `data/`: Contains `raw/` inputs and `processed/` analytical datasets.
 - `R/`: Contains step-by-step data preparation scripts (`01_import_data.R` to `05_descriptive_statistics.R`).
 - `R/utils/`: Safe, modular, and shared utilities for IO, transformation, modeling, and output formatting.
-- `R/hypotheses/`: Isolated Tobit estimation scripts for each distinct hypothesis (`H1_test.R`, `H2a_test.R`, etc.).
+- `R/hypotheses/`: Hypothesis estimation scripts that fit both the primary Tobit model and a CLAD robustness companion for each specification (`H1_test.R`, `H2a_test.R`, etc.).
 - `outputs/`: Automatically populated artifacts segmented into `tables/`, `figures/`, `models/`, and `logs/`.
 - `docs/`: Technical and conceptual documentation (`datacard.md`, `hypotheses.md`, `workflow.md`).
 
@@ -28,10 +28,10 @@ The project has been reorganized into a strict function-oriented architecture:
 
 1. **01_import_data.R** - Validation and ingestion wrapper
 2. **02_clean_data.R** - Label recoding and attention check flagging
-3. **03_transform_data.R** - Psychometric metric scoring (IRI totals and z-scores)
+3. **03_transform_data.R** - Psychometric metric scoring (IRI totals and subscales, kept on raw scales)
 4. **04_generate_variables.R** - Matrix restructuring (wide to long) and scenario feature engineering
 5. **05_descriptive_statistics.R** - Dataset-wide distributional outputs
-6. **Hypothesis tests** - H1 through H3 standalone model runs
+6. **Hypothesis tests** - H1 through H3 standalone model runs, each generating Tobit and CLAD outputs
 
 ## How to Run the Full Pipeline
 
@@ -62,4 +62,4 @@ Rscript R/hypotheses/H1_test.R
 
 - **Tables**: `outputs/tables/` generates Letter-width wrapped `.tex` source tables and standard `.csv` aggregations.
 - **Figures**: `outputs/figures/` exports accessible 300dpi `.png` histograms and summary maps.
-- **Models**: `outputs/models/` writes clustered `survreg` coefficients, model specifications, and binary `.rds` fitted engines.
+- **Models**: `outputs/models/` writes clustered `survreg` Tobit coefficients, CLAD robustness coefficients, fit summaries, and binary `.rds` fitted engines.

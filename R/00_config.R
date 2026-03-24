@@ -53,7 +53,7 @@ get_project_paths <- function(project_root = ".", dataset_mode = NULL) {
 
 #' Install base dependencies if they are missing
 ensure_pipeline_dependencies <- function() {
-  packages <- c("survival", "readxl", "grDevices", "stats", "utils", "graphics")
+  packages <- c("survival", "readxl", "grDevices", "stats", "utils", "graphics", "ctqr", "pch")
   success <- TRUE
   
   message("Checking project dependencies...")

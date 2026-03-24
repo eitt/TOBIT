@@ -64,12 +64,44 @@ escape_latex <- function(x, escape_math = TRUE) {
     # We do NOT escape math-related characters.
     return(x)
   }
-  
-  x <- gsub("\\\\", "\\\\textbackslash{}", x)
-  x <- gsub("([#$%&_{}])", "\\\\\\1", x, perl = TRUE)
-  x <- gsub("~", "\\\\textasciitilde{}", x, fixed = TRUE)
-  x <- gsub("\\^", "\\\\textasciicircum{}", x, perl = TRUE)
-  x
+
+  escape_plain_text <- function(text) {
+    text <- gsub("\\\\", "\\\\textbackslash{}", text)
+    text <- gsub("([#$%&_{}])", "\\\\\\1", text, perl = TRUE)
+    text <- gsub("~", "\\\\textasciitilde{}", text, fixed = TRUE)
+    gsub("\\^", "\\\\textasciicircum{}", text, perl = TRUE)
+  }
+
+  preserve_inline_math <- function(text) {
+    math_matches <- gregexpr("\\$\\$[^$]*\\$\\$|\\$[^$]*\\$", text, perl = TRUE)[[1]]
+    if (length(math_matches) == 1L && math_matches[1] == -1L) {
+      return(escape_plain_text(text))
+    }
+
+    match_lengths <- attr(math_matches, "match.length")
+    math_segments <- regmatches(text, list(math_matches))[[1]]
+    placeholders <- paste0("LATEXMATHPLACEHOLDER", seq_along(math_segments), "TOKEN")
+    escaped_text <- text
+
+    for (i in rev(seq_along(math_matches))) {
+      start <- math_matches[i]
+      end <- start + match_lengths[i] - 1L
+      escaped_text <- paste0(
+        substr(escaped_text, 1L, start - 1L),
+        placeholders[i],
+        substr(escaped_text, end + 1L, nchar(escaped_text))
+      )
+    }
+
+    escaped_text <- escape_plain_text(escaped_text)
+    for (i in seq_along(placeholders)) {
+      escaped_text <- sub(placeholders[i], math_segments[i], escaped_text, fixed = TRUE)
+    }
+
+    escaped_text
+  }
+
+  vapply(x, preserve_inline_math, character(1), USE.NAMES = FALSE)
 }
 
 #' Build a LaTeX table optimized for letter-page width

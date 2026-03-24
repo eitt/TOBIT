@@ -1,2 +1,2 @@
-"Model","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2"
-"H3_B_Constructs",755,77,227,24,-1944.26618878588,3934.53237757175,0.0148041922858414
+"Model","Approach","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2","Quantile","Converged","Iterations","Status","ErrorMessage"
+"H3_B_Constructs_Tobit","Tobit",755,77,227,24,-1944.26618878588,3934.53237757175,0.0148041922858414,NA,NA,3,"completed",NA

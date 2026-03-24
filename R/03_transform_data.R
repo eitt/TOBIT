@@ -11,10 +11,7 @@ paths <- get_project_paths()
 
 df <- read.csv(file.path(paths$root, "data", "processed", "02_cleaned.csv"), stringsAsFactors = FALSE)
 
-# Note on z-scores: The empathy predictor is standardized as iri_total_z.
-# Standardized variables yield coefficient interpretations in standard-deviation 
-# units, which facilitates effect size comparison in psychometric regression models 
-# within the Tobit framework.
+# Predictors remain on their original scale; no z-score normalization is applied.
 
 iri_scales <- list(
   iri_fs = c("FS1", "FS5", "FS7", "FS12", "FS16", "FS20", "FS25"),
@@ -26,7 +23,6 @@ iri_items <- unlist(iri_scales, use.names = FALSE)
 
 # Main composite required 80% completion
 df$iri_total <- row_mean_with_floor(df, iri_items, min_non_missing = ceiling(length(iri_items) * 0.8))
-df$iri_total_z <- z_score(df$iri_total) # Documented z-score usage
 
 # Subscales
 for (scale_name in names(iri_scales)) {

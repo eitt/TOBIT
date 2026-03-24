@@ -3,12 +3,12 @@
 # Executes the function-oriented project pipeline sequentially.
 
 message("==========================================")
-message("Starting the TOBIT Analysis Pipeline")
+message("Starting the TOBIT + CLAD Analysis Pipeline")
 message("--- Checking Environmental Requirements ---")
 
 # --- User Configuration ---
 # Choose which dataset to analyze: "FLORIDA", "BUC", or "BOTH"
-dataset_mode <- "BUC" 
+dataset_mode <- "BUC"
 options(tobit.dataset_mode = dataset_mode)
 
 # Ensure project structure & dependencies
@@ -44,7 +44,7 @@ hypothesis_scripts <- c(
 )
 
 message("\n==========================================")
-message("Starting Hypothesis Testing")
+message("Starting Hypothesis Testing (Tobit + CLAD)")
 message("==========================================")
 
 for (script in hypothesis_scripts) {

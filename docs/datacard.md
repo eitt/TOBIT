@@ -5,7 +5,7 @@
 The `datacard.md` documentation details how original survey measures flow dynamically through the function-oriented R scripts to populate statistical models. The structured transformations include:
 
 - **Filtering:** Erroneous tracking flags (`ac1` & `ac2`) are parsed via `R/02_clean_data.R`.
-- **Psychometric Missing Data & Standardizing:** Handled within `R/03_transform_data.R`. Classical IRI responses are summarized by 80% completeness thresholds (`row_mean_with_floor`) providing aggregate scale derivations. `iri_total` is natively standardized (`iri_total_z`) maintaining reliable interpretation metrics for standard distribution Tobit interactions.
+- **Psychometric Missing Data & Scoring:** Handled within `R/03_transform_data.R`. Classical IRI responses are summarized by 80% completeness thresholds (`row_mean_with_floor`) providing aggregate scale derivations. `iri_total` and the IRI subscales are retained on their original response scale; no predictor z-score normalization is applied.
 - **Data Matrix Reshaping:** Raw matrices maintain wide row configurations per participant. The `R/04_generate_variables.R` function shifts inputs logically grouping 10 repeated scenarios into vertical clusters (`judgements`), calculating outgroup derivations mapping participant alignment (Engineering/Humanities) independently to perpetrator and victim identity strings ensuring the integrity of hypotheses datasets (`judgments_accept_only.csv`).
 
 ## **1. Dataset Overview**

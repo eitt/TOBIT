@@ -54,7 +54,6 @@ for (row_id in seq_len(nrow(participants))) {
         treatment = as.integer(row$treatment),
         analysis_include = as.logical(row$analysis_include),
         iri_total = as.numeric(row$iri_total),
-        iri_total_z = as.numeric(row$iri_total_z),
         iri_fs = as.numeric(row$iri_fs),
         iri_ec = as.numeric(row$iri_ec),
         iri_pt = as.numeric(row$iri_pt),

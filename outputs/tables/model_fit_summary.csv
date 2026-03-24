@@ -1,4 +1,17 @@
-"Model","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2"
-"Main harmful-decision Tobit",569,58,170,27,-1458.90263917392,2963.80527834784,0.0136588700723242
-"Same-faculty harm Tobit",364,58,103,13,-941.866648442318,1925.73329688464,0.0132053259871566
-"Full-sample Tobit",1160,58,182,332,-2627.9992034763,5303.99840695259,0.116547562091712
+"Model","Approach","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2","Quantile","Converged","Iterations","Status","ErrorMessage"
+"H1_A_Total_CLAD","CLAD",755,77,227,24,NA,NA,NA,0.5,FALSE,2000,"not_converged",NA
+"H1_B_Constructs_CLAD","CLAD",755,77,227,24,NA,NA,NA,0.5,TRUE,109,"completed",NA
+"H2a_A_Total_CLAD","CLAD",503,77,160,18,NA,NA,NA,0.5,TRUE,23,"completed",NA
+"H2a_B_Constructs_CLAD","CLAD",503,77,160,18,NA,NA,NA,0.5,FALSE,2000,"not_converged",NA
+"H2b_A_Total_CLAD","CLAD",755,77,227,24,NA,NA,NA,0.5,FALSE,2000,"not_converged",NA
+"H2b_B_Constructs_CLAD","CLAD",755,77,227,24,NA,NA,NA,0.5,TRUE,108,"completed",NA
+"H3_A_Total_CLAD","CLAD",755,77,227,24,NA,NA,NA,0.5,FALSE,2000,"not_converged",NA
+"H3_B_Constructs_CLAD","CLAD",755,77,227,24,NA,NA,NA,0.5,TRUE,108,"completed",NA
+"H1_A_Total_Tobit","Tobit",755,77,227,24,-1958.16177574531,3944.32355149063,0.00776304015496276,NA,NA,3,"completed",NA
+"H1_B_Constructs_Tobit","Tobit",755,77,227,24,-1944.26618878588,3934.53237757175,0.0148041922858414,NA,NA,3,"completed",NA
+"H2a_A_Total_Tobit","Tobit",503,77,160,18,-1277.90612427513,2579.81224855026,0.0103625754505754,NA,NA,3,"completed",NA
+"H2a_B_Constructs_Tobit","Tobit",503,77,160,18,-1272.68633574964,2575.37267149928,0.0144048896510707,NA,NA,3,"completed",NA
+"H2b_A_Total_Tobit","Tobit",755,77,227,24,-1958.16177574531,3944.32355149063,0.00776304015496276,NA,NA,3,"completed",NA
+"H2b_B_Constructs_Tobit","Tobit",755,77,227,24,-1944.26618878588,3934.53237757175,0.0148041922858414,NA,NA,3,"completed",NA
+"H3_A_Total_Tobit","Tobit",755,77,227,24,-1958.16177574531,3944.32355149063,0.00776304015496276,NA,NA,3,"completed",NA
+"H3_B_Constructs_Tobit","Tobit",755,77,227,24,-1944.26618878588,3934.53237757175,0.0148041922858414,NA,NA,3,"completed",NA
