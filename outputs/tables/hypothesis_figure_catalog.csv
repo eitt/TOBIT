@@ -1,0 +1,4 @@
+"Hypothesis","Predictor","Figure","FigureType","Tobit support","Non-parametric support"
+"Higher empathy predicts lower moral-judgment scores for harmful decisions.","Empathy: Perspective taking","figure_sig_H1_iri_pt.png","effect plot","Empathy: Perspective taking+","None"
+"The empathy effect is stronger in outgroup cases than in ingroup cases.","Personal distress x outgroup perpetrator","figure_sig_H3_iri_pd_perp_outgroup.png","interaction plot","Personal distress x outgroup perpetrator**","Personal distress x outgroup perpetrator**"
+"The empathy effect is stronger in outgroup cases than in ingroup cases.","Empathic concern x outgroup perpetrator","figure_sig_H3_iri_ec_perp_outgroup.png","interaction plot","Empathic concern x outgroup perpetrator**","Empathic concern x outgroup perpetrator**"

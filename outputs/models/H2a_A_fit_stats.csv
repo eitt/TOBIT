@@ -1,2 +1,2 @@
-"Model","Approach","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2","Quantile","Converged","Iterations","Status","ErrorMessage"
-"H2a_A_Total_Tobit","Tobit",503,77,160,18,-1277.90612427513,2579.81224855026,0.0103625754505754,NA,NA,3,"completed",NA
+"Model","Approach","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2","Quantile","Converged","Iterations","Inference","ClusterUnit","BootstrapReplicates","BootstrapSuccessful","BootstrapFailed","BootstrapSuccessRate","ConfidenceLevel","Status","ErrorMessage"
+"H2a_A_Total_Tobit","Tobit",1262,199,342,46,-3278.86493959668,6581.72987919335,0.00847719783346323,NA,NA,3,"Cluster-robust standard errors by participant id","id",NA,NA,NA,NA,0.95,"completed",NA

@@ -10,6 +10,8 @@ source("R/utils/power_functions.R")
 source("R/utils/table_functions.R")
 source("R/utils/narrative_functions.R")
 source("R/utils/model_functions.R")
+source("R/utils/figure_functions.R")
+source("R/utils/significance_figure_functions.R")
 source("R/utils/nl_generation.R")
 paths <- get_project_paths()
 
@@ -34,7 +36,21 @@ write_model_fit_summary <- function() {
   )
   if (length(fit_files) == 0L) return(NULL)
 
-  fit_rows <- lapply(fit_files, read.csv, stringsAsFactors = FALSE)
+  required_cols <- c(
+    "Model", "Approach", "Observations", "Participants", "LowerBoundCensored",
+    "UpperBoundCensored", "LogLik", "AIC", "PseudoR2", "Quantile", "Converged",
+    "Iterations", "Inference", "ClusterUnit", "BootstrapReplicates",
+    "BootstrapSuccessful", "BootstrapFailed", "BootstrapSuccessRate",
+    "ConfidenceLevel", "Status", "ErrorMessage"
+  )
+  fit_rows <- lapply(fit_files, function(path) {
+    fit_df <- read.csv(path, stringsAsFactors = FALSE)
+    missing_cols <- setdiff(required_cols, names(fit_df))
+    for (col_name in missing_cols) {
+      fit_df[[col_name]] <- NA
+    }
+    fit_df[, required_cols, drop = FALSE]
+  })
   fit_summary <- do.call(rbind, fit_rows)
   fit_summary <- fit_summary[order(fit_summary$Approach, fit_summary$Model), , drop = FALSE]
   write.csv(fit_summary, file.path(paths$tables_dir, "model_fit_summary.csv"), row.names = FALSE)
@@ -56,11 +72,52 @@ coerce_fit_flag <- function(x) {
   tolower(trimws(as.character(x[1]))) %in% c("true", "t", "1", "yes")
 }
 
+coerce_integer_or_na <- function(x) {
+  if (length(x) == 0L || is.na(x[1])) return(NA_integer_)
+  suppressWarnings(as.integer(x[1]))
+}
+
+format_p_clause <- function(p_value) {
+  p_text <- format_p_value(p_value)
+  if (startsWith(p_text, "<")) {
+    return(paste("p", sub("^<", "< ", p_text)))
+  }
+  paste("p =", p_text)
+}
+
+has_sufficient_clad_bootstrap <- function(fit_stats, min_successes = 2L) {
+  if (is.null(fit_stats) || nrow(fit_stats) == 0L) return(FALSE)
+  bootstrap_successes <- if ("BootstrapSuccessful" %in% names(fit_stats)) {
+    coerce_integer_or_na(fit_stats$BootstrapSuccessful[1])
+  } else {
+    NA_integer_
+  }
+  !is.na(bootstrap_successes) && bootstrap_successes >= min_successes
+}
+
+is_clad_bootstrap_deferred <- function(fit_stats) {
+  !is.null(fit_stats) &&
+    nrow(fit_stats) > 0L &&
+    tolower(trimws(as.character(fit_stats$Status[1]))) == "bootstrap_deferred"
+}
+
+is_clad_bootstrap_sparse <- function(fit_stats, min_successes = 2L) {
+  if (is.null(fit_stats) || nrow(fit_stats) == 0L) return(FALSE)
+  status_value <- tolower(trimws(as.character(fit_stats$Status[1])))
+  if (status_value == "bootstrap_sparse") return(TRUE)
+  status_value == "completed" && !has_sufficient_clad_bootstrap(fit_stats, min_successes = min_successes)
+}
+
 is_fit_usable <- function(fit_stats, approach) {
   if (is.null(fit_stats) || nrow(fit_stats) == 0L) return(FALSE)
   status_value <- tolower(trimws(as.character(fit_stats$Status[1])))
   if (status_value != "completed") return(FALSE)
-  if (approach == "CLAD") return(coerce_fit_flag(fit_stats$Converged[1]))
+  if (approach == "CLAD") {
+    return(
+      coerce_fit_flag(fit_stats$Converged[1]) &&
+        has_sufficient_clad_bootstrap(fit_stats)
+    )
+  }
   TRUE
 }
 
@@ -86,13 +143,27 @@ get_fit_issue_text <- function(bundle) {
     return("its fit summary is missing")
   }
 
+  if (bundle$approach == "CLAD" && is_clad_bootstrap_deferred(bundle$fit_stats)) {
+    return("participant-level cluster bootstrap inference was not run for this pass")
+  }
+
   if (bundle$approach == "CLAD" && !coerce_fit_flag(bundle$fit_stats$Converged[1])) {
     iteration_text <- if (!is.na(bundle$fit_stats$Iterations[1])) {
       sprintf(" after %s iterations", bundle$fit_stats$Iterations[1])
     } else {
       ""
     }
-    return(paste0("the CLAD optimization did not converge", iteration_text))
+    return(paste0("the non-parametric optimization did not converge", iteration_text))
+  }
+
+  if (bundle$approach == "CLAD" && "BootstrapSuccessful" %in% names(bundle$fit_stats)) {
+    bootstrap_successes <- coerce_integer_or_na(bundle$fit_stats$BootstrapSuccessful[1])
+    if (!is.na(bootstrap_successes) && bootstrap_successes < 1L) {
+      return("the participant-level cluster bootstrap produced no successful refits")
+    }
+    if (!is.na(bootstrap_successes) && bootstrap_successes < 2L) {
+      return("the participant-level cluster bootstrap produced fewer than two successful refits, so inferential summaries are too sparse to interpret")
+    }
   }
 
   sprintf("its status is '%s'", bundle$fit_stats$Status[1])
@@ -113,10 +184,10 @@ matches_expected_direction <- function(estimates, expected_direction) {
 
 describe_effect_short <- function(row) {
   sprintf(
-    "%s with a %s association (p = %s)",
+    "%s with a %s association (%s)",
     row$label[1],
     if (row$estimate[1] > 0) "positive" else "negative",
-    format_p_value(row$p_value[1])
+    format_p_clause(row$p_value[1])
   )
 }
 
@@ -173,11 +244,11 @@ assess_model_terms <- function(bundle, term_info, expected_direction, alpha = 0.
     return(list(
       status = "no_support",
       sentence = sprintf(
-        "Model %s does not support the hypothesis; %s is %s but not statistically significant (p = %s).",
+        "Model %s does not support the hypothesis; %s is %s but not statistically significant (%s).",
         bundle$model_suffix,
         closest_row$label[1],
         if (closest_row$estimate[1] > 0) "positive" else "negative",
-        format_p_value(closest_row$p_value[1])
+        format_p_clause(closest_row$p_value[1])
       )
     ))
   }
@@ -251,7 +322,23 @@ summarize_estimator_hypothesis <- function(spec, approach, alpha = 0.05) {
   available_flags <- vapply(bundles, function(bundle) isTRUE(bundle$available), logical(1))
   if (!any(available_flags)) {
     if (approach == "CLAD") {
-      return("CLAD conclusion: no converged CLAD model is available, so the robustness check is inconclusive for this hypothesis.")
+      deferred_flags <- vapply(
+        bundles,
+        function(bundle) is_clad_bootstrap_deferred(bundle$fit_stats),
+        logical(1)
+      )
+      if (any(deferred_flags)) {
+        return("Non-parametric conclusion: the full-sample non-parametric fit is available, but participant-level cluster-bootstrap inference was not run for this pass, so the robustness check is not yet interpreted inferentially.")
+      }
+      sparse_flags <- vapply(
+        bundles,
+        function(bundle) is_clad_bootstrap_sparse(bundle$fit_stats),
+        logical(1)
+      )
+      if (any(sparse_flags)) {
+        return("Non-parametric conclusion: the full-sample non-parametric fit converged, but fewer than two participant-level bootstrap refits succeeded, so the robustness check is not interpreted inferentially for this hypothesis.")
+      }
+      return("Non-parametric conclusion: no converged second-phase non-parametric model is available, so the robustness check is inconclusive for this hypothesis.")
     }
     return("Tobit conclusion: Tobit outputs are unavailable for this hypothesis.")
   }
@@ -261,9 +348,9 @@ summarize_estimator_hypothesis <- function(spec, approach, alpha = 0.05) {
     function(assessment) assessment$status,
     character(1)
   )
-  approach_label <- if (approach == "CLAD") "CLAD conclusion" else "Tobit conclusion"
+  approach_label <- if (approach == "CLAD") "Non-parametric conclusion" else "Tobit conclusion"
   partial_availability_note <- if (approach == "CLAD" && sum(available_flags) < length(available_flags)) {
-    "Only converged CLAD specifications are interpreted here."
+    "Only non-parametric specifications with available cluster-bootstrap inference are interpreted here."
   } else {
     NULL
   }
@@ -284,6 +371,8 @@ get_hypothesis_specs <- function() {
   list(
     list(
       id = "H1",
+      short_label = "H1: Empathy effect",
+      data_path = paths$processed_accept,
       statement = "Higher empathy predicts lower moral-judgment scores for harmful decisions.",
       expected_direction = "negative",
       model_terms = list(
@@ -294,6 +383,8 @@ get_hypothesis_specs <- function() {
     ),
     list(
       id = "H2a",
+      short_label = "H2a: Ingroup betrayal",
+      data_path = paths$processed_betrayal,
       statement = "Same-faculty harm receives lower moral-judgment scores than cross-faculty harm.",
       expected_direction = "negative",
       model_terms = list(
@@ -304,6 +395,8 @@ get_hypothesis_specs <- function() {
     ),
     list(
       id = "H2b",
+      short_label = "H2b: Outgroup derogation",
+      data_path = paths$processed_accept,
       statement = "Outgroup perpetrators receive lower moral-judgment scores than ingroup perpetrators.",
       expected_direction = "negative",
       model_terms = list(
@@ -314,6 +407,8 @@ get_hypothesis_specs <- function() {
     ),
     list(
       id = "H3",
+      short_label = "H3: Moderation",
+      data_path = paths$processed_accept,
       statement = "The empathy effect is stronger in outgroup cases than in ingroup cases.",
       expected_direction = "negative",
       model_terms = list(
@@ -326,6 +421,410 @@ get_hypothesis_specs <- function() {
       exclude_terms = c("iri_total:perp_outgroup", "iri_fs:perp_outgroup", "iri_ec:perp_outgroup", "iri_pt:perp_outgroup", "iri_pd:perp_outgroup")
     )
   )
+}
+
+empty_signal_details_df <- function() {
+  data.frame(
+    hypothesis_id = character(0),
+    hypothesis_statement = character(0),
+    short_label = character(0),
+    data_path = character(0),
+    approach = character(0),
+    model_suffix = character(0),
+    output_prefix = character(0),
+    term = character(0),
+    canonical_term = character(0),
+    label = character(0),
+    estimate = numeric(0),
+    p_value = numeric(0),
+    symbol = character(0),
+    stringsAsFactors = FALSE
+  )
+}
+
+significance_symbol <- function(p_value) {
+  if (is.na(p_value)) return("")
+  if (p_value < 0.01) return("**")
+  if (p_value < 0.05) return("*")
+  if (p_value < 0.10) return("+")
+  ""
+}
+
+collect_hypothesis_signal_details <- function(spec, alpha = 0.10) {
+  bundle_grid <- expand.grid(
+    approach = c("Tobit", "CLAD"),
+    model_suffix = c("A", "B"),
+    stringsAsFactors = FALSE
+  )
+  target_terms <- unlist(lapply(spec$model_terms, `[[`, "terms"), use.names = FALSE)
+  signal_rows <- lapply(seq_len(nrow(bundle_grid)), function(idx) {
+    approach <- bundle_grid$approach[idx]
+    model_suffix <- bundle_grid$model_suffix[idx]
+    bundle <- read_model_bundle(spec$id, model_suffix, approach)
+    if (!isTRUE(bundle$available) || is.null(bundle$coef_df) || nrow(bundle$coef_df) == 0L) {
+      return(NULL)
+    }
+    rows <- select_hypothesis_rows(bundle$coef_df, target_terms)
+    if (is.null(rows) || nrow(rows) == 0L) return(NULL)
+    rows$canonical_term <- vapply(rows$term, canonicalize_term_name, character(1))
+    rows <- rows[!is.na(rows$p_value) & rows$p_value < alpha, , drop = FALSE]
+    if (nrow(rows) == 0L) return(NULL)
+
+    data.frame(
+      hypothesis_id = spec$id,
+      hypothesis_statement = spec$statement,
+      short_label = spec$short_label,
+      data_path = spec$data_path,
+      approach = bundle$approach,
+      model_suffix = model_suffix,
+      output_prefix = bundle$output_prefix,
+      term = rows$term,
+      canonical_term = rows$canonical_term,
+      label = rows$label,
+      estimate = rows$estimate,
+      p_value = rows$p_value,
+      symbol = vapply(rows$p_value, significance_symbol, character(1)),
+      stringsAsFactors = FALSE
+    )
+  })
+  signal_rows <- Filter(Negate(is.null), signal_rows)
+  if (length(signal_rows) == 0L) return(empty_signal_details_df())
+  do.call(rbind, signal_rows)
+}
+
+collect_all_hypothesis_signal_details <- function(alpha = 0.10) {
+  hypothesis_specs <- get_hypothesis_specs()
+  signal_rows <- lapply(hypothesis_specs, collect_hypothesis_signal_details, alpha = alpha)
+  signal_rows <- Filter(function(df) nrow(df) > 0L, signal_rows)
+
+  signal_df <- if (length(signal_rows) == 0L) {
+    empty_signal_details_df()
+  } else {
+    do.call(rbind, signal_rows)
+  }
+
+  write.csv(signal_df, file.path(paths$tables_dir, "hypothesis_signal_details.csv"), row.names = FALSE)
+  signal_df
+}
+
+collect_hypothesis_signals <- function(spec, approach, alpha = 0.10, signal_details = NULL) {
+  bundles <- list(
+    A = read_model_bundle(spec$id, "A", approach),
+    B = read_model_bundle(spec$id, "B", approach)
+  )
+  available_bundles <- Filter(function(bundle) isTRUE(bundle$available), bundles)
+  if (length(available_bundles) == 0L) {
+    if (approach == "CLAD") {
+      deferred_flags <- vapply(
+        bundles,
+        function(bundle) is_clad_bootstrap_deferred(bundle$fit_stats),
+        logical(1)
+      )
+      if (any(deferred_flags)) return("Bootstrap not run")
+      sparse_flags <- vapply(
+        bundles,
+        function(bundle) is_clad_bootstrap_sparse(bundle$fit_stats),
+        logical(1)
+      )
+      if (any(sparse_flags)) return("Bootstrap too sparse")
+    }
+    return("None")
+  }
+
+  if (is.null(signal_details)) {
+    signal_details <- collect_hypothesis_signal_details(spec, alpha = alpha)
+  }
+
+  signal_df <- signal_details[
+    signal_details$hypothesis_id == spec$id &
+      signal_details$approach == approach,
+    ,
+    drop = FALSE
+  ]
+  signal_df <- signal_df[order(signal_df$p_value, signal_df$label), , drop = FALSE]
+  if (nrow(signal_df) == 0L) {
+    return("None")
+  }
+
+  signal_df <- signal_df[!duplicated(signal_df$canonical_term), , drop = FALSE]
+  formatted_terms <- paste0(signal_df$label, signal_df$symbol)
+  paste(formatted_terms, collapse = "; ")
+}
+
+write_hypothesis_significance_summary <- function(alpha = 0.10, signal_details = NULL) {
+  hypothesis_specs <- get_hypothesis_specs()
+  if (is.null(signal_details)) {
+    signal_details <- collect_all_hypothesis_signal_details(alpha = alpha)
+  }
+  summary_df <- data.frame(
+    Hypothesis = vapply(hypothesis_specs, function(spec) spec$statement, character(1)),
+    `Tobit significant predictors` = vapply(
+      hypothesis_specs,
+      function(spec) collect_hypothesis_signals(spec, "Tobit", alpha, signal_details = signal_details),
+      character(1)
+    ),
+    `Non-parametric significant predictors` = vapply(
+      hypothesis_specs,
+      function(spec) collect_hypothesis_signals(spec, "CLAD", alpha, signal_details = signal_details),
+      character(1)
+    ),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  write.csv(summary_df, file.path(paths$tables_dir, "hypothesis_summary.csv"), row.names = FALSE)
+  summary_df
+}
+
+format_support_phrase <- function(row) {
+  estimator_label <- if (identical(row$approach, "Tobit")) {
+    "the Tobit model"
+  } else {
+    "the clustered non-parametric model"
+  }
+  p_text <- format_p_value(row$p_value)
+  if (startsWith(p_text, "<")) {
+    sprintf("%s (%s, p %s)", estimator_label, row$symbol, sub("^<", "< ", p_text))
+  } else {
+    sprintf("%s (%s, p = %s)", estimator_label, row$symbol, p_text)
+  }
+}
+
+summarize_support_phrases <- function(support_rows) {
+  collapse_with_and(vapply(seq_len(nrow(support_rows)), function(idx) format_support_phrase(support_rows[idx, , drop = FALSE]), character(1)))
+}
+
+build_significance_figure_artifacts <- function(signal_details) {
+  if (is.null(signal_details) || nrow(signal_details) == 0L) {
+    empty_catalog <- data.frame(
+      Hypothesis = character(0),
+      Predictor = character(0),
+      Figure = character(0),
+      FigureType = character(0),
+      `Tobit support` = character(0),
+      `Non-parametric support` = character(0),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+    write.csv(empty_catalog, file.path(paths$tables_dir, "hypothesis_figure_catalog.csv"), row.names = FALSE)
+    return(list())
+  }
+
+  hypothesis_lookup <- stats::setNames(get_hypothesis_specs(), vapply(get_hypothesis_specs(), `[[`, character(1), "id"))
+  group_keys <- unique(signal_details[, c("hypothesis_id", "canonical_term")])
+  group_order <- order(
+    match(group_keys$hypothesis_id, names(hypothesis_lookup)),
+    vapply(
+      seq_len(nrow(group_keys)),
+      function(idx) {
+        key_rows <- signal_details[
+          signal_details$hypothesis_id == group_keys$hypothesis_id[idx] &
+            signal_details$canonical_term == group_keys$canonical_term[idx],
+          ,
+          drop = FALSE
+        ]
+        min(key_rows$p_value, na.rm = TRUE)
+      },
+      numeric(1)
+    )
+  )
+  group_keys <- group_keys[group_order, , drop = FALSE]
+
+  artifacts <- vector("list", nrow(group_keys))
+  catalog_rows <- vector("list", nrow(group_keys))
+
+  for (idx in seq_len(nrow(group_keys))) {
+    hypothesis_id <- group_keys$hypothesis_id[idx]
+    canonical_term <- group_keys$canonical_term[idx]
+    spec <- hypothesis_lookup[[hypothesis_id]]
+    support_rows <- signal_details[
+      signal_details$hypothesis_id == hypothesis_id &
+        signal_details$canonical_term == canonical_term,
+      ,
+      drop = FALSE
+    ]
+    support_rows <- do.call(
+      rbind,
+      lapply(
+        split(support_rows, support_rows$approach),
+        function(df) df[order(df$p_value, df$model_suffix), , drop = FALSE][1, , drop = FALSE]
+      )
+    )
+    rownames(support_rows) <- NULL
+
+    model_data <- read.csv(spec$data_path, stringsAsFactors = FALSE)
+    visual_spec <- build_term_visual_spec(canonical_term, model_data)
+    figure_file <- sprintf("figure_sig_%s_%s.png", hypothesis_id, sanitize_identifier(canonical_term))
+    figure_path <- file.path(paths$figures_dir, figure_file)
+    latex_label <- paste0("fig:sig_", hypothesis_id, "_", sanitize_identifier(canonical_term))
+
+    plot_payloads <- lapply(seq_len(nrow(support_rows)), function(row_idx) {
+      support_row <- support_rows[row_idx, , drop = FALSE]
+      model_fit <- readRDS(file.path(paths$models_dir, sprintf("%s_model.rds", support_row$output_prefix[1])))
+      plot_df <- build_significance_plot_data(model_fit, model_data, canonical_term)
+      list(
+        approach = support_row$approach[1],
+        support_row = support_row,
+        visual_spec = visual_spec,
+        plot_df = plot_df,
+        pattern = describe_prediction_pattern(plot_df, visual_spec)
+      )
+    })
+
+    write_significance_figure(
+      figure_path,
+      plot_payloads,
+      sprintf("%s: %s", spec$id, label_term(canonical_term))
+    )
+
+    support_phrase <- summarize_support_phrases(support_rows)
+    pattern_text <- if (length(plot_payloads) == 1L) {
+      plot_payloads[[1]]$pattern
+    } else {
+      paste0("both estimator panels indicate that ", plot_payloads[[1]]$pattern)
+    }
+
+    figure_type <- switch(
+      visual_spec$kind,
+      continuous_main = "effect plot",
+      categorical_main = "grouped prediction plot",
+      interaction = "interaction plot",
+      "dynamic effect plot"
+    )
+    caption <- sprintf(
+      "%s for %s in %s. Support comes from %s. The panels show predicted latent judgments with 95%% confidence intervals.",
+      tools::toTitleCase(figure_type),
+      label_term(canonical_term),
+      spec$short_label,
+      support_phrase
+    )
+
+    artifacts[[idx]] <- list(
+      hypothesis_id = hypothesis_id,
+      hypothesis_statement = spec$statement,
+      short_label = spec$short_label,
+      canonical_term = canonical_term,
+      label = label_term(canonical_term),
+      figure_file = figure_file,
+      figure_path = figure_path,
+      latex_label = latex_label,
+      support_rows = support_rows,
+      support_phrase = support_phrase,
+      caption = caption,
+      pattern_text = pattern_text,
+      min_p_value = min(support_rows$p_value, na.rm = TRUE)
+    )
+
+    catalog_rows[[idx]] <- data.frame(
+      Hypothesis = spec$statement,
+      Predictor = label_term(canonical_term),
+      Figure = figure_file,
+      FigureType = figure_type,
+      `Tobit support` = if (any(support_rows$approach == "Tobit")) {
+        paste0(support_rows$label[support_rows$approach == "Tobit"], support_rows$symbol[support_rows$approach == "Tobit"], collapse = "; ")
+      } else {
+        "None"
+      },
+      `Non-parametric support` = if (any(support_rows$approach == "CLAD")) {
+        paste0(support_rows$label[support_rows$approach == "CLAD"], support_rows$symbol[support_rows$approach == "CLAD"], collapse = "; ")
+      } else {
+        "None"
+      },
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  }
+
+  write.csv(
+    do.call(rbind, catalog_rows),
+    file.path(paths$tables_dir, "hypothesis_figure_catalog.csv"),
+    row.names = FALSE
+  )
+  artifacts
+}
+
+build_latex_significance_figure_narrative <- function(artifact) {
+  paste0(
+    escape_latex(sprintf("%s is statistically significant in %s. ", artifact$label, artifact$support_phrase)),
+    "Figure \\ref{", artifact$latex_label, "} ",
+    escape_latex(sprintf("shows that %s.", artifact$pattern_text))
+  )
+}
+
+build_markdown_significance_figure_narrative <- function(artifact) {
+  sprintf(
+    "%s is statistically significant in %s. The figure below shows that %s.",
+    artifact$label,
+    artifact$support_phrase,
+    artifact$pattern_text
+  )
+}
+
+build_latex_significance_figure_section <- function(artifacts) {
+  if (length(artifacts) == 0L) return(character(0))
+
+  section_lines <- c(
+    "",
+    "\\subsection{Significance-Driven Figures}",
+    escape_latex(
+      paste(
+        "Only hypothesis-relevant predictors that reach p < 0.10 or better are visualized automatically.",
+        "These dynamic figures use the saved Tobit and clustered non-parametric outputs,",
+        "and participant id remains only an inference-level clustering unit rather than a substantive explanatory variable."
+      )
+    ),
+    ""
+  )
+
+  current_hypothesis <- NULL
+  for (artifact in artifacts) {
+    if (!identical(current_hypothesis, artifact$hypothesis_id)) {
+      section_lines <- c(
+        section_lines,
+        paste0("\\paragraph{", escape_latex(artifact$short_label), "}"),
+        ""
+      )
+      current_hypothesis <- artifact$hypothesis_id
+    }
+
+    section_lines <- c(
+      section_lines,
+      build_latex_significance_figure_narrative(artifact),
+      "",
+      latex_include_graphic(file.path("../figures", artifact$figure_file), artifact$caption, artifact$latex_label),
+      ""
+    )
+  }
+
+  section_lines
+}
+
+build_markdown_significance_figure_section <- function(artifacts) {
+  if (length(artifacts) == 0L) return(character(0))
+
+  section_lines <- c(
+    "## Significance-Driven Figures",
+    "Only hypothesis-relevant predictors that reach at least `p < .10` are visualized automatically. These figures rely on the saved Tobit and clustered non-parametric fits, and `id` remains only an inference-level clustering unit.",
+    ""
+  )
+
+  current_hypothesis <- NULL
+  for (artifact in artifacts) {
+    if (!identical(current_hypothesis, artifact$hypothesis_id)) {
+      section_lines <- c(section_lines, paste0("### ", artifact$short_label), "")
+      current_hypothesis <- artifact$hypothesis_id
+    }
+
+    section_lines <- c(
+      section_lines,
+      build_markdown_significance_figure_narrative(artifact),
+      "",
+      sprintf("![%s](../figures/%s)", artifact$caption, artifact$figure_file),
+      ""
+    )
+  }
+
+  section_lines
 }
 
 build_hypothesis_conclusion_items <- function(alpha = 0.05) {
@@ -343,6 +842,9 @@ build_hypothesis_conclusion_items <- function(alpha = 0.05) {
   )
 }
 
+hypothesis_signal_details <- collect_all_hypothesis_signal_details()
+hypothesis_significance_summary <- write_hypothesis_significance_summary(signal_details = hypothesis_signal_details)
+hypothesis_figure_artifacts <- build_significance_figure_artifacts(hypothesis_signal_details)
 hypothesis_conclusion_items <- build_hypothesis_conclusion_items()
 
 build_estimator_block <- function(output_prefix, estimator_name, table_caption) {
@@ -367,9 +869,15 @@ build_estimator_block <- function(output_prefix, estimator_name, table_caption) 
 
   coef_df <- read.csv(coef_file, stringsAsFactors = FALSE)
   model_fit <- readRDS(model_file)
+  inference_pending <- all(is.na(coef_df$std_error)) && all(is.na(coef_df$p_value))
+  table_df <- if (inference_pending) {
+    coef_df[, c("label", "estimate", "inference"), drop = FALSE]
+  } else {
+    coef_df[, c("label", "estimate", "std_error", "p_value"), drop = FALSE]
+  }
 
   table_latex <- to_latex_table(
-    coef_df[, c("label", "estimate", "std_error", "p_value")],
+    table_df,
     table_caption,
     sprintf("tab:%s", tolower(output_prefix)),
     digits = 3
@@ -394,7 +902,7 @@ build_estimator_block <- function(output_prefix, estimator_name, table_caption) 
   )
 }
 
-# Helper for rendering Tobit plus CLAD robustness sections.
+# Helper for rendering Tobit plus non-parametric robustness sections.
 build_model_section <- function(hypothesis_id, model_suffix, table_caption) {
   output_prefix <- sprintf("%s_%s", hypothesis_id, model_suffix)
   clean_caption <- sub("\\.$", "", table_caption)
@@ -407,8 +915,8 @@ build_model_section <- function(hypothesis_id, model_suffix, table_caption) {
     "",
     build_estimator_block(
       paste0(output_prefix, "_CLAD"),
-      "CLAD Robustness Estimator",
-      sprintf("%s (CLAD robustness).", clean_caption)
+      "Non-parametric Robustness Estimator",
+      sprintf("%s (cluster-aware non-parametric robustness).", clean_caption)
     )
   )
 }
@@ -424,7 +932,7 @@ latex_lines <- c(
   "\\usepackage{booktabs}",
   "\\usepackage{float}",
   "\\usepackage{hyperref}",
-  "\\title{Scientific Analysis of Moral Judgments using Tobit and CLAD Models}",
+  "\\title{Scientific Analysis of Moral Judgments using Tobit and Cluster-Aware Non-Parametric Robustness Models}",
   "\\author{Automated Research Pipeline}",
   paste0("\\date{", format(Sys.Date(), "%B %d, %Y"), "}"),
   "\\begin{document}",
@@ -465,25 +973,38 @@ latex_lines <- c(
   latex_include_graphic(file.path("../figures", "figure_05_bivariate_scatters.png"), "Bivariate Scatters: IRI Scales vs. Mean Judgment.", "fig:bivar_scatters"),
   "",
   "\\section{Estimator Fit Summary}",
-  "The following table consolidates the fit-status information for the primary Tobit models and the added CLAD robustness checks.",
+  "The following table consolidates the fit-status information for the primary Tobit models and the non-parametric robustness branch. In the default pipeline, participant-level cluster bootstrap launches immediately after a converged full-sample non-parametric fit is available; if bootstrap is disabled manually or too few bootstrap refits converge, that status is shown explicitly.",
   if (!is.null(model_fit_summary)) {
     to_latex_table(
-      model_fit_summary[, c("Model", "Approach", "Status", "Converged", "Iterations", "Observations", "Participants", "LowerBoundCensored", "UpperBoundCensored")],
-      "Estimator fit summary across Tobit and CLAD specifications.",
+      model_fit_summary[, c("Model", "Approach", "Status", "Converged", "Iterations", "BootstrapReplicates", "BootstrapSuccessful", "Observations", "Participants", "ClusterUnit")],
+      "Estimator fit summary across Tobit and cluster-aware non-parametric specifications.",
       "tab:model_fit_summary"
     )
   } else {
     "Model fit summary unavailable."
   },
   "",
+  "\\subsection{Hypothesis Significance Summary}",
+  "The following concise table lists only hypothesis-relevant predictors that reached at least p < 0.10, using conventional symbols to indicate strength of evidence. If the non-parametric bootstrap is disabled, too sparse, or the censored median fit does not converge, the non-parametric column reports that status instead of inferential symbols. Dynamic figures are generated only for predictors that appear in this table with at least one significance symbol.",
+  if (!is.null(hypothesis_significance_summary)) {
+    to_latex_table(
+      hypothesis_significance_summary,
+      "Hypothesis-level significance summary across Tobit and cluster-aware non-parametric models.",
+      "tab:hypothesis_summary"
+    )
+  } else {
+    "Hypothesis summary unavailable."
+  },
+  build_latex_significance_figure_section(hypothesis_figure_artifacts),
+  "",
   "\\subsection{Integrated Hypothesis Conclusions}",
-  "The following summary restates each original hypothesis and indicates whether the available Tobit estimates and the converged CLAD robustness models support it in the current data.",
+  "The following summary restates each original hypothesis and indicates whether the available Tobit estimates and the cluster-aware non-parametric models support it in the current data. Non-parametric conclusions are drawn when the participant-level bootstrap inference is available and are otherwise labeled explicitly.",
   "\\begin{itemize}",
   paste0("\\item ", escape_latex(hypothesis_conclusion_items)),
   "\\end{itemize}",
   "",
   "\\section{Hypothesis Validation and Results}",
-  "Detailed coefficient tables for each Tobit model, coupled with CLAD robustness replications, natural language interpretive narratives, and estimator-specific diagnostics, are provided below.",
+  "Detailed coefficient tables for each Tobit model, coupled with non-parametric robustness outputs, natural language interpretive narratives, and estimator-specific diagnostics, are provided below. In the default pipeline, converged non-parametric fits immediately attempt participant-level cluster-bootstrap inference; the report labels deferred and sparse-bootstrap cases explicitly when full inference is not available.",
   "",
   "\\subsection{H1: Empathy Effect}",
   "This section evaluates the primary effect of empathy on moral judgments.",
@@ -517,7 +1038,7 @@ latex_lines <- c(
   paste(get_limitations_narration(), collapse = " "),
   "",
   "\\section{Conclusion}",
-  "Based on the combined interval-censored Tobit estimations and CLAD robustness checks, the structural effects of empathy, group dynamics, and betrayal have been documented alongside their theoretical assumptions above.",
+  "Based on the combined interval-censored Tobit estimations and the cluster-aware non-parametric robustness workflow, the structural effects of empathy, group dynamics, and betrayal have been documented alongside their theoretical assumptions above.",
   "\\end{document}"
 )
 
@@ -526,20 +1047,27 @@ write_text_file(latex_lines, tex_path)
 
 # Rendering Markdown is temporarily simplified to focus on standardizing the LaTeX/PDF engine.
 md_lines <- c(
-  "# Scientific Analysis of Moral Judgments with Tobit and CLAD Robustness Checks",
+  "# Scientific Analysis of Moral Judgments with Tobit and Cluster-Aware Non-Parametric Robustness Checks",
   "",
   "## Dataset Description",
   paste(get_dataset_narration(paths$dataset_mode), collapse = " "),
   "",
+  "## Hypothesis Significance Summary",
+  "Only hypothesis-relevant predictors with p < 0.10 are shown below. Symbols follow the rule `+` for p < 0.10, `*` for p < 0.05, and `**` for p < 0.01. If bootstrap is disabled for a run, too few non-parametric bootstrap refits succeed, or the non-parametric fit does not converge, the non-parametric column reports that status explicitly. Dynamic figures are generated only for predictors that appear here with at least one significance symbol.",
+  to_markdown_table(hypothesis_significance_summary),
+  "",
+  build_markdown_significance_figure_section(hypothesis_figure_artifacts),
+  "",
   "## Hypothesis Conclusion Summary",
-  "Each conclusion below is generated from the current coefficient outputs, with CLAD statements restricted to models that completed with convergence.",
+  "Each conclusion below is generated from the current coefficient outputs. Non-parametric statements are interpreted when participant-level cluster-bootstrap inference is available and are otherwise labeled explicitly.",
   paste0("- ", hypothesis_conclusion_items),
   "",
   "## PDF Comprehensive Report Generated",
-  "Please check `tobit_analysis_report.pdf` in the `outputs/report/` folder for the fully documented Tobit and CLAD mathematical formulations, dual-estimator hypothesis testing, and the algorithmically interpreted natural language coefficients.",
+  "Please check `tobit_analysis_report.pdf` in the `outputs/report/` folder for the fully documented Tobit and cluster-aware non-parametric mathematical formulations, dual-estimator hypothesis testing, and the algorithmically interpreted natural language coefficients.",
   ""
 )
 write_text_file(md_lines, file.path(paths$report_dir, "tobit_analysis_report.md"))
+write_text_file(md_lines, file.path(paths$logs_dir, "dynamic_report.md"))
 
 # 3. RENDERING HELPER (Word and PDF)
 render_pdf <- function(tex_file) {

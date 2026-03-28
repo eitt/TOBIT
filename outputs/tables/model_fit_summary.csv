@@ -1,17 +1,17 @@
-"Model","Approach","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2","Quantile","Converged","Iterations","Status","ErrorMessage"
-"H1_A_Total_CLAD","CLAD",755,77,227,24,NA,NA,NA,0.5,FALSE,2000,"not_converged",NA
-"H1_B_Constructs_CLAD","CLAD",755,77,227,24,NA,NA,NA,0.5,TRUE,109,"completed",NA
-"H2a_A_Total_CLAD","CLAD",503,77,160,18,NA,NA,NA,0.5,TRUE,23,"completed",NA
-"H2a_B_Constructs_CLAD","CLAD",503,77,160,18,NA,NA,NA,0.5,FALSE,2000,"not_converged",NA
-"H2b_A_Total_CLAD","CLAD",755,77,227,24,NA,NA,NA,0.5,FALSE,2000,"not_converged",NA
-"H2b_B_Constructs_CLAD","CLAD",755,77,227,24,NA,NA,NA,0.5,TRUE,108,"completed",NA
-"H3_A_Total_CLAD","CLAD",755,77,227,24,NA,NA,NA,0.5,FALSE,2000,"not_converged",NA
-"H3_B_Constructs_CLAD","CLAD",755,77,227,24,NA,NA,NA,0.5,TRUE,108,"completed",NA
-"H1_A_Total_Tobit","Tobit",755,77,227,24,-1958.16177574531,3944.32355149063,0.00776304015496276,NA,NA,3,"completed",NA
-"H1_B_Constructs_Tobit","Tobit",755,77,227,24,-1944.26618878588,3934.53237757175,0.0148041922858414,NA,NA,3,"completed",NA
-"H2a_A_Total_Tobit","Tobit",503,77,160,18,-1277.90612427513,2579.81224855026,0.0103625754505754,NA,NA,3,"completed",NA
-"H2a_B_Constructs_Tobit","Tobit",503,77,160,18,-1272.68633574964,2575.37267149928,0.0144048896510707,NA,NA,3,"completed",NA
-"H2b_A_Total_Tobit","Tobit",755,77,227,24,-1958.16177574531,3944.32355149063,0.00776304015496276,NA,NA,3,"completed",NA
-"H2b_B_Constructs_Tobit","Tobit",755,77,227,24,-1944.26618878588,3934.53237757175,0.0148041922858414,NA,NA,3,"completed",NA
-"H3_A_Total_Tobit","Tobit",755,77,227,24,-1958.16177574531,3944.32355149063,0.00776304015496276,NA,NA,3,"completed",NA
-"H3_B_Constructs_Tobit","Tobit",755,77,227,24,-1944.26618878588,3934.53237757175,0.0148041922858414,NA,NA,3,"completed",NA
+"Model","Approach","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2","Quantile","Converged","Iterations","Inference","ClusterUnit","BootstrapReplicates","BootstrapSuccessful","BootstrapFailed","BootstrapSuccessRate","ConfidenceLevel","Status","ErrorMessage"
+"H1_A_Total_CLAD","CLAD",1939,199,497,69,NA,NA,NA,0.5,FALSE,2000,"Participant-level cluster bootstrap after interval-censored median regression","id",10,NA,NA,NA,0.95,"not_converged",NA
+"H1_B_Constructs_CLAD","CLAD",1939,199,497,69,NA,NA,NA,0.5,TRUE,93,"Participant-level cluster bootstrap after interval-censored median regression","id",10,4,6,0.4,0.95,"completed",NA
+"H2a_A_Total_CLAD","CLAD",1262,199,342,46,NA,NA,NA,0.5,TRUE,43,"Participant-level cluster bootstrap after interval-censored median regression","id",10,10,0,1,0.95,"completed",NA
+"H2a_B_Constructs_CLAD","CLAD",1262,199,342,46,NA,NA,NA,0.5,TRUE,27,"Participant-level cluster bootstrap after interval-censored median regression","id",10,4,6,0.4,0.95,"completed",NA
+"H2b_A_Total_CLAD","CLAD",1939,199,497,69,NA,NA,NA,0.5,FALSE,2000,"Participant-level cluster bootstrap after interval-censored median regression","id",10,NA,NA,NA,0.95,"not_converged",NA
+"H2b_B_Constructs_CLAD","CLAD",1939,199,497,69,NA,NA,NA,0.5,TRUE,93,"Participant-level cluster bootstrap after interval-censored median regression","id",10,3,7,0.3,0.95,"completed",NA
+"H3_A_Total_CLAD","CLAD",1939,199,497,69,NA,NA,NA,0.5,FALSE,2000,"Participant-level cluster bootstrap after interval-censored median regression","id",10,NA,NA,NA,0.95,"not_converged",NA
+"H3_B_Constructs_CLAD","CLAD",1939,199,497,69,NA,NA,NA,0.5,TRUE,93,"Participant-level cluster bootstrap after interval-censored median regression","id",10,3,7,0.3,0.95,"completed",NA
+"H1_A_Total_Tobit","Tobit",1939,199,497,69,-5111.78856486499,10251.57712973,0.00788100375718703,NA,NA,3,"Cluster-robust standard errors by participant id","id",NA,NA,NA,NA,0.95,"completed",NA
+"H1_B_Constructs_Tobit","Tobit",1939,199,497,69,-5073.19438851843,10192.3887770369,0.0153715356936884,NA,NA,3,"Cluster-robust standard errors by participant id","id",NA,NA,NA,NA,0.95,"completed",NA
+"H2a_A_Total_Tobit","Tobit",1262,199,342,46,-3278.86493959668,6581.72987919335,0.00847719783346323,NA,NA,3,"Cluster-robust standard errors by participant id","id",NA,NA,NA,NA,0.95,"completed",NA
+"H2a_B_Constructs_Tobit","Tobit",1262,199,342,46,-3258.76654426178,6547.53308852357,0.014554916077007,NA,NA,3,"Cluster-robust standard errors by participant id","id",NA,NA,NA,NA,0.95,"completed",NA
+"H2b_A_Total_Tobit","Tobit",1939,199,497,69,-5111.78856486499,10251.57712973,0.00788100375718703,NA,NA,3,"Cluster-robust standard errors by participant id","id",NA,NA,NA,NA,0.95,"completed",NA
+"H2b_B_Constructs_Tobit","Tobit",1939,199,497,69,-5073.19438851843,10192.3887770369,0.0153715356936888,NA,NA,3,"Cluster-robust standard errors by participant id","id",NA,NA,NA,NA,0.95,"completed",NA
+"H3_A_Total_Tobit","Tobit",1939,199,497,69,-5111.78856486499,10251.57712973,0.00788100375718703,NA,NA,3,"Cluster-robust standard errors by participant id","id",NA,NA,NA,NA,0.95,"completed",NA
+"H3_B_Constructs_Tobit","Tobit",1939,199,497,69,-5073.19438851843,10192.3887770369,0.0153715356936888,NA,NA,3,"Cluster-robust standard errors by participant id","id",NA,NA,NA,NA,0.95,"completed",NA

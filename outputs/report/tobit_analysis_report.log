@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.3.4)  24 MAR 2026 15:10
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.3.4)  27 MAR 2026 23:08
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -428,46 +428,76 @@ Package hyperref Warning: Difference (2) between bookmark levels is greater
 (hyperref)                than one, level fixed on input line 77.
 
 [2]
-<../figures/figure_03_empathy_radar.png, id=127, 578.16pt x 361.35pt>
+<../figures/figure_03_empathy_radar.png, id=135, 578.16pt x 361.35pt>
 File: ../figures/figure_03_empathy_radar.png Graphic file (type png)
 <use ../figures/figure_03_empathy_radar.png>
 Package pdftex.def Info: ../figures/figure_03_empathy_radar.png  used on input 
 line 98.
 (pdftex.def)             Requested size: 432.17375pt x 270.10757pt.
-<../figures/figure_04_severity_panels.png, id=129, 722.7pt x 361.35pt>
+<../figures/figure_04_severity_panels.png, id=137, 722.7pt x 361.35pt>
 File: ../figures/figure_04_severity_panels.png Graphic file (type png)
 <use ../figures/figure_04_severity_panels.png>
 Package pdftex.def Info: ../figures/figure_04_severity_panels.png  used on inpu
 t line 105.
 (pdftex.def)             Requested size: 432.17375pt x 216.08937pt.
  [3 <../figures/figure_03_empathy_radar.png>]
-<../figures/figure_05_bivariate_scatters.png, id=138, 722.7pt x 289.08pt>
+<../figures/figure_05_bivariate_scatters.png, id=146, 722.7pt x 289.08pt>
 File: ../figures/figure_05_bivariate_scatters.png Graphic file (type png)
 <use ../figures/figure_05_bivariate_scatters.png>
 Package pdftex.def Info: ../figures/figure_05_bivariate_scatters.png  used on i
 nput line 134.
 (pdftex.def)             Requested size: 432.17375pt x 172.87149pt.
  [4 <../figures/figure_04_severity_panels.png>] [5 <../figures/figure_05_bivari
-ate_scatters.png>] [6] [7]
-[8] [9] [10] [11] [12] [13] [14] [15] [16] [17] [18] [19] [20] [21] [22]
-[23] [24] [25] [26] [27] [28] [29] [30] [31] [32] [33] [34] [35] [36] [37]
-[38] [39] [40] (tobit_analysis_report_build.aux)
+ate_scatters.png>]
+<../figures/figure_sig_H1_iri_pt.png, id=163, 469.755pt x 325.215pt>
+File: ../figures/figure_sig_H1_iri_pt.png Graphic file (type png)
+<use ../figures/figure_sig_H1_iri_pt.png>
+Package pdftex.def Info: ../figures/figure_sig_H1_iri_pt.png  used on input lin
+e 200.
+(pdftex.def)             Requested size: 432.17375pt x 299.19646pt.
+<../figures/figure_sig_H3_iri_pd_perp_outgroup.png, id=165, 722.7pt x 325.215pt
+>
+File: ../figures/figure_sig_H3_iri_pd_perp_outgroup.png Graphic file (type png)
+
+<use ../figures/figure_sig_H3_iri_pd_perp_outgroup.png>
+Package pdftex.def Info: ../figures/figure_sig_H3_iri_pd_perp_outgroup.png  use
+d on input line 211.
+(pdftex.def)             Requested size: 432.17375pt x 194.48042pt.
+ [6 <../figures/figure_sig_H1_iri_pt.png>]
+Overfull \hbox (8.97675pt too wide) in paragraph at lines 216--217
+[]\T1/cmr/m/n/10.95 Empathic con-cern x out-group per-pe-tra-tor is sta-tis-ti-
+cally sig-nif-i-cant in the clus-tered non-parametric
+ []
+
+<../figures/figure_sig_H3_iri_ec_perp_outgroup.png, id=176, 722.7pt x 325.215pt
+>
+File: ../figures/figure_sig_H3_iri_ec_perp_outgroup.png Graphic file (type png)
+
+<use ../figures/figure_sig_H3_iri_ec_perp_outgroup.png>
+Package pdftex.def Info: ../figures/figure_sig_H3_iri_ec_perp_outgroup.png  use
+d on input line 220.
+(pdftex.def)             Requested size: 432.17375pt x 194.48042pt.
+[7 <../figures/figure_sig_H3_iri_pd_perp_outgroup.png> <../figures/figure_sig_H
+3_iri_ec_perp_outgroup.png>] [8] [9] [10] [11] [12] [13] [14] [15] [16]
+[17] [18] [19] [20] [21] [22] [23] [24] [25] [26] [27] [28] [29] [30] [31]
+[32] [33] [34] [35] [36] [37] [38] [39] [40] [41]
+(tobit_analysis_report_build.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
  ***********
 Package rerunfilecheck Info: File `tobit_analysis_report_build.out' has not cha
 nged.
-(rerunfilecheck)             Checksum: 774FE1CF1B5D9E8A9833C775F261B3C5;5238.
+(rerunfilecheck)             Checksum: E7DC5620AB18BF369D50A4AB164ECCCD;5653.
  ) 
 Here is how much of TeX's memory you used:
- 10674 strings out of 467867
- 162273 string characters out of 5418335
- 594152 words of memory out of 5000000
- 39325 multiletter control sequences out of 15000+600000
+ 10710 strings out of 467867
+ 163578 string characters out of 5418335
+ 595293 words of memory out of 5000000
+ 39352 multiletter control sequences out of 15000+600000
  642117 words of font info for 77 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,14n,79p,7245b,522s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,14n,79p,7184b,519s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx
 1200.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi60
 0\ecbx1095.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec
@@ -484,9 +514,9 @@ C:/Users/LEONA/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmr
 8.pfb><C:/Users/LEONA/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts
 /cm/cmsy10.pfb><C:/Users/LEONA/AppData/Local/Programs/MiKTeX/fonts/type1/public
 /amsfonts/cm/cmsy8.pfb>
-Output written on tobit_analysis_report_build.pdf (40 pages, 369044 bytes).
+Output written on tobit_analysis_report_build.pdf (41 pages, 494808 bytes).
 PDF statistics:
- 655 PDF objects out of 1000 (max. 8388607)
- 104 named destinations out of 1000 (max. 500000)
- 216 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 697 PDF objects out of 1000 (max. 8388607)
+ 113 named destinations out of 1000 (max. 500000)
+ 247 words of extra memory for PDF output out of 10000 (max. 10000000)
 

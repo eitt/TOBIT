@@ -1,31 +1,44 @@
-# Dynamic Analysis Report
+# Scientific Analysis of Moral Judgments with Tobit and Cluster-Aware Non-Parametric Robustness Checks
 
-*Generated autonomously on: 2026-03-23 12:35:40*
+## Dataset Description
+The empirical foundation of this project rests on two primary experimental datasets: FLORIDA and BUC.  The sample consists of students from the Bucaramanga Campus.  These datasets capture incentivized moral judgments from distinct socio-economic contexts. Participants were presented  with standardized negotiation scenarios where a negotiator's decision resulted in varying degrees of payoff for  themselves, their own group, and a victim group (either ingroup or outgroup).
 
-## Statistical Power and Clustered Variance
-The dataset features extensive repeated measures (569 observations across 58 participants). The Intraclass Correlation Coefficient (ICC) of the primary moral judgments was calculated at 0.493. Consequently, the Design Effect inflating the variance is 5.34, yielding an Effective Sample Size (ESS) of 106.5 independent observations. This ESS governs the true statistical power for hypothesis detection in the clustered design.
+## Hypothesis Significance Summary
+Only hypothesis-relevant predictors with p < 0.10 are shown below. Symbols follow the rule `+` for p < 0.10, `*` for p < 0.05, and `**` for p < 0.01. If bootstrap is disabled for a run, too few non-parametric bootstrap refits succeed, or the non-parametric fit does not converge, the non-parametric column reports that status explicitly. Dynamic figures are generated only for predictors that appear here with at least one significance symbol.
+| Hypothesis | Tobit significant predictors | Non-parametric significant predictors |
+| --- | --- | --- |
+| Higher empathy predicts lower moral-judgment scores for harmful decisions. | Empathy: Perspective taking+ | None |
+| Same-faculty harm receives lower moral-judgment scores than cross-faculty harm. | None | None |
+| Outgroup perpetrators receive lower moral-judgment scores than ingroup perpetrators. | None | None |
+| The empathy effect is stronger in outgroup cases than in ingroup cases. | Personal distress x outgroup perpetrator**; Empathic concern x outgroup perpetrator** | Personal distress x outgroup perpetrator**; Empathic concern x outgroup perpetrator** |
 
-## Hypothesis Evaluations
+## Significance-Driven Figures
+Only hypothesis-relevant predictors that reach at least `p < .10` are visualized automatically. These figures rely on the saved Tobit and clustered non-parametric fits, and `id` remains only an inference-level clustering unit.
 
-### H1: Empathy Effect
-> *Higher empathy predicts lower moral-judgment scores for harmful decisions.*
+### H1: Empathy effect
 
-Testing H1 (Term: iri_total_z). Coefficient estimate: -0.788 (p = 0.457). **HYPOTHESIS NOT SUPPORTED.** The effect was either strictly non-significant (p >= .05) or in the contrary direction.
+Empathy: Perspective taking is statistically significant in the Tobit model (+, p = 0.064). The figure below shows that across the observed range, higher Empathy: Perspective taking corresponds to higher predicted latent judgment.
 
-### H2a: Ingroup Betrayal Effect
-> *Same-faculty harm receives lower moral-judgment scores than cross-faculty harm.*
+![Effect Plot for Empathy: Perspective taking in H1: Empathy effect. Support comes from the Tobit model (+, p = 0.064). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_H1_iri_pt.png)
 
-Testing H2a (Term: same_group_harm). Coefficient estimate: -1.341 (p = 0.087). **HYPOTHESIS NOT SUPPORTED.** The effect was either strictly non-significant (p >= .05) or in the contrary direction.
+### H3: Moderation
 
-### H2b: Outgroup Derogation Effect
-> *Outgroup perpetrators receive lower moral-judgment scores than ingroup perpetrators.*
+Personal distress x outgroup perpetrator is statistically significant in the clustered non-parametric model (**, p < 0.001) and the Tobit model (**, p < 0.001). The figure below shows that both estimator panels indicate that the predicted relationship rises most sharply for Empathy: Personal distress when the condition is Outgroup perpetrator.
 
-Testing H2b (Term: perp_outgroup). Coefficient estimate: 0.082 (p = 0.906). **HYPOTHESIS NOT SUPPORTED.** The effect was either strictly non-significant (p >= .05) or in the contrary direction.
+![Interaction Plot for Personal distress x outgroup perpetrator in H3: Moderation. Support comes from the clustered non-parametric model (**, p < 0.001) and the Tobit model (**, p < 0.001). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_H3_iri_pd_perp_outgroup.png)
 
-### H3: Empathy x Group Moderation Effect
-> *The negative association between empathy and moral-judgment scores should be stronger in outgroup cases than in ingroup cases.*
+Empathic concern x outgroup perpetrator is statistically significant in the clustered non-parametric model (**, p < 0.001) and the Tobit model (**, p = 0.010). The figure below shows that both estimator panels indicate that the predicted relationship falls most sharply for Empathy: Empathic concern when the condition is Outgroup perpetrator.
 
-Testing H3 (Term: iri_total_z:perp_outgroup). Coefficient estimate: -0.450 (p = 0.583). **HYPOTHESIS NOT SUPPORTED.** The effect was either strictly non-significant (p >= .05) or in the contrary direction.
+![Interaction Plot for Empathic concern x outgroup perpetrator in H3: Moderation. Support comes from the clustered non-parametric model (**, p < 0.001) and the Tobit model (**, p = 0.010). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_H3_iri_ec_perp_outgroup.png)
 
-## Diagnostic Notes
-These textual conclusions dynamically map against the newest iteration of output coefficients generated in the `outputs/models/` directory.
+
+## Hypothesis Conclusion Summary
+Each conclusion below is generated from the current coefficient outputs. Non-parametric statements are interpreted when participant-level cluster-bootstrap inference is available and are otherwise labeled explicitly.
+- H1. Original hypothesis: Higher empathy predicts lower moral-judgment scores for harmful decisions. Tobit conclusion: the available models do not support the hypothesis. Model A does not support the hypothesis; Empathy composite (average) is negative but not statistically significant (p = 0.517). Model B does not support the hypothesis; none of the empathy subscale main effects are statistically significant, and the closest signal is Empathy: Perspective taking with a positive association (p = 0.064). Additional statistically significant signals include Personal distress x outgroup perpetrator with a positive association (p < 0.001) and Empathic concern x outgroup perpetrator with a negative association (p = 0.010). Non-parametric conclusion: the available models do not support the hypothesis. Only non-parametric specifications with available cluster-bootstrap inference are interpreted here. Model A is not interpreted because the non-parametric optimization did not converge after 2000 iterations. Model B does not support the hypothesis; none of the empathy subscale main effects are statistically significant, and the closest signal is Empathy: Perspective taking with a positive association (p = 0.347). Additional statistically significant signals include Empathic concern x outgroup perpetrator with a negative association (p < 0.001) and Personal distress x outgroup perpetrator with a positive association (p < 0.001).
+- H2a. Original hypothesis: Same-faculty harm receives lower moral-judgment scores than cross-faculty harm. Tobit conclusion: the available models do not support the hypothesis. Model A does not support the hypothesis; Negotiator and victim share faculty is negative but not statistically significant (p = 0.751). Model B does not support the hypothesis; Negotiator and victim share faculty is negative but not statistically significant (p = 0.670). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.013) and Empathy: Empathic concern with a negative association (p = 0.014). Non-parametric conclusion: the available models do not support the hypothesis. Model A does not support the hypothesis; Negotiator and victim share faculty is positive but not statistically significant (p = 0.535). Model B does not support the hypothesis; Negotiator and victim share faculty is positive but not statistically significant (p = 0.477). Additional statistically significant signals include Age with a positive association (p = 0.008) and Observer role (ref = victim) with a positive association (p = 0.025).
+- H2b. Original hypothesis: Outgroup perpetrators receive lower moral-judgment scores than ingroup perpetrators. Tobit conclusion: the available models do not support the hypothesis. Model A does not support the hypothesis; Outgroup perpetrator (ref = ingroup) is negative but not statistically significant (p = 0.930). Model B does not support the hypothesis; Outgroup perpetrator (ref = ingroup) is positive but not statistically significant (p = 0.740). Additional statistically significant signals include Personal distress x outgroup perpetrator with a positive association (p < 0.001) and Empathic concern x outgroup perpetrator with a negative association (p = 0.010). Non-parametric conclusion: the available models do not support the hypothesis. Only non-parametric specifications with available cluster-bootstrap inference are interpreted here. Model A is not interpreted because the non-parametric optimization did not converge after 2000 iterations. Model B does not support the hypothesis; Outgroup perpetrator (ref = ingroup) is negative but not statistically significant (p = 0.949). Additional statistically significant signals include Empathic concern x outgroup perpetrator with a negative association (p < 0.001) and Personal distress x outgroup perpetrator with a positive association (p < 0.001).
+- H3. Original hypothesis: The empathy effect is stronger in outgroup cases than in ingroup cases. Tobit conclusion: the evidence is mixed but offers partial support for the hypothesis. Model A does not support the hypothesis; Empathy x outgroup perpetrator is negative but not statistically significant (p = 0.928). Model B supports the hypothesis through Empathic concern x outgroup perpetrator with a negative association (p = 0.010). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.016) and Age with a positive association (p = 0.034). Non-parametric conclusion: the available models support the hypothesis. Only non-parametric specifications with available cluster-bootstrap inference are interpreted here. Model A is not interpreted because the non-parametric optimization did not converge after 2000 iterations. Model B supports the hypothesis through Empathic concern x outgroup perpetrator with a negative association (p < 0.001). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.002) and Age with a positive association (p = 0.015).
+
+## PDF Comprehensive Report Generated
+Please check `tobit_analysis_report.pdf` in the `outputs/report/` folder for the fully documented Tobit and cluster-aware non-parametric mathematical formulations, dual-estimator hypothesis testing, and the algorithmically interpreted natural language coefficients.
+

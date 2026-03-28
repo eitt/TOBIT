@@ -6,7 +6,8 @@
 # Controls: iri_total, perp_outgroup, victim_outgroup, role_observer, 
 #           participant_engineering, sex_man, age, economic_status, slot
 # Sample: Accepted decisions (decision_accept = 1) excluding hidden label controls
-# Specification: Interval-censored clustered Tobit model
+# Specification: Interval-censored clustered Tobit model plus
+#                cluster-bootstrap non-parametric robustness check
 
 source("R/00_config.R")
 source("R/utils/model_functions.R")

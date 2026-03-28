@@ -107,12 +107,6 @@ escape_latex <- function(x, escape_math = TRUE) {
 #' Build a LaTeX table optimized for letter-page width
 to_latex_table <- function(df, caption, label, digits = 3, longtable = FALSE, escape_math = TRUE) {
   if (!is.data.frame(df) || ncol(df) == 0L) return("")
-  
-  # Inject line breaks for long captions
-  if (nchar(caption) > 80) {
-    # Simple line break insertion for letter width formatting
-    caption <- gsub("(.{1,80})(\\s|$)", "\\1\\\\\\\\ ", caption)
-  }
 
   format_cell <- function(x) {
     if (is.numeric(x)) {
@@ -130,6 +124,7 @@ to_latex_table <- function(df, caption, label, digits = 3, longtable = FALSE, es
   formatted <- lapply(df, format_cell)
   formatted_df <- as.data.frame(formatted, stringsAsFactors = FALSE, check.names = FALSE)
   formatted_df[] <- lapply(formatted_df, escape_latex, escape_math = escape_math)
+  caption_text <- escape_latex(caption, escape_math = escape_math)
   col_spec <- paste(rep("l", ncol(formatted_df)), collapse = "")
   header <- paste(vapply(names(formatted_df), escape_latex, character(1), escape_math = escape_math), collapse = " & ")
   body <- apply(formatted_df, 1, function(row) paste(row, collapse = " & "))
@@ -137,7 +132,7 @@ to_latex_table <- function(df, caption, label, digits = 3, longtable = FALSE, es
   if (longtable) {
     return(c(
       paste0("\\begin{longtable}{", col_spec, "}"),
-      paste0("\\caption{", escape_latex(caption), "}\\label{", label, "}\\\\"),
+      paste0("\\caption{", caption_text, "}\\label{", label, "}\\\\"),
       "\\toprule",
       paste0(header, " \\\\"),
       "\\midrule",
@@ -155,7 +150,7 @@ to_latex_table <- function(df, caption, label, digits = 3, longtable = FALSE, es
   c(
     "\\begin{table}[H]",
     "\\centering",
-    paste0("\\caption{", caption, "}"),
+    paste0("\\caption{", caption_text, "}"),
     paste0("\\label{", label, "}"),
     paste0("\\resizebox{\\textwidth}{!}{%"),
     paste0("\\begin{tabular}{", col_spec, "}"),
@@ -173,9 +168,6 @@ to_latex_table <- function(df, caption, label, digits = 3, longtable = FALSE, es
 #' Insert a previously written PNG into the LaTeX report.
 latex_include_graphic <- function(file_path, caption, label, width = "0.92\\textwidth") {
   rel_path <- gsub("\\\\", "/", file_path)
-  if (nchar(caption) > 80) {
-    caption <- gsub("(.{1,80})(\\s|$)", "\\1\\\\\\\\ ", caption)
-  }
   c(
     "\\begin{figure}[H]",
     "\\centering",

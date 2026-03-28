@@ -37,22 +37,30 @@ The pipeline can be executed completely via the `run_pipeline.R` master orchestr
 - Generates `empathy_summary.csv`, `participant_summary.csv`, and `judgement_summary.csv`.
 
 ### 6. Run Hypothesis-Specific Models (`R/hypotheses/*`)
-Each of the 4 hypotheses has its own isolated script that sets up its explicit bounded-outcome formula, estimates a clustered Tobit model using interval boundaries (-9 and 9), then fits a CLAD robustness companion as interval-censored median regression. Each script logs execution and writes both sets of model artifacts for publication:
+Each of the 4 hypotheses has its own isolated script that sets up its explicit bounded-outcome formula, estimates a clustered Tobit model using interval boundaries (-9 and 9), then fits a non-parametric robustness companion as interval-censored median regression. The non-parametric branch first fits the full sample once and, if that fit converges, immediately launches participant-level cluster bootstrap inference by resampling ids with replacement while retaining all repeated observations from each sampled participant. Repeated observations from the same participant are therefore handled inferentially in both branches, with `id` serving only as the clustering unit. If too few bootstrap refits converge, the workflow carries that forward as a sparse-bootstrap status rather than presenting the non-parametric branch as fully inferential.
 
 - `H1_test.R`: Uses `iri_total` targeting the Empathy Effect and writes `H1_A*`, `H1_B*`, `H1_A_CLAD*`, and `H1_B_CLAD*`.
-- `H2a_test.R`: Uses `same_group_harm` targeting Ingroup Betrayal and writes the corresponding Tobit and CLAD outputs.
-- `H2b_test.R`: Uses `perp_outgroup` targeting Outgroup Derogation and writes the corresponding Tobit and CLAD outputs.
-- `H3_test.R`: Uses `iri_total:perp_outgroup` highlighting Moderation and writes the corresponding Tobit and CLAD outputs.
+- `H2a_test.R`: Uses `same_group_harm` targeting Ingroup Betrayal and writes the corresponding Tobit and non-parametric robustness outputs.
+- `H2b_test.R`: Uses `perp_outgroup` targeting Outgroup Derogation and writes the corresponding Tobit and non-parametric robustness outputs.
+- `H3_test.R`: Uses `iri_total:perp_outgroup` highlighting Moderation and writes the corresponding Tobit and non-parametric robustness outputs.
 
 ### 7. Export Tables and Figures (`Outputs directory`)
 
 - Figures are sent to `outputs/figures/`.
-- Regression coefficients, fit summaries, CLAD robustness artifacts, and LaTeX representations are sent to `outputs/models/` and `outputs/tables/`.
+- Regression coefficients, fit summaries, non-parametric robustness artifacts, and LaTeX representations are sent to `outputs/models/` and `outputs/tables/`.
+
+### 7. Bootstrap-Only Refresh Utility (`R/07_run_nonparametric_bootstrap_phase.R`)
+
+- Sets the pipeline into bootstrap-only mode for the non-parametric branch.
+- Skips Tobit refits so only the non-parametric outputs are refreshed.
+- Runs participant-level cluster bootstrap inference only for specifications whose full-sample non-parametric fit converged.
+- Regenerates the report after the bootstrap-enhanced robustness outputs are saved.
+- If too few participant-level bootstrap refits converge, the refreshed outputs are marked as sparse bootstrap inference.
 
 ### 8. Dynamic Reporting (`R/06_generate_report.R`)
 
 - Automates clustered statistical power analysis estimating the Intraclass Correlation Coefficient (ICC) and translating repeated measures into an Effective Sample Size (ESS).
-- Reads the output tables natively, summarizes fit information across Tobit and CLAD, and renders both estimators in the final report for H1-H3.
-- Writes a compiled narrative markdown report to `outputs/logs/dynamic_report.md`.
+- Reads the output tables natively, detects hypothesis-relevant predictors that reach at least `p < .10`, generates the most suitable dynamic figure for each such predictor, summarizes fit information across Tobit and the cluster-aware non-parametric robustness branch, writes a concise hypothesis significance table, and renders both estimators in the final report for H1-H3.
+- Writes compiled narrative markdown reports to `outputs/report/tobit_analysis_report.md` and `outputs/logs/dynamic_report.md`.
 
 This guarantees reproducibility from a fresh R session without requiring workspace state. All steps communicate securely through the artifacts generated in `data/processed/`.

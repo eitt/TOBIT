@@ -3,13 +3,18 @@
 # Executes the function-oriented project pipeline sequentially.
 
 message("==========================================")
-message("Starting the TOBIT + CLAD Analysis Pipeline")
+message("Starting the TOBIT + Cluster-Aware Non-Parametric Robustness Analysis Pipeline")
 message("--- Checking Environmental Requirements ---")
 
 # --- User Configuration ---
 # Choose which dataset to analyze: "FLORIDA", "BUC", or "BOTH"
 dataset_mode <- "BUC"
 options(tobit.dataset_mode = dataset_mode)
+# Fit each non-parametric model once and, if it converges, immediately add
+# participant-level cluster-bootstrap inference to the saved CLAD outputs.
+options(tobit.clad_run_bootstrap = TRUE)
+options(tobit.skip_tobit_refit = FALSE)
+options(tobit.clad_bootstrap_reps = 10L)
 
 # Ensure project structure & dependencies
 source("R/00_config.R")
@@ -44,7 +49,7 @@ hypothesis_scripts <- c(
 )
 
 message("\n==========================================")
-message("Starting Hypothesis Testing (Tobit + CLAD)")
+message("Starting Hypothesis Testing (Tobit + Cluster-Aware Non-Parametric Robustness)")
 message("==========================================")
 
 for (script in hypothesis_scripts) {

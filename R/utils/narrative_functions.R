@@ -37,12 +37,12 @@ get_math_foundations <- function() {
     "",
     "This approach prevents the 'ceiling' and 'floor' effects from biasing the linear coefficients, as would occur in standard OLS regression.",
     "",
-    "Because the Tobit model relies on a Gaussian latent-error assumption, the pipeline also fits a CLAD robustness specification implemented as interval-censored median quantile regression ($p = 0.5$). ",
+    "Because the Tobit model relies on a Gaussian latent-error assumption, the pipeline also fits a distribution-robust censored median specification implemented as interval-censored quantile regression ($p = 0.5$). ",
     "This complementary estimator targets the conditional median of the latent bounded outcome and is less sensitive to heavy tails and non-normal disturbances:",
     "",
     "$$Q_{0.5}(y^*_{ij} \\mid \\mathbf{x}_{ij}) = \\mathbf{x}_{ij}'\\beta_{0.5}$$",
     "",
-    "The CLAD branch preserves the censoring structure while relaxing the parametric normality assumption. The Tobit and CLAD results should therefore be interpreted jointly: Tobit provides the clustered parametric benchmark, while CLAD serves as a robustness check against misspecified latent-error distributions."
+    "The non-parametric branch preserves the censoring structure while relaxing the parametric normality assumption. The Tobit and robustness results should therefore be interpreted jointly: Tobit provides the clustered parametric benchmark with participant-clustered standard errors by id, while the non-parametric branch first establishes a converged full-sample censored median fit and then, in the default pipeline, adds participant-level cluster bootstrap inference that resamples ids with replacement and retains all repeated observations from each sampled participant. In both branches, id is used only to account for within-participant dependence and is not a substantive explanatory variable."
   )
 }
 
@@ -65,7 +65,7 @@ get_error_analysis_narration <- function() {
     "",
     "3. Inference Impact: A higher ICC reduces the ESS, thereby increasing the Standard Error of our Tobit coefficients. ",
     "If the ESS is low, our models become 'conservative', increasing the risk of Type II errors (failing to support a hypothesis). ",
-    "By using clustered robust standard errors, we ensure that our p-values acknowledge this reduced information density, ",
+    "By using clustered robust standard errors for Tobit and participant-level cluster bootstrap inference for the non-parametric robustness model after each converged full-sample fit, we ensure that both sets of p-values acknowledge this reduced information density, ",
     "protecting the integrity of our Type I error threshold ($\\alpha = 0.05$)."
   )
 }
@@ -78,7 +78,7 @@ get_symbols_dictionary <- function() {
       "Observed moral judgment of scenario $j$ by participant $i$.",
       "Latent moral preference score (unbounded).",
       "Regression coefficient representing the marginal effect of the predictor.",
-      "Median-regression coefficient from the CLAD robustness model.",
+      "Median-regression coefficient from the non-parametric censored robustness model.",
       "Conditional median of the latent bounded outcome given the predictors.",
       "Empathy score (Average composite of the Interpersonal Reactivity Index).",
       "Binary indicator: 1 if the scenario perpetrator is an outgroup member.",
@@ -92,10 +92,10 @@ get_symbols_dictionary <- function() {
 #' Get limitations and discussion points
 get_limitations_narration <- function() {
   c(
-    "While the dual-estimator strategy strengthens the analysis, several limitations remain. First, the Tobit clustering logic assumes ",
-    "independence between participants, which may be violated by shared institutional affiliations. Second, we assume a ",
+    "While the dual-estimator strategy strengthens the analysis, several limitations remain. First, both inference strategies assume ",
+    "independence between participants, which may still be violated by broader shared institutional or contextual shocks. Second, we assume a ",
     "normal distribution for the latent errors $\\epsilon_{ij}$ in the Tobit branch; departures from normality could affect the consistency of ",
-    "the maximum likelihood estimators. The CLAD robustness branch reduces dependence on that assumption, but its current implementation relies on asymptotic covariance estimates rather than clustered sandwich errors. ",
+    "the maximum likelihood estimators. The non-parametric robustness branch reduces dependence on that assumption and adds participant-level cluster bootstrap inference after converged full-sample fits, but bootstrap summaries still carry Monte Carlo error and can be sensitive to convergence problems in difficult specifications. ",
     "Finally, the use of unstandardized averages for empathy assumes a linear mapping between the psychometric scale and the latent moral preference across both estimators."
   )
 }

@@ -1,6 +1,6 @@
 "Metric","Value"
-"Judgments in analysis sample",1540
-"Harmful decisions in primary model sample",755
-"Acceptance rate",0.49025974025974
-"Left-censored share at -9",0.300662251655629
-"Right-censored share at 9",0.0317880794701987
+"Judgments in analysis sample",3980
+"Harmful decisions in primary model sample",1939
+"Acceptance rate",0.487185929648241
+"Left-censored share at -9",0.256317689530686
+"Right-censored share at 9",0.035585353274884
