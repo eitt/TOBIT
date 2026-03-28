@@ -7,6 +7,7 @@
 # Execution Order: 5
 
 source("R/00_config.R")
+source("R/utils/case_configuration_functions.R")
 paths <- get_project_paths()
 
 participants <- read.csv(file.path(paths$root, "data", "processed", "03_transformed_participants.csv"), stringsAsFactors = FALSE)
@@ -76,6 +77,7 @@ for (row_id in seq_len(nrow(participants))) {
 }
 
 judgments_all <- do.call(rbind, long_rows)
+judgments_all <- add_case_configuration_columns(judgments_all)
 
 # Filter for relevant analytical datasets
 judgments_analysis <- judgments_all[judgments_all$analysis_include == TRUE, , drop = FALSE]

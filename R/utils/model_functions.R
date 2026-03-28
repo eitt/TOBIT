@@ -3,6 +3,8 @@
 # and cluster-aware non-parametric censored robustness behavior.
 # Dependencies: survival, ctqr
 
+source("R/utils/case_configuration_functions.R")
+
 canonicalize_term_name <- function(term) {
   if (!grepl(":", term, fixed = TRUE)) {
     return(term)
@@ -14,6 +16,46 @@ canonicalize_term_name <- function(term) {
   }
 
   paste(sort(term_parts), collapse = ":")
+}
+
+expand_case_component <- function(x) {
+  switch(
+    x,
+    Hum = "Humanities",
+    Ing = "Engineering",
+    Control = "Control label hidden",
+    x
+  )
+}
+
+label_case_configuration <- function(case_label) {
+  parts <- strsplit(case_label, "_x_", fixed = TRUE)[[1]]
+  if (length(parts) != 2L) return(case_label)
+  sprintf(
+    "%s victim x %s negotiator",
+    expand_case_component(parts[1]),
+    expand_case_component(parts[2])
+  )
+}
+
+label_case_configuration_term <- function(term) {
+  if (grepl("^case_[a-z]+_x_[a-z]+$", term)) {
+    case_label <- gsub("^case_", "", term)
+    case_label <- gsub("_x_", "_x_", case_label)
+    case_label <- gsub("^hum", "Hum", case_label)
+    case_label <- gsub("_hum", "_Hum", case_label)
+    case_label <- gsub("^ing", "Ing", case_label)
+    case_label <- gsub("_ing", "_Ing", case_label)
+    case_label <- gsub("^control", "Control", case_label)
+    case_label <- gsub("_control", "_Control", case_label)
+    return(paste("Case configuration:", label_case_configuration(case_label)))
+  }
+
+  if (grepl("^case_configuration(_role|_decision|_context)?", term)) {
+    return("Case-configuration context")
+  }
+
+  term
 }
 
 #' Translates coefficient names to readable titles
@@ -45,12 +87,24 @@ label_term <- function(term) {
     "age" = "Age",
     "economic_status" = "Socioeconomic status",
     "same_group_harm" = "Negotiator and victim share faculty",
-    "decision_accept" = "Negotiator accepted harmful deal"
+    "decision_accept" = "Negotiator accepted harmful deal",
+    "case_configuration" = "Victim x negotiator case configuration",
+    "case_configuration_role" = "Case configuration x role",
+    "case_configuration_decision" = "Case configuration x decision context",
+    "case_configuration_context" = "Case configuration x role x decision context"
   )
 
   term_key <- canonicalize_term_name(term)
   if (term_key %in% names(direct_map)) {
     return(unname(direct_map[[term_key]]))
+  }
+  case_label <- label_case_configuration_term(term_key)
+  if (!identical(case_label, term_key)) {
+    return(case_label)
+  }
+  if (grepl(":", term_key, fixed = TRUE)) {
+    term_parts <- strsplit(term_key, ":", fixed = TRUE)[[1]]
+    return(paste(vapply(term_parts, label_term, character(1)), collapse = " x "))
   }
   if (grepl("^factor\\(stage\\)", term)) {
     return(paste0("Stage ", sub("^factor\\(stage\\)", "", term), " (ref = stage 1)"))
@@ -63,10 +117,7 @@ label_term <- function(term) {
 
 #' Default controls for the cluster-aware non-parametric robustness path.
 get_clad_bootstrap_defaults <- function() {
-  bootstrap_reps <- suppressWarnings(as.integer(getOption("tobit.clad_bootstrap_reps", 39L)))
-  if (is.na(bootstrap_reps) || bootstrap_reps < 1L) {
-    bootstrap_reps <- 39L
-  }
+  bootstrap_reps <- resolve_clad_bootstrap_reps()
 
   list(
     quantile = 0.5,

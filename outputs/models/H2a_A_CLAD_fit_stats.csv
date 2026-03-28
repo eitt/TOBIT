@@ -1,2 +1,2 @@
 "Model","Approach","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2","Quantile","Converged","Iterations","Inference","ClusterUnit","BootstrapReplicates","BootstrapSuccessful","BootstrapFailed","BootstrapSuccessRate","ConfidenceLevel","Status","ErrorMessage"
-"H2a_A_Total_CLAD","CLAD",1262,199,342,46,NA,NA,NA,0.5,TRUE,43,"Participant-level cluster bootstrap after interval-censored median regression","id",10,10,0,1,0.95,"completed",NA
+"H2a_A_Total_CLAD","CLAD",1262,199,342,46,NA,NA,NA,0.5,TRUE,46,"Participant-level cluster bootstrap after interval-censored median regression produced fewer than two successful refits, so inference is sparse","id",1,1,0,1,0.95,"bootstrap_sparse",NA

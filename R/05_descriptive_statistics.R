@@ -9,6 +9,7 @@ source("R/00_config.R")
 source("R/utils/transform_functions.R")
 source("R/utils/figure_functions.R")
 source("R/utils/table_functions.R")
+source("R/utils/case_configuration_functions.R")
 paths <- get_project_paths()
 
 participants <- read.csv(paths$processed_participants, stringsAsFactors = FALSE)
@@ -54,6 +55,14 @@ judgement_summary <- data.frame(
 )
 write.csv(judgement_summary, file.path(paths$tables_dir, "judgement_summary.csv"), row.names = FALSE)
 
+# 4. Case-configuration summary
+case_configuration_summary <- summarise_group(
+  judgments_analysis[!is.na(judgments_analysis$case_configuration), , drop = FALSE],
+  group_vars = c("case_configuration", "role", "decision_accept"),
+  outcome = "judgement"
+)
+write.csv(case_configuration_summary, file.path(paths$tables_dir, "case_configuration_summary.csv"), row.names = FALSE)
+
 # Generate Figures
 style <- get_plot_style()
 
@@ -82,23 +91,32 @@ draw_base_radar_plot(values = iri_means, labels = iri_labels, max_scale = 5, min
                      title = "IRI Latent Variable Averages", legend_text = iri_legend)
 dev.off()
 
-# Severity by Condition Sub-Panels (H1-H3 contexts)
-open_accessible_png(file.path(paths$figures_dir, "figure_04_severity_panels.png"), width = 10, height = 5)
+# Severity by Case-Configuration Panels
+open_accessible_png(file.path(paths$figures_dir, "figure_04_severity_panels.png"), width = 12, height = 7)
 apply_accessible_theme()
-graphics::par(mfrow = c(1, 2))
+graphics::par(mfrow = c(2, 3))
+case_levels <- get_case_configuration_levels(include_control = TRUE)
+panel_counts <- lapply(case_levels, function(case_level) {
+  judgments_accept$judgement[judgments_accept$case_configuration == case_level]
+})
+max_freq <- max(vapply(panel_counts, function(x) {
+  if (length(x) == 0L) return(0)
+  max(table(cut(x, breaks = pretty(judgments_accept$judgement, n = 10))))
+}, numeric(1))) * 1.2
 
-ingroup_judg <- judgments_accept$judgement[!is.na(judgments_accept$perp_outgroup) & judgments_accept$perp_outgroup == 0]
-outgroup_judg <- judgments_accept$judgement[!is.na(judgments_accept$perp_outgroup) & judgments_accept$perp_outgroup == 1]
-max_freq <- max(table(cut(ingroup_judg, breaks=10)), table(cut(outgroup_judg, breaks=10))) * 1.5
-
-hist(ingroup_judg, breaks = pretty(judgments_accept$judgement, n=10), 
-     col = grDevices::adjustcolor(style$primary_light, alpha.f=0.7), border = style$primary_dark, 
-     main = "Ingroup Perpetrator", xlab = "Judgment Severity", ylim = c(0, max_freq))
-
-hist(outgroup_judg, breaks = pretty(judgments_accept$judgement, n=10), 
-     col = grDevices::adjustcolor(style$primary_dark, alpha.f=0.7), border = style$primary, 
-     main = "Outgroup Perpetrator", xlab = "Judgment Severity", ylim = c(0, max_freq))
-
+for (case_level in case_levels) {
+  panel_values <- judgments_accept$judgement[judgments_accept$case_configuration == case_level]
+  hist(
+    panel_values,
+    breaks = pretty(judgments_accept$judgement, n = 10),
+    col = grDevices::adjustcolor(style$primary_light, alpha.f = 0.75),
+    border = style$primary_dark,
+    main = case_level,
+    xlab = "Judgment Severity",
+    ylim = c(0, max_freq)
+  )
+}
+graphics::mtext("Accepted-decision judgment distributions by victim x negotiator case configuration", outer = TRUE, line = -1.5, cex = 1.05, font = 2)
 graphics::par(mfrow = c(1, 1))
 dev.off()
 

@@ -5,8 +5,43 @@
 # Dependencies: base R
 # Execution Order: 1
 
+get_default_case_modeling_option <- function() {
+  "Option 2: explicit case-configuration modeling"
+}
+
+# Debug default for coherence checks. Restore this single value to 10L when
+# you want the usual bootstrap setting back.
+get_default_clad_bootstrap_reps <- function() {
+  1L
+}
+
+resolve_clad_bootstrap_reps <- function() {
+  bootstrap_reps <- suppressWarnings(
+    as.integer(getOption("tobit.clad_bootstrap_reps", get_default_clad_bootstrap_reps()))
+  )
+  if (is.na(bootstrap_reps) || bootstrap_reps < 10L) {
+    bootstrap_reps <- get_default_clad_bootstrap_reps()
+  }
+  bootstrap_reps
+}
+
+apply_pipeline_runtime_options <- function(
+  dataset_mode = NULL,
+  run_bootstrap = TRUE,
+  skip_tobit_refit = FALSE
+) {
+  if (!is.null(dataset_mode)) {
+    options(tobit.dataset_mode = dataset_mode)
+  }
+  options(tobit.modeling_option = get_default_case_modeling_option())
+  options(tobit.clad_run_bootstrap = isTRUE(run_bootstrap))
+  options(tobit.skip_tobit_refit = isTRUE(skip_tobit_refit))
+  options(tobit.clad_bootstrap_reps = resolve_clad_bootstrap_reps())
+  invisible(TRUE)
+}
+
 #' Establish base file paths and ensure directories exist
-#' 
+#'
 #' @param project_root Character. The absolute or relative path to the project root.
 #' @param dataset_mode Character. One of "FLORIDA", "BUC", or "BOTH".
 #' @return A list mapping simple logical names to absolute file paths and settings.
@@ -15,9 +50,9 @@ get_project_paths <- function(project_root = ".", dataset_mode = NULL) {
   if (is.null(dataset_mode)) {
     dataset_mode <- getOption("tobit.dataset_mode", default = "BOTH")
   }
-  
+
   root <- normalizePath(project_root, winslash = "/", mustWork = TRUE)
-  
+
   dirs <- c(
     file.path(root, "data", "raw"),
     file.path(root, "data", "processed"),
@@ -27,13 +62,13 @@ get_project_paths <- function(project_root = ".", dataset_mode = NULL) {
     file.path(root, "outputs", "logs"),
     file.path(root, "outputs", "report")
   )
-  
+
   for (d in dirs) {
     if (!dir.exists(d)) {
       dir.create(d, recursive = TRUE, showWarnings = FALSE)
     }
   }
-  
+
   list(
     root = root,
     raw_florida = file.path(root, "data", "raw", "data_final_FLORIDA.xlsx"),
@@ -55,30 +90,33 @@ get_project_paths <- function(project_root = ".", dataset_mode = NULL) {
 ensure_pipeline_dependencies <- function() {
   packages <- c("survival", "readxl", "grDevices", "stats", "utils", "graphics", "ctqr", "pch")
   success <- TRUE
-  
+
   message("Checking project dependencies...")
   for (pkg in packages) {
     if (!requireNamespace(pkg, quietly = TRUE)) {
       message(">>> Installing missing R package: ", pkg)
       # Non-interactive install.packages
-      install_status <- tryCatch({
-        install.packages(pkg, repos = "https://cloud.r-project.org", dependencies = TRUE)
-        TRUE
-      }, error = function(e) {
-        message("!!! Failed to install package: ", pkg)
-        FALSE
-      })
+      install_status <- tryCatch(
+        {
+          install.packages(pkg, repos = "https://cloud.r-project.org", dependencies = TRUE)
+          TRUE
+        },
+        error = function(e) {
+          message("!!! Failed to install package: ", pkg)
+          FALSE
+        }
+      )
       if (!install_status) success <- FALSE
     } else {
       message("Found: ", pkg)
     }
   }
-  
+
   if (success) {
     message("All R dependencies verified.")
   } else {
     message("Warning: Some dependencies could not be resolved automatically.")
   }
-  
+
   return(success)
 }

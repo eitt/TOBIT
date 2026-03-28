@@ -6,7 +6,7 @@ The `datacard.md` documentation details how original survey measures flow dynami
 
 - **Filtering:** Erroneous tracking flags (`ac1` & `ac2`) are parsed via `R/02_clean_data.R`.
 - **Psychometric Missing Data & Scoring:** Handled within `R/03_transform_data.R`. Classical IRI responses are summarized by 80% completeness thresholds (`row_mean_with_floor`) providing aggregate scale derivations. `iri_total` and the IRI subscales are retained on their original response scale; no predictor z-score normalization is applied.
-- **Data Matrix Reshaping:** Raw matrices maintain wide row configurations per participant. The `R/04_generate_variables.R` function shifts inputs logically grouping 10 repeated scenarios into vertical clusters (`judgements`), calculating outgroup derivations mapping participant alignment (Engineering/Humanities) independently to perpetrator and victim identity strings ensuring the integrity of hypotheses datasets (`judgments_accept_only.csv`).
+- **Data Matrix Reshaping:** Raw matrices maintain wide row configurations per participant. The `R/04_generate_variables.R` function shifts inputs logically grouping 10 repeated scenarios into vertical clusters (`judgements`). Under Option 2, it now builds an explicit relational case-configuration variable from the paired-group structure of each judgment, recording the victim group first and the judged negotiator second. This yields interpretable scenarios such as `Hum_x_Hum`, `Hum_x_Ing`, `Hum_x_Control`, `Ing_x_Hum`, `Ing_x_Ing`, and `Ing_x_Control`, plus role- and decision-conditioned variants used in reports and the local playground.
 
 ## **1. Dataset Overview**
 
@@ -259,6 +259,23 @@ Variables:
   - **10 ratings for Negotiator 2**
 
 This means the dataset is currently in **wide format**, with repeated scenario-level variables stored across columns.
+
+---
+
+## **8.1 Option 2 Relational Variables in the Long Data**
+
+After `R/04_generate_variables.R` reshapes the data to the negotiator-level long format, the analytical datasets add:
+
+- `case_configuration`
+  Victim x negotiator relational scenario label, for example `Hum_x_Ing`.
+- `case_configuration_role`
+  The explicit case configuration further conditioned by `Observer` or `Victim`.
+- `case_configuration_decision`
+  The explicit case configuration further conditioned by `Accept` or `Reject`.
+- `case_configuration_context`
+  The full scenario context combining victim x negotiator pairing, role, and decision context.
+
+These variables are the preferred relational representation for modeling and reporting. Legacy isolated indicators such as `perp_outgroup`, `victim_outgroup`, and `same_group_harm` remain available for backward comparison only.
 
 ---
 

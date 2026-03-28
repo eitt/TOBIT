@@ -12,16 +12,11 @@ source("R/00_config.R")
 
 # Reuse the current dataset mode unless the caller overrides it first.
 dataset_mode <- getOption("tobit.dataset_mode", default = "BUC")
-options(tobit.dataset_mode = dataset_mode)
-
-# This phase updates only the non-parametric robustness outputs.
-options(tobit.clad_run_bootstrap = TRUE)
-options(tobit.skip_tobit_refit = TRUE)
-
-# Increase or decrease this option before sourcing the script if needed.
-if (is.null(getOption("tobit.clad_bootstrap_reps"))) {
-  options(tobit.clad_bootstrap_reps = 39L)
-}
+apply_pipeline_runtime_options(
+  dataset_mode = dataset_mode,
+  run_bootstrap = TRUE,
+  skip_tobit_refit = TRUE
+)
 
 hypothesis_scripts <- c(
   "R/hypotheses/H1_test.R",

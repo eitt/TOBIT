@@ -5,6 +5,7 @@
 # Execution Order: 7
 
 source("R/00_config.R")
+source("R/utils/case_configuration_functions.R")
 source("R/utils/io_functions.R")
 source("R/utils/power_functions.R")
 source("R/utils/table_functions.R")
@@ -14,6 +15,7 @@ source("R/utils/figure_functions.R")
 source("R/utils/significance_figure_functions.R")
 source("R/utils/nl_generation.R")
 paths <- get_project_paths()
+case_examples_latex <- paste(get_case_configuration_example_labels(latex = TRUE), collapse = ", ")
 
 message("Generating Comprehensive Scientific Manuscript (LaTeX/PDF/Word)...")
 
@@ -21,6 +23,61 @@ message("Generating Comprehensive Scientific Manuscript (LaTeX/PDF/Word)...")
 judgments_accept <- read.csv(paths$processed_accept, stringsAsFactors = FALSE)
 power_results <- calc_effective_sample_size(judgments_accept$judgement, judgments_accept$id)
 bivar_cor <- read.csv(file.path(paths$tables_dir, "bivariate_correlations.csv"), row.names = 1, check.names = FALSE)
+case_configuration_summary_path <- file.path(paths$tables_dir, "case_configuration_summary.csv")
+case_configuration_summary <- if (file.exists(case_configuration_summary_path)) {
+  read.csv(case_configuration_summary_path, stringsAsFactors = FALSE)
+} else {
+  NULL
+}
+
+dataset_mode_suffix <- function(dataset_mode) {
+  mode_key <- toupper(trimws(as.character(dataset_mode)))
+  switch(
+    mode_key,
+    BUC = "Buca",
+    FLORIDA = "Florida",
+    BOTH = "",
+    mode_key
+  )
+}
+
+get_dataset_specific_stem <- function(prefix, dataset_mode) {
+  suffix <- dataset_mode_suffix(dataset_mode)
+  if (!nzchar(suffix)) return(NULL)
+  paste(prefix, suffix, sep = "_")
+}
+
+copy_if_present <- function(source_path, target_path) {
+  if (!file.exists(source_path)) return(FALSE)
+  if (normalizePath(dirname(source_path), winslash = "/", mustWork = TRUE) ==
+      normalizePath(dirname(target_path), winslash = "/", mustWork = TRUE) &&
+      basename(source_path) == basename(target_path)) {
+    return(TRUE)
+  }
+  file.copy(source_path, target_path, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)
+}
+
+sync_dataset_specific_report_aliases <- function(dataset_mode) {
+  report_alias_stem <- get_dataset_specific_stem("tobit_analysis_report", dataset_mode)
+  if (is.null(report_alias_stem)) return(invisible(FALSE))
+
+  report_extensions <- c(".tex", ".md", ".pdf", ".docx", ".log", ".aux", ".out")
+  for (ext in report_extensions) {
+    source_path <- file.path(paths$report_dir, paste0("tobit_analysis_report", ext))
+    target_path <- file.path(paths$report_dir, paste0(report_alias_stem, ext))
+    copy_if_present(source_path, target_path)
+  }
+
+  log_alias_stem <- get_dataset_specific_stem("dynamic_report", dataset_mode)
+  if (!is.null(log_alias_stem)) {
+    copy_if_present(
+      file.path(paths$logs_dir, "dynamic_report.md"),
+      file.path(paths$logs_dir, paste0(log_alias_stem, ".md"))
+    )
+  }
+
+  invisible(TRUE)
+}
 
 read_fit_stats <- function(output_prefix) {
   stats_file <- file.path(paths$models_dir, sprintf("%s_fit_stats.csv", output_prefix))
@@ -178,6 +235,9 @@ select_hypothesis_rows <- function(coef_df, terms) {
 }
 
 matches_expected_direction <- function(estimates, expected_direction) {
+  if (expected_direction %in% c("either", "relational")) {
+    return(rep(TRUE, length(estimates)))
+  }
   if (expected_direction == "negative") return(estimates < 0)
   estimates > 0
 }
@@ -368,57 +428,85 @@ summarize_estimator_hypothesis <- function(spec, approach, alpha = 0.05) {
 }
 
 get_hypothesis_specs <- function() {
+  accepted_case_terms <- get_case_configuration_term_names(reference = "Hum_x_Hum", include_control = TRUE)
+  betrayal_case_terms <- get_case_configuration_term_names(reference = "Hum_x_Hum", include_control = FALSE)
+  accepted_total_interactions <- get_case_configuration_interaction_terms(
+    "iri_total",
+    reference = "Hum_x_Hum",
+    include_control = TRUE
+  )
+  accepted_scale_interactions <- get_case_configuration_interaction_terms(
+    c("iri_fs", "iri_ec", "iri_pt", "iri_pd"),
+    reference = "Hum_x_Hum",
+    include_control = TRUE
+  )
+
   list(
     list(
       id = "H1",
-      short_label = "H1: Empathy effect",
+      short_label = "H1: Empathy under explicit case configuration",
       data_path = paths$processed_accept,
-      statement = "Higher empathy predicts lower moral-judgment scores for harmful decisions.",
+      statement = paste(
+        "Higher empathy predicts lower moral-judgment scores for harmful decisions after",
+        "conditioning on explicit victim x negotiator case configurations."
+      ),
       expected_direction = "negative",
       model_terms = list(
         A = list(terms = c("iri_total"), description = "the composite empathy term"),
         B = list(terms = c("iri_fs", "iri_ec", "iri_pt", "iri_pd"), description = "the empathy subscale main effects")
       ),
-      exclude_terms = c("iri_total", "iri_fs", "iri_ec", "iri_pt", "iri_pd")
+      exclude_terms = c("iri_total", "iri_fs", "iri_ec", "iri_pt", "iri_pd", accepted_case_terms)
     ),
     list(
       id = "H2a",
-      short_label = "H2a: Ingroup betrayal",
+      short_label = "H2a: Relational betrayal contrasts",
       data_path = paths$processed_betrayal,
-      statement = "Same-faculty harm receives lower moral-judgment scores than cross-faculty harm.",
-      expected_direction = "negative",
-      model_terms = list(
-        A = list(terms = c("same_group_harm"), description = "the same-group-harm term"),
-        B = list(terms = c("same_group_harm"), description = "the same-group-harm term")
+      statement = paste(
+        "Same-faculty and cross-faculty betrayal cases are evaluated through explicit",
+        "victim x negotiator configurations rather than a single same_group_harm flag."
       ),
-      exclude_terms = c("same_group_harm")
+      expected_direction = "either",
+      model_terms = list(
+        A = list(terms = betrayal_case_terms, description = "the betrayal-sample case-configuration contrasts"),
+        B = list(terms = betrayal_case_terms, description = "the betrayal-sample case-configuration contrasts")
+      ),
+      exclude_terms = betrayal_case_terms
     ),
     list(
       id = "H2b",
-      short_label = "H2b: Outgroup derogation",
+      short_label = "H2b: Explicit case-configuration contrasts",
       data_path = paths$processed_accept,
-      statement = "Outgroup perpetrators receive lower moral-judgment scores than ingroup perpetrators.",
-      expected_direction = "negative",
-      model_terms = list(
-        A = list(terms = c("perp_outgroup"), description = "the outgroup-perpetrator term"),
-        B = list(terms = c("perp_outgroup"), description = "the outgroup-perpetrator term")
+      statement = paste(
+        "Relational judgments are interpreted through explicit victim x negotiator",
+        "case configurations such as Hum_x_Ing, Hum_x_Control, Ing_x_Hum, Ing_x_Ing, and Ing_x_Control."
       ),
-      exclude_terms = c("perp_outgroup")
+      expected_direction = "either",
+      model_terms = list(
+        A = list(terms = accepted_case_terms, description = "the accepted-sample case-configuration contrasts"),
+        B = list(terms = accepted_case_terms, description = "the accepted-sample case-configuration contrasts")
+      ),
+      exclude_terms = accepted_case_terms
     ),
     list(
       id = "H3",
-      short_label = "H3: Moderation",
+      short_label = "H3: Empathy x case-configuration moderation",
       data_path = paths$processed_accept,
-      statement = "The empathy effect is stronger in outgroup cases than in ingroup cases.",
-      expected_direction = "negative",
+      statement = paste(
+        "The empathy effect may vary across explicit victim x negotiator pairings,",
+        "so moderation is modeled through empathy interactions with case-configuration contrasts."
+      ),
+      expected_direction = "either",
       model_terms = list(
-        A = list(terms = c("iri_total:perp_outgroup"), description = "the composite empathy x outgroup interaction"),
+        A = list(
+          terms = accepted_total_interactions,
+          description = "the composite empathy x case-configuration interactions"
+        ),
         B = list(
-          terms = c("iri_fs:perp_outgroup", "iri_ec:perp_outgroup", "iri_pt:perp_outgroup", "iri_pd:perp_outgroup"),
-          description = "the empathy-dimension x outgroup interactions"
+          terms = accepted_scale_interactions,
+          description = "the empathy-dimension x case-configuration interactions"
         )
       ),
-      exclude_terms = c("iri_total:perp_outgroup", "iri_fs:perp_outgroup", "iri_ec:perp_outgroup", "iri_pt:perp_outgroup", "iri_pd:perp_outgroup")
+      exclude_terms = c(accepted_total_interactions, accepted_scale_interactions)
     )
   )
 }
@@ -448,6 +536,24 @@ significance_symbol <- function(p_value) {
   if (p_value < 0.05) return("*")
   if (p_value < 0.10) return("+")
   ""
+}
+
+filter_significant_coefficients <- function(coef_df, alpha = 0.10) {
+  if (is.null(coef_df) || nrow(coef_df) == 0L) return(NULL)
+  rows <- coef_df
+  rows$canonical_term <- vapply(rows$term, canonicalize_term_name, character(1))
+  rows <- rows[
+    !is.na(rows$p_value) &
+      rows$p_value < alpha &
+      rows$term != "(Intercept)" &
+      rows$term != "Log(scale)" &
+      !grepl("^factor\\(negotiator_slot\\)", rows$term) &
+      !grepl("^factor\\(stage\\)", rows$term),
+    ,
+    drop = FALSE
+  ]
+  if (nrow(rows) == 0L) return(NULL)
+  rows
 }
 
 collect_hypothesis_signal_details <- function(spec, alpha = 0.10) {
@@ -504,6 +610,54 @@ collect_all_hypothesis_signal_details <- function(alpha = 0.10) {
   }
 
   write.csv(signal_df, file.path(paths$tables_dir, "hypothesis_signal_details.csv"), row.names = FALSE)
+  signal_df
+}
+
+collect_all_significant_predictor_details <- function(alpha = 0.10) {
+  hypothesis_specs <- get_hypothesis_specs()
+  bundle_grid <- expand.grid(
+    hypothesis_idx = seq_along(hypothesis_specs),
+    approach = c("Tobit", "CLAD"),
+    model_suffix = c("A", "B"),
+    stringsAsFactors = FALSE
+  )
+
+  signal_rows <- lapply(seq_len(nrow(bundle_grid)), function(idx) {
+    spec <- hypothesis_specs[[bundle_grid$hypothesis_idx[idx]]]
+    bundle <- read_model_bundle(spec$id, bundle_grid$model_suffix[idx], bundle_grid$approach[idx])
+    if (!isTRUE(bundle$available) || is.null(bundle$coef_df) || nrow(bundle$coef_df) == 0L) {
+      return(NULL)
+    }
+
+    rows <- filter_significant_coefficients(bundle$coef_df, alpha = alpha)
+    if (is.null(rows) || nrow(rows) == 0L) return(NULL)
+
+    data.frame(
+      hypothesis_id = spec$id,
+      hypothesis_statement = spec$statement,
+      short_label = spec$short_label,
+      data_path = spec$data_path,
+      approach = bundle$approach,
+      model_suffix = bundle_grid$model_suffix[idx],
+      output_prefix = bundle$output_prefix,
+      term = rows$term,
+      canonical_term = rows$canonical_term,
+      label = rows$label,
+      estimate = rows$estimate,
+      p_value = rows$p_value,
+      symbol = vapply(rows$p_value, significance_symbol, character(1)),
+      stringsAsFactors = FALSE
+    )
+  })
+
+  signal_rows <- Filter(Negate(is.null), signal_rows)
+  signal_df <- if (length(signal_rows) == 0L) {
+    empty_signal_details_df()
+  } else {
+    do.call(rbind, signal_rows)
+  }
+
+  write.csv(signal_df, file.path(paths$tables_dir, "all_significant_predictor_details.csv"), row.names = FALSE)
   signal_df
 }
 
@@ -743,6 +897,189 @@ build_significance_figure_artifacts <- function(signal_details) {
   artifacts
 }
 
+describe_signal_sample <- function(data_path) {
+  normalized_path <- normalizePath(data_path, winslash = "/", mustWork = FALSE)
+  accepted_path <- normalizePath(paths$processed_accept, winslash = "/", mustWork = FALSE)
+  betrayal_path <- normalizePath(paths$processed_betrayal, winslash = "/", mustWork = FALSE)
+  judgments_path <- normalizePath(paths$processed_judgments, winslash = "/", mustWork = FALSE)
+
+  if (identical(normalized_path, accepted_path)) {
+    return("Accepted-decision sample")
+  }
+  if (identical(normalized_path, betrayal_path)) {
+    return("Betrayal sample")
+  }
+  if (identical(normalized_path, judgments_path)) {
+    return("Full judgment sample")
+  }
+  tools::file_path_sans_ext(basename(data_path))
+}
+
+format_support_model_rows <- function(rows, approach = NULL) {
+  if (!is.null(approach)) {
+    rows <- rows[rows$approach == approach, , drop = FALSE]
+  }
+  if (nrow(rows) == 0L) return("None")
+  rows <- rows[order(rows$p_value, rows$short_label, rows$model_suffix), , drop = FALSE]
+  descriptors <- paste0(rows$short_label, " Model ", rows$model_suffix, rows$symbol)
+  paste(unique(descriptors), collapse = "; ")
+}
+
+summarize_supporting_models <- function(rows) {
+  rows <- rows[order(rows$p_value, rows$short_label, rows$model_suffix), , drop = FALSE]
+  descriptors <- paste0(rows$short_label, " Model ", rows$model_suffix, " (", rows$approach, ")")
+  collapse_with_and(unique(descriptors))
+}
+
+build_all_significant_predictor_figure_artifacts <- function(signal_details) {
+  if (is.null(signal_details) || nrow(signal_details) == 0L) {
+    empty_catalog <- data.frame(
+      Sample = character(0),
+      Predictor = character(0),
+      Figure = character(0),
+      FigureType = character(0),
+      `Tobit support` = character(0),
+      `Non-parametric support` = character(0),
+      `Supporting models` = character(0),
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+    write.csv(empty_catalog, file.path(paths$tables_dir, "all_significant_figure_catalog.csv"), row.names = FALSE)
+    return(list())
+  }
+
+  group_keys <- unique(signal_details[, c("data_path", "canonical_term"), drop = FALSE])
+  group_order <- order(
+    vapply(seq_len(nrow(group_keys)), function(idx) describe_signal_sample(group_keys$data_path[idx]), character(1)),
+    vapply(
+      seq_len(nrow(group_keys)),
+      function(idx) {
+        key_rows <- signal_details[
+          signal_details$data_path == group_keys$data_path[idx] &
+            signal_details$canonical_term == group_keys$canonical_term[idx],
+          ,
+          drop = FALSE
+        ]
+        min(key_rows$p_value, na.rm = TRUE)
+      },
+      numeric(1)
+    )
+  )
+  group_keys <- group_keys[group_order, , drop = FALSE]
+
+  artifacts <- vector("list", nrow(group_keys))
+  catalog_rows <- vector("list", nrow(group_keys))
+
+  for (idx in seq_len(nrow(group_keys))) {
+    data_path <- group_keys$data_path[idx]
+    canonical_term <- group_keys$canonical_term[idx]
+    support_rows_all <- signal_details[
+      signal_details$data_path == data_path &
+        signal_details$canonical_term == canonical_term,
+      ,
+      drop = FALSE
+    ]
+
+    support_rows <- do.call(
+      rbind,
+      lapply(
+        split(support_rows_all, support_rows_all$approach),
+        function(df) df[order(df$p_value, df$short_label, df$model_suffix), , drop = FALSE][1, , drop = FALSE]
+      )
+    )
+    rownames(support_rows) <- NULL
+
+    model_data <- read.csv(data_path, stringsAsFactors = FALSE)
+    visual_spec <- build_term_visual_spec(canonical_term, model_data)
+    sample_label <- describe_signal_sample(data_path)
+    figure_file <- sprintf(
+      "figure_sig_all_%s_%s.png",
+      sanitize_identifier(sample_label),
+      sanitize_identifier(canonical_term)
+    )
+    figure_path <- file.path(paths$figures_dir, figure_file)
+    latex_label <- paste0("fig:sig_all_", sanitize_identifier(sample_label), "_", sanitize_identifier(canonical_term))
+
+    plot_payloads <- lapply(seq_len(nrow(support_rows)), function(row_idx) {
+      support_row <- support_rows[row_idx, , drop = FALSE]
+      model_fit <- readRDS(file.path(paths$models_dir, sprintf("%s_model.rds", support_row$output_prefix[1])))
+      plot_df <- build_significance_plot_data(model_fit, model_data, canonical_term)
+      list(
+        approach = support_row$approach[1],
+        support_row = support_row,
+        visual_spec = visual_spec,
+        plot_df = plot_df,
+        pattern = describe_prediction_pattern(plot_df, visual_spec)
+      )
+    })
+
+    write_significance_figure(
+      figure_path,
+      plot_payloads,
+      sprintf("%s: %s", sample_label, label_term(canonical_term))
+    )
+
+    support_phrase <- summarize_support_phrases(support_rows)
+    supporting_models <- summarize_supporting_models(support_rows_all)
+    pattern_text <- if (length(plot_payloads) == 1L) {
+      plot_payloads[[1]]$pattern
+    } else {
+      paste0("the estimator panels indicate that ", plot_payloads[[1]]$pattern)
+    }
+
+    figure_type <- switch(
+      visual_spec$kind,
+      continuous_main = "effect plot",
+      categorical_main = "grouped prediction plot",
+      interaction = "interaction plot",
+      "dynamic effect plot"
+    )
+    caption <- sprintf(
+      "%s for %s in the %s. Statistically significant support appears in %s. The panels show predicted latent judgments with 95%% confidence intervals.",
+      tools::toTitleCase(figure_type),
+      label_term(canonical_term),
+      sample_label,
+      supporting_models
+    )
+
+    artifacts[[idx]] <- list(
+      sample_label = sample_label,
+      sample_key = sanitize_identifier(sample_label),
+      canonical_term = canonical_term,
+      label = label_term(canonical_term),
+      figure_file = figure_file,
+      figure_path = figure_path,
+      latex_label = latex_label,
+      support_rows = support_rows,
+      support_rows_all = support_rows_all,
+      support_phrase = support_phrase,
+      supporting_models = supporting_models,
+      caption = caption,
+      pattern_text = pattern_text,
+      min_p_value = min(support_rows_all$p_value, na.rm = TRUE)
+    )
+
+    catalog_rows[[idx]] <- data.frame(
+      Sample = sample_label,
+      Predictor = label_term(canonical_term),
+      Figure = figure_file,
+      FigureType = figure_type,
+      `Tobit support` = format_support_model_rows(support_rows_all, approach = "Tobit"),
+      `Non-parametric support` = format_support_model_rows(support_rows_all, approach = "CLAD"),
+      `Supporting models` = supporting_models,
+      stringsAsFactors = FALSE,
+      check.names = FALSE
+    )
+  }
+
+  write.csv(
+    do.call(rbind, catalog_rows),
+    file.path(paths$tables_dir, "all_significant_figure_catalog.csv"),
+    row.names = FALSE
+  )
+  artifacts
+}
+
 build_latex_significance_figure_narrative <- function(artifact) {
   paste0(
     escape_latex(sprintf("%s is statistically significant in %s. ", artifact$label, artifact$support_phrase)),
@@ -758,6 +1095,73 @@ build_markdown_significance_figure_narrative <- function(artifact) {
     artifact$support_phrase,
     artifact$pattern_text
   )
+}
+
+build_latex_all_significant_predictor_figure_section <- function(artifacts) {
+  if (length(artifacts) == 0L) return(character(0))
+
+  section_lines <- c(
+    "",
+    "\\subsection{All Significant Predictors (p < 0.10)}",
+    escape_latex(
+      paste(
+        "The following figures extend beyond the hypothesis-target terms and visualize every predictor",
+        "that reaches p < 0.10 in the available H1-H3 Tobit or clustered non-parametric models.",
+        "This includes significant controls such as age when they clear the threshold."
+      )
+    ),
+    ""
+  )
+
+  current_sample <- NULL
+  for (artifact in artifacts) {
+    if (!identical(current_sample, artifact$sample_key)) {
+      section_lines <- c(
+        section_lines,
+        paste0("\\paragraph{", escape_latex(artifact$sample_label), "}"),
+        ""
+      )
+      current_sample <- artifact$sample_key
+    }
+
+    section_lines <- c(
+      section_lines,
+      escape_latex(sprintf("%s is statistically significant in %s. Figure \\ref{%s} shows that %s.", artifact$label, artifact$supporting_models, artifact$latex_label, artifact$pattern_text)),
+      "",
+      latex_include_graphic(file.path("../figures", artifact$figure_file), artifact$caption, artifact$latex_label),
+      ""
+    )
+  }
+
+  section_lines
+}
+
+build_markdown_all_significant_predictor_figure_section <- function(artifacts) {
+  if (length(artifacts) == 0L) return(character(0))
+
+  section_lines <- c(
+    "## All Significant Predictors (p < .10)",
+    "The following figures extend beyond the hypothesis-target terms and visualize every predictor that reaches `p < .10` in the available H1-H3 Tobit or clustered non-parametric models. This includes significant controls such as age when they clear the threshold.",
+    ""
+  )
+
+  current_sample <- NULL
+  for (artifact in artifacts) {
+    if (!identical(current_sample, artifact$sample_key)) {
+      section_lines <- c(section_lines, paste0("### ", artifact$sample_label), "")
+      current_sample <- artifact$sample_key
+    }
+
+    section_lines <- c(
+      section_lines,
+      sprintf("%s is statistically significant in %s. The figure below shows that %s.", artifact$label, artifact$supporting_models, artifact$pattern_text),
+      "",
+      sprintf("![%s](../figures/%s)", artifact$caption, artifact$figure_file),
+      ""
+    )
+  }
+
+  section_lines
 }
 
 build_latex_significance_figure_section <- function(artifacts) {
@@ -845,6 +1249,8 @@ build_hypothesis_conclusion_items <- function(alpha = 0.05) {
 hypothesis_signal_details <- collect_all_hypothesis_signal_details()
 hypothesis_significance_summary <- write_hypothesis_significance_summary(signal_details = hypothesis_signal_details)
 hypothesis_figure_artifacts <- build_significance_figure_artifacts(hypothesis_signal_details)
+all_significant_predictor_details <- collect_all_significant_predictor_details()
+all_significant_predictor_figure_artifacts <- build_all_significant_predictor_figure_artifacts(all_significant_predictor_details)
 hypothesis_conclusion_items <- build_hypothesis_conclusion_items()
 
 build_estimator_block <- function(output_prefix, estimator_name, table_caption) {
@@ -944,13 +1350,18 @@ latex_lines <- c(
   "\\section{Datacard and Variable Definitions}",
   "The following table defines the primary symbols and variables used in the mathematical specifications and hypothesis tests.",
   to_latex_table(get_symbols_dictionary(), "Symbols and Variable Dictionary.", "tab:symbols", escape_math = FALSE),
+  escape_latex(paste(get_case_configuration_option_label(), "frames each judgment as a relational victim x negotiator case. The paired-group structure generates interpretable configurations such as Hum_x_Hum, Hum_x_Ing, Hum_x_Control, Ing_x_Hum, Ing_x_Ing, and Ing_x_Control, with role (Observer/Victim) and decision context (Accept/Reject) available as further conditioning dimensions.")),
   "",
   "\\section{Hypotheses to Test}",
   "\\begin{itemize}",
-  "  \\item \\textbf{H1 (Empathy):} Higher empathy predicts lower moral-judgment scores for harmful decisions.",
-  "  \\item \\textbf{H2a (Betrayal):} Same-faculty harm receives lower moral-judgment scores than cross-faculty harm.",
-  "  \\item \\textbf{H2b (Outgroup):} Outgroup perpetrators receive lower moral-judgment scores than ingroup perpetrators.",
-  "  \\item \\textbf{H3 (Moderation):} The empathy effect is stronger in outgroup cases.",
+  "  \\item \\textbf{H1 (Empathy):} Higher empathy predicts lower moral-judgment scores for harmful decisions after conditioning on explicit victim x negotiator case configurations.",
+  "  \\item \\textbf{H2a (Relational Betrayal):} Same-faculty and cross-faculty betrayal cases are evaluated through explicit victim x negotiator configurations rather than a single same-group indicator.",
+  paste0(
+    "  \\item \\textbf{H2b (Case Configuration):} Relational judgments are interpreted through explicit case contrasts such as ",
+    case_examples_latex,
+    "."
+  ),
+  "  \\item \\textbf{H3 (Moderation):} The empathy effect may vary across explicit victim x negotiator case configurations.",
   "\\end{itemize}",
   "",
   "\\section{Mathematical Approach and Theoretical Foundations}",
@@ -964,7 +1375,16 @@ latex_lines <- c(
   "The empathy profile of the sample is visualized in Figure \\ref{fig:radar}, showing the average scores across the four IRI latent variables.",
   latex_include_graphic(file.path("../figures", "figure_03_empathy_radar.png"), "IRI Latent Variable Averages (Radar Plot profile).", "fig:radar"),
   "Judgment severity distributions segmented by experimental conditions are presented in Figure \\ref{fig:dist_panels}.",
-  latex_include_graphic(file.path("../figures", "figure_04_severity_panels.png"), "Judgment Severity Distribution (Ingroup vs. Outgroup).", "fig:dist_panels"),
+  latex_include_graphic(file.path("../figures", "figure_04_severity_panels.png"), "Accepted-decision judgment distributions by explicit victim x negotiator case configuration.", "fig:dist_panels"),
+  if (!is.null(case_configuration_summary)) {
+    to_latex_table(
+      case_configuration_summary,
+      "Observed judgment summaries across explicit victim x negotiator case configurations, participant role, and decision context.",
+      "tab:case_configuration_summary"
+    )
+  } else {
+    "Case-configuration summary table unavailable."
+  },
   "",
   "\\section{Bi-variate Statistics}",
   "The correlation matrix between the psychometric subscales and the mean moral judgment is presented below.",
@@ -996,6 +1416,7 @@ latex_lines <- c(
     "Hypothesis summary unavailable."
   },
   build_latex_significance_figure_section(hypothesis_figure_artifacts),
+  build_latex_all_significant_predictor_figure_section(all_significant_predictor_figure_artifacts),
   "",
   "\\subsection{Integrated Hypothesis Conclusions}",
   "The following summary restates each original hypothesis and indicates whether the available Tobit estimates and the cluster-aware non-parametric models support it in the current data. Non-parametric conclusions are drawn when the participant-level bootstrap inference is available and are otherwise labeled explicitly.",
@@ -1007,28 +1428,28 @@ latex_lines <- c(
   "Detailed coefficient tables for each Tobit model, coupled with non-parametric robustness outputs, natural language interpretive narratives, and estimator-specific diagnostics, are provided below. In the default pipeline, converged non-parametric fits immediately attempt participant-level cluster-bootstrap inference; the report labels deferred and sparse-bootstrap cases explicitly when full inference is not available.",
   "",
   "\\subsection{H1: Empathy Effect}",
-  "This section evaluates the primary effect of empathy on moral judgments.",
+  "This section evaluates the primary effect of empathy on moral judgments while holding explicit victim x negotiator case configurations constant.",
   "\\subsubsection{Model A: Composite Empathy}",
   build_model_section("H1", "A", "H1 Model A: Composite Empathy Regression Coefficients."),
   "\\subsubsection{Model B: Separated Empathy Constructs}",
   build_model_section("H1", "B", "H1 Model B: Separated Constructs Regression Coefficients."),
   "",
-  "\\subsection{H2a: Ingroup Betrayal}",
-  "This section tests whether harm directed at the perpetrator's own group is judged differently.",
+  "\\subsection{H2a: Relational Betrayal Contrasts}",
+  "This section tests whether same-faculty and cross-faculty betrayal cases differ when they are represented directly as explicit victim x negotiator scenarios.",
   "\\subsubsection{Model A: Composite Empathy Control}",
   build_model_section("H2a", "A", "H2a Model A: Composite Empathy Regression Coefficients."),
   "\\subsubsection{Model B: Separated Construct Controls}",
   build_model_section("H2a", "B", "H2a Model B: Separated Constructs Regression Coefficients."),
   "",
-  "\\subsection{H2b: Outgroup Derogation}",
-  "This section examines the difference in judgment when the perpetrator is an outgroup member compared to an ingroup member.",
+  "\\subsection{H2b: Explicit Case-Configuration Contrasts}",
+  "This section examines interpretable victim x negotiator case contrasts directly, replacing isolated outgroup-perpetrator indicators with explicit relational scenarios.",
   "\\subsubsection{Model A: Composite Empathy Control}",
   build_model_section("H2b", "A", "H2b Model A: Composite Empathy Regression Coefficients."),
   "\\subsubsection{Model B: Separated Construct Controls}",
   build_model_section("H2b", "B", "H2b Model B: Separated Constructs Regression Coefficients."),
   "",
   "\\subsection{H3: Interaction Moderation}",
-  "This section tests the interaction and moderation between absolute empathy dimensions and the outgroup status of the perpetrator.",
+  "This section tests whether empathy is conditioned by explicit case-configuration contrasts rather than by a single outgroup flag.",
   "\\subsubsection{Model A: Composite Empathy Interaction}",
   build_model_section("H3", "A", "H3 Model A: Composite Empathy Regression Coefficients."),
   "\\subsubsection{Model B: Separated Constructs Interaction}",
@@ -1038,7 +1459,7 @@ latex_lines <- c(
   paste(get_limitations_narration(), collapse = " "),
   "",
   "\\section{Conclusion}",
-  "Based on the combined interval-censored Tobit estimations and the cluster-aware non-parametric robustness workflow, the structural effects of empathy, group dynamics, and betrayal have been documented alongside their theoretical assumptions above.",
+  "Based on the combined interval-censored Tobit estimations and the cluster-aware non-parametric robustness workflow, empathy and relational victim x negotiator case configurations have been documented together under Option 2 explicit case-configuration modeling, alongside their theoretical assumptions above.",
   "\\end{document}"
 )
 
@@ -1052,18 +1473,29 @@ md_lines <- c(
   "## Dataset Description",
   paste(get_dataset_narration(paths$dataset_mode), collapse = " "),
   "",
+  "## Option 2 Relational Case Configuration",
+  paste(
+    get_case_configuration_option_text(),
+    "Role (Observer/Victim) and decision context (Accept/Reject) may further condition these scenarios and are reported explicitly in the descriptive summaries."
+  ),
+  "",
   "## Hypothesis Significance Summary",
   "Only hypothesis-relevant predictors with p < 0.10 are shown below. Symbols follow the rule `+` for p < 0.10, `*` for p < 0.05, and `**` for p < 0.01. If bootstrap is disabled for a run, too few non-parametric bootstrap refits succeed, or the non-parametric fit does not converge, the non-parametric column reports that status explicitly. Dynamic figures are generated only for predictors that appear here with at least one significance symbol.",
   to_markdown_table(hypothesis_significance_summary),
   "",
+  "## Case Configuration Summary",
+  if (!is.null(case_configuration_summary)) to_markdown_table(case_configuration_summary) else "Case-configuration summary unavailable.",
+  "",
   build_markdown_significance_figure_section(hypothesis_figure_artifacts),
+  "",
+  build_markdown_all_significant_predictor_figure_section(all_significant_predictor_figure_artifacts),
   "",
   "## Hypothesis Conclusion Summary",
   "Each conclusion below is generated from the current coefficient outputs. Non-parametric statements are interpreted when participant-level cluster-bootstrap inference is available and are otherwise labeled explicitly.",
   paste0("- ", hypothesis_conclusion_items),
   "",
   "## PDF Comprehensive Report Generated",
-  "Please check `tobit_analysis_report.pdf` in the `outputs/report/` folder for the fully documented Tobit and cluster-aware non-parametric mathematical formulations, dual-estimator hypothesis testing, and the algorithmically interpreted natural language coefficients.",
+  "Please check `tobit_analysis_report.pdf` in the `outputs/report/` folder for the fully documented Tobit and cluster-aware non-parametric mathematical formulations, the Option 2 case-configuration logic, dual-estimator hypothesis testing, and the algorithmically interpreted natural language coefficients. When the run is dataset-specific, a matching alias such as `tobit_analysis_report_Buca.pdf` is also refreshed.",
   ""
 )
 write_text_file(md_lines, file.path(paths$report_dir, "tobit_analysis_report.md"))
@@ -1122,7 +1554,7 @@ render_pdf <- function(tex_file) {
     file.copy(build_out, target_out, overwrite = TRUE)
   }
 
-  if (any(build_statuses != 0L) || !file.exists(build_pdf)) {
+  if (!file.exists(build_pdf)) {
     warning(sprintf(
       "pdflatex failed while rendering %s. Inspect %s for details.",
       pdf_name,
@@ -1133,6 +1565,17 @@ render_pdf <- function(tex_file) {
 
   copied <- file.copy(build_pdf, target_pdf, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)
   if (copied) {
+    if (any(build_statuses != 0L)) {
+      warning(sprintf(
+        paste(
+          "pdflatex reported recoverable issues while rendering %s,",
+          "but a PDF was produced and copied successfully.",
+          "Inspect %s if you want to clean up the LaTeX warnings."
+        ),
+        pdf_name,
+        target_log
+      ))
+    }
     return(TRUE)
   }
 
@@ -1178,6 +1621,7 @@ render_word <- function(md_file) {
 
 pdf_rendered <- render_pdf(tex_path)
 word_rendered <- render_word(file.path(paths$report_dir, "tobit_analysis_report.md"))
+sync_dataset_specific_report_aliases(paths$dataset_mode)
 
 if (pdf_rendered) {
   message("Scientific manuscript expansion complete.")

@@ -3,6 +3,8 @@
 # and dictionary definitions for the automated scientific report.
 # Dependencies: None
 
+source("R/utils/case_configuration_functions.R")
+
 #' Get standardized Dataset Description
 get_dataset_narration <- function(dataset_mode = "BOTH") {
   campus_text <- if (dataset_mode == "FLORIDA") {
@@ -18,7 +20,9 @@ get_dataset_narration <- function(dataset_mode = "BOTH") {
     campus_text,
     " These datasets capture incentivized moral judgments from distinct socio-economic contexts. Participants were presented ",
     "with standardized negotiation scenarios where a negotiator's decision resulted in varying degrees of payoff for ",
-    "themselves, their own group, and a victim group (either ingroup or outgroup)."
+    "themselves, their own group, and a victim group. Under ",
+    get_case_configuration_option_label(),
+    ", each judgment is treated as relational and indexed by an explicit victim x negotiator scenario configuration rather than by isolated ingroup/outgroup attributes."
   )
 }
 
@@ -27,9 +31,11 @@ get_math_foundations <- function() {
   c(
     "The analysis employs two complementary estimators for bounded moral judgments. The primary specification is a Two-Limit Tobit model, which is theoretically appropriate for dependent variables that are ",
     "strictly bounded within a known interval. In this context, moral judgments ($y_{ij}$) are observed on a scale from -9 to 9. ",
-    "The Tobit model assumes the existence of a latent, unobserved preference index ($y^*_{ij}$) that follows a linear relationship:",
+    "The Tobit model assumes the existence of a latent, unobserved preference index ($y^*_{ij}$) that follows a linear relationship. ",
+    get_case_configuration_option_text(latex = TRUE),
+    " The core design vector therefore includes empathy, explicit case-configuration contrasts, and contextual conditioning terms such as role and decision context:",
     "",
-    "$$y^*_{ij} = \\mathbf{x}_{ij}'\\beta + \\epsilon_{ij}, \\quad \\epsilon_{ij} \\sim N(0, \\sigma^2)$$",
+    "$$y^*_{ij} = \\beta_0 + \\beta_1 \\text{IRI}_i + \\boldsymbol{\\gamma}'\\text{CaseConfig}_{ij} + \\boldsymbol{\\delta}'\\text{Context}_{ij} + \\epsilon_{ij}, \\quad \\epsilon_{ij} \\sim N(0, \\sigma^2)$$",
     "",
     "The actual observed judgment $y_{ij}$ relates to this latent variable via the censoring transformation:",
     "",
@@ -72,8 +78,20 @@ get_error_analysis_narration <- function() {
 
 #' Get Symbols and Variables Dictionary (LaTeX format)
 get_symbols_dictionary <- function() {
+  example_labels <- paste(get_case_configuration_example_labels(latex = TRUE), collapse = ", ")
   data.frame(
-    Symbol = c("$y_{ij}$", "$y^*_{ij}$", "$\\beta_1$", "$\\beta_{0.5}$", "$Q_{0.5}(y^*_{ij} \\mid \\mathbf{x}_{ij})$", "$\\text{IRI}_i$", "$\\text{OutgroupPerp}$", "$\\text{SameGroupHarm}$", "$\\text{ICC}$"),
+    Symbol = c(
+      "$y_{ij}$",
+      "$y^*_{ij}$",
+      "$\\beta_1$",
+      "$\\beta_{0.5}$",
+      "$Q_{0.5}(y^*_{ij} \\mid \\mathbf{x}_{ij})$",
+      "$\\text{IRI}_i$",
+      "$\\text{CaseConfig}_{ij}$",
+      "$\\text{Role}_{ij}$",
+      "$\\text{Decision}_{ij}$",
+      "$\\text{ICC}$"
+    ),
     Definition = c(
       "Observed moral judgment of scenario $j$ by participant $i$.",
       "Latent moral preference score (unbounded).",
@@ -81,8 +99,13 @@ get_symbols_dictionary <- function() {
       "Median-regression coefficient from the non-parametric censored robustness model.",
       "Conditional median of the latent bounded outcome given the predictors.",
       "Empathy score (Average composite of the Interpersonal Reactivity Index).",
-      "Binary indicator: 1 if the scenario perpetrator is an outgroup member.",
-      "Binary indicator: 1 if the harm is inflicted on the perpetrator's own group.",
+      paste(
+        "Explicit victim x negotiator case-configuration factor capturing relational scenarios such as",
+        example_labels,
+        "."
+      ),
+      "Scenario-role conditioning indicator distinguishing Observer from Victim judgments.",
+      "Decision-context conditioning indicator distinguishing Accept from Reject judgments.",
       "Intraclass Correlation: ratio of between-cluster variance to total variance."
     ),
     stringsAsFactors = FALSE

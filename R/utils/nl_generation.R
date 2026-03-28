@@ -30,12 +30,33 @@ describe_significance <- function(p_value, estimate) {
 
 # Helper mapping term explicitly to a natural language definition for insertion into a sentence
 get_term_definition <- function(term) {
+  describe_case_term <- function(term_key) {
+    if (!grepl("^case_[a-z]+_x_[a-z]+$", term_key)) {
+      return(NULL)
+    }
+    case_label <- gsub("^case_", "", term_key)
+    case_label <- gsub("^hum", "Hum", case_label)
+    case_label <- gsub("_hum", "_Hum", case_label)
+    case_label <- gsub("^ing", "Ing", case_label)
+    case_label <- gsub("_ing", "_Ing", case_label)
+    case_label <- gsub("^control", "Control", case_label)
+    case_label <- gsub("_control", "_Control", case_label)
+    sprintf(
+      "whether the judged scenario matches the explicit victim x negotiator case configuration %s",
+      label_case_configuration(case_label)
+    )
+  }
+
   meaning_map <- c(
     "iri_total" = "the average composite of empathetic propensity across the participant",
     "iri_fs" = "the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)",
     "iri_ec" = "the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)",
     "iri_pt" = "the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)",
     "iri_pd" = "the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)",
+    "case_configuration" = "the explicit victim x negotiator case-configuration factor used in Option 2 relational modeling",
+    "case_configuration_role" = "the victim x negotiator case configuration further conditioned by participant role (Observer or Victim)",
+    "case_configuration_decision" = "the victim x negotiator case configuration further conditioned by decision context (Accept or Reject)",
+    "case_configuration_context" = "the full victim x negotiator case configuration further conditioned by both role and decision context",
     "perp_outgroup" = "whether the perpetrator belonged to a faculty different from the participant (Outgroup)",
     "perp_control" = "whether the perpetrator's organizational alignment was explicitly hidden (Control label)",
     "victim_outgroup" = "whether the victim was affiliated with a different faculty than the participant",
@@ -59,6 +80,14 @@ get_term_definition <- function(term) {
   term_key <- canonicalize_term_name(term)
   if (term_key %in% names(meaning_map)) {
     return(meaning_map[[term_key]])
+  }
+  case_term <- describe_case_term(term_key)
+  if (!is.null(case_term)) {
+    return(case_term)
+  }
+  if (grepl(":", term_key, fixed = TRUE)) {
+    term_parts <- strsplit(term_key, ":", fixed = TRUE)[[1]]
+    return(paste(vapply(term_parts, get_term_definition, character(1)), collapse = " interacted with "))
   }
   if (grepl("^factor\\(negotiator_slot\\)", term)) {
     return("fixed effects for specific negotiator presentation order")

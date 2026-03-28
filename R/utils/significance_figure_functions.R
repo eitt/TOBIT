@@ -27,6 +27,20 @@ sanitize_identifier <- function(x) {
 }
 
 get_binary_value_labels <- function(var_name) {
+  if (grepl("^case_[a-z]+_x_[a-z]+$", var_name)) {
+    case_label <- gsub("^case_", "", var_name)
+    case_label <- gsub("^hum", "Hum", case_label)
+    case_label <- gsub("_hum", "_Hum", case_label)
+    case_label <- gsub("^ing", "Ing", case_label)
+    case_label <- gsub("_ing", "_Ing", case_label)
+    case_label <- gsub("^control", "Control", case_label)
+    case_label <- gsub("_control", "_Control", case_label)
+    return(c(
+      "0" = "All other case configurations",
+      "1" = label_case_configuration(case_label)
+    ))
+  }
+
   switch(
     var_name,
     perp_outgroup = c("0" = "Ingroup perpetrator", "1" = "Outgroup perpetrator"),
@@ -46,6 +60,28 @@ format_discrete_value_label <- function(var_name, value) {
   value_map <- get_binary_value_labels(var_name)
   if (!is.null(value_map) && value_chr %in% names(value_map)) {
     return(unname(value_map[[value_chr]]))
+  }
+
+  if (identical(var_name, "case_configuration")) {
+    return(label_case_configuration(value_chr))
+  }
+  if (identical(var_name, "case_configuration_role")) {
+    parts <- strsplit(value_chr, "__", fixed = TRUE)[[1]]
+    if (length(parts) == 2L) {
+      return(sprintf("%s (%s)", label_case_configuration(parts[1]), parts[2]))
+    }
+  }
+  if (identical(var_name, "case_configuration_decision")) {
+    parts <- strsplit(value_chr, "__", fixed = TRUE)[[1]]
+    if (length(parts) == 2L) {
+      return(sprintf("%s (%s)", label_case_configuration(parts[1]), parts[2]))
+    }
+  }
+  if (identical(var_name, "case_configuration_context")) {
+    parts <- strsplit(value_chr, "__", fixed = TRUE)[[1]]
+    if (length(parts) == 3L) {
+      return(sprintf("%s (%s, %s)", label_case_configuration(parts[1]), parts[2], parts[3]))
+    }
   }
 
   if (identical(var_name, "economic_status")) {

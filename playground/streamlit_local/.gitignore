@@ -1,0 +1,5 @@
+.venv/
+__pycache__/
+*.pyc
+data/judgments_playground.csv
+data/judgments_playground_metadata.json
