@@ -6,13 +6,47 @@
 # Execution Order: 1
 
 get_default_case_modeling_option <- function() {
-  "Option 2: explicit case-configuration modeling"
+  "Option 2: judgment-level relational modeling"
+}
+
+# Central participant-level sampling setting for quick test runs.
+# Use 1.0 (or 100) when you want to keep the full imported dataset.
+get_default_dataset_sample_fraction <- function() {
+  1
+}
+
+get_default_dataset_sample_seed <- function() {
+  69L
 }
 
 # Central bootstrap setting for the cluster-aware non-parametric branch.
 # Change this single value when you want to use a different default.
 get_default_clad_bootstrap_reps <- function() {
-  10L
+  5L
+}
+
+parse_dataset_sample_fraction_value <- function(x) {
+  if (length(x) == 0L || is.null(x) || is.na(x[1])) {
+    return(NA_real_)
+  }
+
+  if (is.numeric(x) || is.integer(x)) {
+    value <- as.numeric(x[1])
+  } else {
+    x_chr <- trimws(as.character(x[1]))
+    x_chr <- sub("%$", "", x_chr)
+    value <- suppressWarnings(as.numeric(x_chr))
+  }
+
+  if (is.na(value)) {
+    return(NA_real_)
+  }
+
+  if (value > 1 && value <= 100) {
+    value <- value / 100
+  }
+
+  value
 }
 
 parse_bootstrap_reps_value <- function(x) {
@@ -39,11 +73,33 @@ resolve_clad_bootstrap_reps <- function() {
   bootstrap_reps
 }
 
+resolve_dataset_sample_fraction <- function() {
+  sample_fraction <- parse_dataset_sample_fraction_value(
+    getOption("tobit.dataset_sample_fraction", get_default_dataset_sample_fraction())
+  )
+  if (is.na(sample_fraction) || sample_fraction <= 0) {
+    sample_fraction <- get_default_dataset_sample_fraction()
+  }
+  min(sample_fraction, 1)
+}
+
+resolve_dataset_sample_seed <- function() {
+  seed_value <- parse_bootstrap_reps_value(
+    getOption("tobit.dataset_sample_seed", get_default_dataset_sample_seed())
+  )
+  if (is.na(seed_value)) {
+    seed_value <- get_default_dataset_sample_seed()
+  }
+  as.integer(seed_value)
+}
+
 apply_pipeline_runtime_options <- function(
   dataset_mode = NULL,
   run_bootstrap = TRUE,
   skip_tobit_refit = FALSE,
-  clad_bootstrap_reps = NULL
+  clad_bootstrap_reps = NULL,
+  dataset_sample_fraction = NULL,
+  dataset_sample_seed = NULL
 ) {
   effective_bootstrap_reps <- parse_bootstrap_reps_value(clad_bootstrap_reps)
   if (is.na(effective_bootstrap_reps)) {
@@ -51,6 +107,15 @@ apply_pipeline_runtime_options <- function(
   }
   if (is.na(effective_bootstrap_reps) || effective_bootstrap_reps < 1L) {
     effective_bootstrap_reps <- get_default_clad_bootstrap_reps()
+  }
+  effective_sample_fraction <- parse_dataset_sample_fraction_value(dataset_sample_fraction)
+  if (is.na(effective_sample_fraction) || effective_sample_fraction <= 0) {
+    effective_sample_fraction <- get_default_dataset_sample_fraction()
+  }
+  effective_sample_fraction <- min(effective_sample_fraction, 1)
+  effective_sample_seed <- parse_bootstrap_reps_value(dataset_sample_seed)
+  if (is.na(effective_sample_seed)) {
+    effective_sample_seed <- get_default_dataset_sample_seed()
   }
 
   if (!is.null(dataset_mode)) {
@@ -60,6 +125,8 @@ apply_pipeline_runtime_options <- function(
   options(tobit.clad_run_bootstrap = isTRUE(run_bootstrap))
   options(tobit.skip_tobit_refit = isTRUE(skip_tobit_refit))
   options(tobit.clad_bootstrap_reps = effective_bootstrap_reps)
+  options(tobit.dataset_sample_fraction = effective_sample_fraction)
+  options(tobit.dataset_sample_seed = as.integer(effective_sample_seed))
   invisible(TRUE)
 }
 
@@ -71,7 +138,7 @@ apply_pipeline_runtime_options <- function(
 get_project_paths <- function(project_root = ".", dataset_mode = NULL) {
   # Priority: 1. Argument, 2. Global Option, 3. Default "BOTH"
   if (is.null(dataset_mode)) {
-    dataset_mode <- getOption("tobit.dataset_mode", default = "BUC")
+    dataset_mode <- getOption("tobit.dataset_mode", default = "BOTH")
   }
 
   root <- normalizePath(project_root, winslash = "/", mustWork = TRUE)
@@ -107,6 +174,84 @@ get_project_paths <- function(project_root = ".", dataset_mode = NULL) {
     report_dir = file.path(root, "outputs", "report"),
     dataset_mode = dataset_mode
   )
+}
+
+#' Remove generated artifacts from the outputs tree before a fresh full run.
+#'
+#' @param paths List. Result of get_project_paths().
+#' @param clear_reports Logical. Whether report artifacts should also be removed.
+#' @return Invisible named integer vector with the number of top-level entries
+#'   removed from each output directory.
+clear_pipeline_outputs <- function(paths = get_project_paths(), clear_reports = TRUE) {
+  output_dirs <- c(
+    tables = paths$tables_dir,
+    figures = paths$figures_dir,
+    models = paths$models_dir,
+    logs = paths$logs_dir
+  )
+  if (isTRUE(clear_reports)) {
+    output_dirs <- c(output_dirs, report = paths$report_dir)
+  }
+
+  removed_counts <- setNames(integer(length(output_dirs)), names(output_dirs))
+
+  for (dir_name in names(output_dirs)) {
+    output_dir <- output_dirs[[dir_name]]
+    dir_entries <- list.files(output_dir, all.files = TRUE, no.. = TRUE, full.names = TRUE)
+    removed_counts[[dir_name]] <- length(dir_entries)
+    if (length(dir_entries) > 0L) {
+      unlink(dir_entries, recursive = TRUE, force = TRUE)
+    }
+  }
+
+  invisible(removed_counts)
+}
+
+#' Apply a reproducible random participant-level sample for quicker test runs.
+#'
+#' @param data Data frame to sample.
+#' @param sample_fraction Numeric in (0, 1], or percentage-style values such as 10.
+#' @param seed Integer seed for reproducibility.
+#' @return Sampled data frame preserving original row order among sampled rows.
+sample_pipeline_dataset <- function(data, sample_fraction = NULL, seed = NULL) {
+  if (!is.data.frame(data)) {
+    stop("sample_pipeline_dataset() expects a data frame.", call. = FALSE)
+  }
+
+  if (is.null(sample_fraction)) {
+    sample_fraction <- resolve_dataset_sample_fraction()
+  } else {
+    sample_fraction <- parse_dataset_sample_fraction_value(sample_fraction)
+    if (is.na(sample_fraction) || sample_fraction <= 0) {
+      sample_fraction <- resolve_dataset_sample_fraction()
+    }
+    sample_fraction <- min(sample_fraction, 1)
+  }
+
+  if (is.null(seed)) {
+    seed <- resolve_dataset_sample_seed()
+  } else {
+    seed <- parse_bootstrap_reps_value(seed)
+    if (is.na(seed)) {
+      seed <- resolve_dataset_sample_seed()
+    }
+  }
+
+  n_rows <- nrow(data)
+  if (n_rows == 0L || sample_fraction >= 1) {
+    return(data)
+  }
+
+  sample_size <- max(1L, floor(n_rows * sample_fraction))
+  if (sample_size >= n_rows) {
+    return(data)
+  }
+
+  set.seed(seed)
+  sampled_idx <- sort(sample.int(n_rows, size = sample_size, replace = FALSE))
+  sampled_data <- data[sampled_idx, , drop = FALSE]
+  rownames(sampled_data) <- NULL
+  sampled_data
 }
 
 #' Install base dependencies if they are missing

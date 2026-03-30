@@ -3,10 +3,10 @@
 ## Why Tobit is Being Used
 The primary dependent variable, `judgement`, is arbitrarily bounded strictly between `-9` and `9` within the evaluation framework. A severe pile-up of outcomes commonly occurs at these extremes. Standard OLS regression severely underestimates actual effect magnitudes when observations pile at dataset limits because it treats these hard bounds as standard continuous values rather than censored indicators. The interval-censored Tobit model resolves this limitation by acknowledging the probability of a latent scale $y^{*}$ existing independently beyond the observable threshold.
 
-## Option 2: Explicit Case-Configuration Modeling
-The repository now prioritizes **Option 2** when the substantive question is relational. Instead of representing scenarios only through separate ingroup/outgroup indicators such as `perp_outgroup` and `victim_outgroup`, the model uses an explicit victim x negotiator case factor built from the paired-group structure of each judgment. This produces interpretable scenarios such as `Hum_x_Hum`, `Hum_x_Ing`, `Hum_x_Control`, `Ing_x_Hum`, `Ing_x_Ing`, and `Ing_x_Control`.
+## Option 2: Judgment-Level Relational Modeling
+The repository now prioritizes **Option 2** when the substantive question is relational. Instead of centering the analysis on descriptive victim x negotiator case labels, the executable models use judgment-level relational predictors for the judged negotiator, the counterpart negotiator, and, in observer rows, the victim.
 
-The victim group is listed first and the judged negotiator is listed second. Role (`Observer` / `Victim`) and decision context (`Accept` / `Reject`) may further condition these case configurations through `case_configuration_role`, `case_configuration_decision`, and `case_configuration_context`.
+For H1, the design matrix conditions on judged-negotiator, counterpart, and observer-side victim relational controls. For H2 and H3, it additionally includes `decision_accept` and the judged-status x decision interaction.
 
 ## Why the Non-Parametric Robustness Model Has Been Added
 Because the Tobit likelihood relies on a Gaussian latent-error assumption, the project also estimates a distribution-robust censored median specification. In practice, this is implemented as interval-censored median quantile regression (`p = 0.5`) so the censoring structure is respected while the estimator becomes less sensitive to non-normal latent disturbances and heavy-tailed behavior.
@@ -28,13 +28,13 @@ Both branches share the same endpoint preparation inside `R/utils/model_function
 - Generates `upper_endpoint`
 This handles data prep uniformly before model convergence.
 
-Under Option 2, the design matrix for relational hypotheses typically has the form
+Under Option 2, the design matrix for the relational hypotheses H2 and H3 typically has the form
 
 $$
-y^*_{ij} = \beta_0 + \beta_1 \text{IRI}_i + \boldsymbol{\gamma}'\text{CaseConfig}_{ij} + \boldsymbol{\delta}'\text{Context}_{ij} + \epsilon_{ij}
+y^*_{isjr} = \beta_0 + \beta_1 \text{Empathy}_i + \boldsymbol{\beta}_2' G_{isjr} + \beta_3 A_{is} + \boldsymbol{\beta}_4' (G_{isjr} \times A_{is}) + \boldsymbol{\beta}_5' C_{isjr} + \epsilon_{isjr}
 $$
 
-where `CaseConfig` denotes the explicit victim x negotiator scenario contrasts and `Context` may include role and decision-conditioning terms when substantively appropriate.
+where `G` denotes judged-negotiator relational status, `A` denotes the Accept/Reject decision indicator, and `C` denotes the additional relational controls. H1 remains the accepted-sample empathy specification with judged-negotiator, counterpart, and observer-side victim relational controls.
 
 ## Standard Errors 
 The Tobit branch natively adjusts parameter variance around clustered participant IDs (`robust = TRUE`). This corrects potential issues seen in repeated-measure evaluations stemming from one rater generating multiple subsequent evaluations.
@@ -60,6 +60,6 @@ The repository-wide bootstrap default is centralized in `R/00_config.R` and is c
 
 ## Model Output Specifications 
 - Tables evaluate statistical distinction using both conventional thresholds in coefficient tables and a concise hypothesis summary table that reports only hypothesis-relevant predictors reaching at least $p < 0.10$.
-- Figures are generated automatically only for hypothesis-relevant predictors that reach at least $p < 0.10$ in the Tobit model or the clustered non-parametric robustness model; continuous effects receive marginal prediction lines with confidence bands, explicit case-configuration contrasts receive grouped prediction plots, and interaction terms receive interaction plots.
+- Figures are generated automatically only for hypothesis-relevant predictors that reach at least $p < 0.10$ in the Tobit model or the clustered non-parametric robustness model; continuous effects receive marginal prediction lines with confidence bands, judged-status contrasts receive grouped prediction plots, and interaction terms receive interaction plots.
 - For coefficient magnitude referencing, both Tobit and non-parametric models estimate coefficients using raw predictor values. Psychometric predictors such as `iri_total` and the IRI subscales remain on their original scale, so coefficients should be interpreted per one-unit change on those native measures.
 - Generated figures, regression matrices, estimator fit summaries, LaTeX tabular formats, `.rds` memory dumps, and the concise hypothesis summary table accommodate rigid publication while preserving the original Tobit results and adding the cluster-aware non-parametric robustness branch. In these figures, `id` is used only to account for within-participant dependence in inference and is never treated as a substantive explanatory variable.

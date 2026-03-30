@@ -47,6 +47,21 @@ get_term_definition <- function(term) {
     )
   }
 
+  describe_analytic_case_term <- function(term_key) {
+    if (!grepl("^acfg_", term_key)) {
+      return(NULL)
+    }
+    dummy_map <- get_analytic_case_configuration_dummy_names(include_control = TRUE)
+    matched_level <- names(dummy_map)[match(term_key, unname(dummy_map))]
+    if (length(matched_level) != 1L || is.na(matched_level)) {
+      return(NULL)
+    }
+    sprintf(
+      "whether the judged scenario matches the role-dependent judgment configuration %s",
+      label_analytic_case_configuration(matched_level)
+    )
+  }
+
   meaning_map <- c(
     "iri_total" = "the average composite of empathetic propensity across the participant",
     "iri_fs" = "the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)",
@@ -57,6 +72,15 @@ get_term_definition <- function(term) {
     "case_configuration_role" = "the victim x negotiator case configuration further conditioned by participant role (Observer or Victim)",
     "case_configuration_decision" = "the victim x negotiator case configuration further conditioned by decision context (Accept or Reject)",
     "case_configuration_context" = "the full victim x negotiator case configuration further conditioned by both role and decision context",
+    "analytic_case_configuration" = "the role-dependent judgment configuration that preserves the judged negotiator, the counterpart negotiator, and observer-side victim alignment",
+    "analytic_case_configuration_decision" = "the role-dependent judgment configuration further conditioned by decision context (Accept or Reject)",
+    "analytic_case_configuration_context" = "the role-dependent judgment configuration further conditioned by decision context (Accept or Reject)",
+    "decision_accept" = "whether the judged negotiator accepted the harmful deal instead of rejecting it",
+    "judged_outgroup" = "whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)",
+    "judged_control" = "whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition",
+    "counterpart_outgroup" = "whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)",
+    "counterpart_control" = "whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition",
+    "observer_victim_outgroup" = "whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant",
     "perp_outgroup" = "whether the perpetrator belonged to a faculty different from the participant (Outgroup)",
     "perp_control" = "whether the perpetrator's organizational alignment was explicitly hidden (Control label)",
     "victim_outgroup" = "whether the victim was affiliated with a different faculty than the participant",
@@ -84,6 +108,10 @@ get_term_definition <- function(term) {
   case_term <- describe_case_term(term_key)
   if (!is.null(case_term)) {
     return(case_term)
+  }
+  analytic_case_term <- describe_analytic_case_term(term_key)
+  if (!is.null(analytic_case_term)) {
+    return(analytic_case_term)
   }
   if (grepl(":", term_key, fixed = TRUE)) {
     term_parts <- strsplit(term_key, ":", fixed = TRUE)[[1]]

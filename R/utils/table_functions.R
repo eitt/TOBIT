@@ -19,6 +19,37 @@ format_p_value <- function(p) {
   formatC(p, digits = 3, format = "f")
 }
 
+#' Conventional significance markers for p-values.
+significance_symbol <- function(p) {
+  if (length(p) > 1L) {
+    return(vapply(p, significance_symbol, character(1), USE.NAMES = FALSE))
+  }
+  if (is.na(p)) return("")
+  if (p < 0.001) return("***")
+  if (p < 0.01) return("**")
+  if (p < 0.05) return("*")
+  if (p < 0.10) return("+")
+  ""
+}
+
+#' Format p-values together with their conventional significance markers.
+format_p_value_with_symbol <- function(p) {
+  if (length(p) > 1L) {
+    return(vapply(p, format_p_value_with_symbol, character(1), USE.NAMES = FALSE))
+  }
+  paste0(format_p_value(p), significance_symbol(p))
+}
+
+#' Append human-readable significance columns to a model table.
+add_p_value_display_columns <- function(df, p_col = "p_value") {
+  if (!is.data.frame(df) || !(p_col %in% names(df))) {
+    return(df)
+  }
+  df$p_symbol <- significance_symbol(df[[p_col]])
+  df[[paste0(p_col, "_display")]] <- format_p_value_with_symbol(df[[p_col]])
+  df
+}
+
 #' Format confidence intervals safely
 format_ci <- function(low, high, digits = 2) {
   paste0("[", format_number(low, digits), ", ", format_number(high, digits), "]")

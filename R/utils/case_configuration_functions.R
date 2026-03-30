@@ -5,7 +5,7 @@
 # Dependencies: None
 
 get_case_configuration_option_label <- function() {
-  "Option 2: explicit case-configuration modeling"
+  "Option 2: judgment-level relational modeling"
 }
 
 format_case_configuration_example <- function(case_label, latex = FALSE) {
@@ -23,13 +23,14 @@ get_case_configuration_example_labels <- function(latex = FALSE) {
 }
 
 get_case_configuration_option_text <- function(latex = FALSE) {
-  example_text <- paste(get_case_configuration_example_labels(latex = latex), collapse = ", ")
   paste(
     "Option 2 replaces isolated ingroup/outgroup indicators with explicit",
-    "relational case configurations built from the paired-group structure of",
-    "each judgment. The current project records the victim group first and the",
-    sprintf("judged negotiator label second, so configurations such as %s refer", example_text),
-    "to victim x negotiator combinations rather than detached attributes."
+    "judgment-level relational variables built from the paired-group structure",
+    "of each judgment. The analytic hypothesis models",
+    "decompose that structure into the judged negotiator's relational status,",
+    "decision outcome (Accept/Reject), their interaction, and additional",
+    "relational controls for the counterpart negotiator and, in observer rows,",
+    "victim alignment."
   )
 }
 
@@ -153,6 +154,229 @@ add_case_configuration_columns <- function(
   dummy_map <- get_case_configuration_dummy_names(include_control = TRUE)
   for (case_label in names(dummy_map)) {
     df[[dummy_map[[case_label]]]] <- as.integer(df$case_configuration == case_label)
+  }
+
+  df
+}
+
+normalize_role_label <- function(role_value) {
+  role_chr <- trimws(as.character(role_value))
+  role_chr[is.na(role_value)] <- NA_character_
+
+  ifelse(
+    is.na(role_chr),
+    NA_character_,
+    ifelse(
+      tolower(role_chr) %in% c("observer", "1"),
+      "Observer",
+      ifelse(
+        tolower(role_chr) %in% c("victim", "0", "2"),
+        "Victim",
+        NA_character_
+      )
+    )
+  )
+}
+
+get_relative_group_levels <- function(include_control = TRUE) {
+  if (isTRUE(include_control)) {
+    return(c("In", "Out", "Cont"))
+  }
+  c("In", "Out")
+}
+
+build_relative_group <- function(actor_faculty, reference_faculty, allow_control = TRUE) {
+  actor_faculty <- as.integer(actor_faculty)
+  reference_faculty <- as.integer(reference_faculty)
+
+  ifelse(
+    is.na(actor_faculty) | is.na(reference_faculty),
+    NA_character_,
+    ifelse(
+      isTRUE(allow_control) & actor_faculty == 3L,
+      "Cont",
+      ifelse(actor_faculty == reference_faculty, "In", "Out")
+    )
+  )
+}
+
+build_analytic_case_configuration <- function(role, judged_group, counterpart_group, victim_group = NA_character_) {
+  role_label <- normalize_role_label(role)
+  target_length <- max(length(role_label), length(judged_group), length(counterpart_group), length(victim_group))
+
+  role_label <- rep_len(role_label, target_length)
+  judged_group <- rep_len(as.character(judged_group), target_length)
+  counterpart_group <- rep_len(as.character(counterpart_group), target_length)
+  victim_group <- rep_len(as.character(victim_group), target_length)
+
+  vapply(
+    seq_len(target_length),
+    function(idx) {
+      role_i <- role_label[idx]
+      judged_i <- judged_group[idx]
+      counterpart_i <- counterpart_group[idx]
+      victim_i <- victim_group[idx]
+
+      if (is.na(role_i) || is.na(judged_i) || is.na(counterpart_i)) {
+        return(NA_character_)
+      }
+
+      if (identical(role_i, "Victim")) {
+        return(paste("Victim", paste0("J_", judged_i), paste0("C_", counterpart_i), sep = "__"))
+      }
+
+      if (is.na(victim_i)) {
+        return(NA_character_)
+      }
+
+      paste("Observer", paste0("J_", judged_i), paste0("C_", counterpart_i), paste0("V_", victim_i), sep = "__")
+    },
+    character(1)
+  )
+}
+
+get_analytic_case_configuration_levels <- function(include_control = TRUE) {
+  negotiator_levels <- get_relative_group_levels(include_control = include_control)
+  victim_levels <- get_relative_group_levels(include_control = FALSE)
+
+  victim_configs <- as.vector(
+    outer(
+      negotiator_levels,
+      negotiator_levels,
+      function(judged, counterpart) paste("Victim", paste0("J_", judged), paste0("C_", counterpart), sep = "__")
+    )
+  )
+  observer_base <- as.vector(
+    outer(
+      negotiator_levels,
+      negotiator_levels,
+      function(judged, counterpart) paste(paste0("J_", judged), paste0("C_", counterpart), sep = "__")
+    )
+  )
+  observer_configs <- as.vector(
+    outer(
+      observer_base,
+      victim_levels,
+      function(base, victim) paste("Observer", base, paste0("V_", victim), sep = "__")
+    )
+  )
+
+  c(victim_configs, observer_configs)
+}
+
+analytic_case_configuration_dummy_name <- function(configuration_label) {
+  paste0("acfg_", gsub("[^A-Za-z0-9]+", "_", tolower(configuration_label)))
+}
+
+get_analytic_case_configuration_dummy_names <- function(include_control = TRUE) {
+  levels <- get_analytic_case_configuration_levels(include_control = include_control)
+  stats::setNames(
+    vapply(levels, analytic_case_configuration_dummy_name, character(1)),
+    levels
+  )
+}
+
+get_analytic_case_configuration_term_names <- function(
+    reference = "Victim__J_In__C_In",
+    include_control = TRUE) {
+  dummy_map <- get_analytic_case_configuration_dummy_names(include_control = include_control)
+  if (!(reference %in% names(dummy_map))) {
+    stop(sprintf("Unknown analytic case-configuration reference level '%s'.", reference), call. = FALSE)
+  }
+  unname(dummy_map[names(dummy_map) != reference])
+}
+
+get_analytic_case_configuration_term_map <- function(
+    reference = "Victim__J_In__C_In",
+    include_control = TRUE) {
+  dummy_map <- get_analytic_case_configuration_dummy_names(include_control = include_control)
+  if (!(reference %in% names(dummy_map))) {
+    stop(sprintf("Unknown analytic case-configuration reference level '%s'.", reference), call. = FALSE)
+  }
+  dummy_map[names(dummy_map) != reference]
+}
+
+get_analytic_case_configuration_interaction_terms <- function(
+    base_terms,
+    reference = "Victim__J_In__C_In",
+    include_control = TRUE) {
+  rel_terms <- get_analytic_case_configuration_term_names(
+    reference = reference,
+    include_control = include_control
+  )
+  as.vector(outer(base_terms, rel_terms, paste, sep = ":"))
+}
+
+label_relative_group <- function(group_code) {
+  switch(
+    as.character(group_code),
+    In = "ingroup",
+    Out = "outgroup",
+    Cont = "control label hidden",
+    group_code
+  )
+}
+
+label_analytic_case_configuration <- function(configuration_label) {
+  parts <- strsplit(configuration_label, "__", fixed = TRUE)[[1]]
+  if (length(parts) < 3L) return(configuration_label)
+
+  role_label <- parts[1]
+  judged_group <- sub("^J_", "", parts[2])
+  counterpart_group <- sub("^C_", "", parts[3])
+
+  if (identical(role_label, "Victim")) {
+    return(sprintf(
+      "Victim role: judged negotiator %s, counterpart negotiator %s",
+      label_relative_group(judged_group),
+      label_relative_group(counterpart_group)
+    ))
+  }
+
+  if (length(parts) != 4L) return(configuration_label)
+
+  victim_group <- sub("^V_", "", parts[4])
+  sprintf(
+    "Observer role: judged negotiator %s, counterpart negotiator %s, victim %s",
+    label_relative_group(judged_group),
+    label_relative_group(counterpart_group),
+    label_relative_group(victim_group)
+  )
+}
+
+label_analytic_case_configuration_term <- function(term) {
+  dummy_map <- get_analytic_case_configuration_dummy_names(include_control = TRUE)
+  matched_level <- names(dummy_map)[match(term, unname(dummy_map))]
+  if (length(matched_level) == 1L && !is.na(matched_level)) {
+    return(paste("Judgment configuration:", label_analytic_case_configuration(matched_level)))
+  }
+  term
+}
+
+add_analytic_case_configuration_columns <- function(
+    df,
+    config_col = "analytic_case_configuration",
+    decision_col = "decision_accept") {
+  if (!(config_col %in% names(df))) {
+    stop(sprintf("Column '%s' is missing from the data.", config_col), call. = FALSE)
+  }
+
+  decision_label <- if (decision_col %in% names(df)) {
+    ifelse(df[[decision_col]] == 1L, "Accept", "Reject")
+  } else {
+    rep(NA_character_, nrow(df))
+  }
+
+  df$analytic_case_configuration_decision <- ifelse(
+    is.na(df[[config_col]]) | is.na(decision_label),
+    NA_character_,
+    paste(df[[config_col]], decision_label, sep = "__")
+  )
+  df$analytic_case_configuration_context <- df$analytic_case_configuration_decision
+
+  dummy_map <- get_analytic_case_configuration_dummy_names(include_control = TRUE)
+  for (configuration_label in names(dummy_map)) {
+    df[[dummy_map[[configuration_label]]]] <- as.integer(df[[config_col]] == configuration_label)
   }
 
   df

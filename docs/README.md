@@ -2,11 +2,11 @@
 
 This repository implements a reproducible, function-oriented R pipeline for analyzing bounded moral judgments using interval-censored Tobit regression plus a distribution-robust non-parametric censored robustness check.
 
-The project now adopts **Option 2: explicit case-configuration modeling** across the full workflow. When the substantive question is relational, the analysis no longer relies only on separate ingroup/outgroup indicators such as `perp_outgroup` and `victim_outgroup`. Instead, each judgment is represented through an explicit victim x negotiator case configuration such as `Hum_x_Hum`, `Hum_x_Ing`, `Hum_x_Control`, `Ing_x_Hum`, `Ing_x_Ing`, and `Ing_x_Control`, with role (`Observer` / `Victim`) and decision context (`Accept` / `Reject`) available as further conditioning dimensions.
+The project now adopts **Option 2: judgment-level relational modeling** across the full workflow. The executable models use explicit negotiator-level predictors for judged-negotiator status, counterpart status, observer-side victim alignment, and, where required by the hypothesis, decision outcome (`Accept` / `Reject`) and its interaction with judged-negotiator status.
 
 ## Project Purpose
 
-The goal is to estimate the impact of empathy (IRI) and relational scenario structure on moral judgments of negotiators who accept or reject harmful deals, while preserving interpretable victim x negotiator case pairings.
+The goal is to estimate the impact of empathy (IRI) and relational structure on moral judgments of negotiators who accept or reject harmful deals using negotiator-level ingroup/outgroup/control predictors.
 
 ## Data Sources
 
@@ -33,9 +33,9 @@ The project has been reorganized into a strict function-oriented architecture:
 1. **01_import_data.R** - Validation and ingestion wrapper
 2. **02_clean_data.R** - Label recoding and attention check flagging
 3. **03_transform_data.R** - Psychometric metric scoring (IRI totals and subscales, kept on raw scales)
-4. **04_generate_variables.R** - Matrix restructuring (wide to long) and scenario feature engineering, including Option 2 case-configuration variables
+4. **04_generate_variables.R** - Matrix restructuring (wide to long) and scenario feature engineering, including Option 2 negotiator-level relational variables
 5. **05_descriptive_statistics.R** - Dataset-wide distributional outputs
-6. **Hypothesis tests** - H1 through H3 standalone model runs, each generating Tobit outputs plus the cluster-aware non-parametric robustness fit, using explicit case-configuration contrasts rather than isolated outgroup indicators
+6. **Hypothesis tests** - H1 through H3 standalone model runs, each generating Tobit outputs plus the cluster-aware non-parametric robustness fit, using judged-status, decision, and relational-control terms rather than descriptive case labels
 7. **Bootstrap-only refresh utility** - reruns only the participant-level cluster bootstrap inference for non-parametric fits when you want to refresh those outputs without refitting Tobit
 8. **Plain-language guide** - generated after the main report so the project also exports a simpler explanation of the data card, hypotheses, variable creation, and model codings
 
@@ -54,7 +54,9 @@ If you are on Windows, you can double-click or run the following files from Powe
 Rscript run_pipeline.R
 ```
 
-This script handles all sequential evaluations, ensures all processed data tables are rebuilt, installs any missing R packages automatically, and populates the `outputs/` folder.
+This script handles all sequential evaluations, ensures all processed data tables are rebuilt, installs any missing R packages automatically, clears the existing generated artifacts under `outputs/` at the start of the run, and then repopulates the `outputs/` folder from scratch.
+
+For quicker test cycles, the import step now applies a reproducible random participant-level sample by default. The central default in `R/00_config.R` is `10%` of the imported dataset with a fixed seed. Set `options(tobit.dataset_sample_fraction = 1)` (or `100`) when you want to keep the full dataset.
 
 By default, the main pipeline fits each non-parametric model once and, if that full-sample fit converges, immediately runs participant-level cluster bootstrap inference and overwrites the CLAD tables with cluster-aware standard errors, confidence intervals, and p-values. If too few bootstrap refits converge to support full inference, the saved outputs and report label that state explicitly as sparse bootstrap inference rather than treating the model as fully inferentially usable.
 
@@ -80,7 +82,7 @@ Rscript R/hypotheses/H1_test.R
 
 ## Main Outputs Produced
 
-- **Tables**: `outputs/tables/` generates Letter-width wrapped `.tex` source tables, standard `.csv` aggregations, a concise `hypothesis_summary.csv` significance table keyed to explicit case-configuration terms, a `case_configuration_summary.csv` table for scenario x role x decision summaries, a `hypothesis_figure_catalog.csv` index of hypothesis-target figures, and an `all_significant_figure_catalog.csv` index covering every predictor below `p < .10` in the H-model families.
+- **Tables**: `outputs/tables/` generates Letter-width wrapped `.tex` source tables, standard `.csv` aggregations, a concise `hypothesis_summary.csv` significance table keyed to hypothesis-relevant relational terms, a `hypothesis_figure_catalog.csv` index of hypothesis-target figures, and an `all_significant_figure_catalog.csv` index covering every predictor below `p < .10` in the H-model families.
 - **Figures**: `outputs/figures/` exports accessible 300dpi `.png` histograms, summary maps, hypothesis-target figures, and broader significant-predictor figures for controls and interactions such as `age` when they reach at least `p < .10` in the Tobit or clustered non-parametric model.
 - **Models**: `outputs/models/` writes clustered `survreg` Tobit coefficients, cluster-aware non-parametric robustness coefficients, fit summaries, and binary `.rds` fitted engines. For converged non-parametric fits, participant-level cluster-bootstrap inference is generated automatically in the default pipeline.
 - **Reports**: `outputs/report/` now includes both the main technical report and a simpler companion file, `tobit_plain_language_guide.md` (plus `.docx` when Pandoc is available).

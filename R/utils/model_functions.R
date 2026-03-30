@@ -4,6 +4,7 @@
 # Dependencies: survival, ctqr
 
 source("R/utils/case_configuration_functions.R")
+source("R/utils/table_functions.R")
 
 canonicalize_term_name <- function(term) {
   if (!grepl(":", term, fixed = TRUE)) {
@@ -55,6 +56,10 @@ label_case_configuration_term <- function(term) {
     return("Case-configuration context")
   }
 
+  if (grepl("^acfg_", term)) {
+    return(label_analytic_case_configuration_term(term))
+  }
+
   term
 }
 
@@ -71,8 +76,25 @@ label_term <- function(term) {
     "perp_outgroup" = "Outgroup perpetrator (ref = ingroup)",
     "perp_control" = "Control label hidden (ref = ingroup)",
     "victim_outgroup" = "Victim outgroup (ref = ingroup)",
+    "judged_outgroup" = "Judged negotiator outgroup (ref = ingroup)",
+    "judged_control" = "Judged negotiator control label hidden (ref = ingroup)",
+    "counterpart_outgroup" = "Counterpart negotiator outgroup (ref = ingroup)",
+    "counterpart_control" = "Counterpart negotiator control label hidden (ref = ingroup)",
+    "observer_victim_outgroup" = "Observer-side victim outgroup (ref = ingroup victim)",
     "iri_total:perp_outgroup" = "Empathy x outgroup perpetrator",
     "iri_total:perp_control" = "Empathy x control label hidden",
+    "decision_accept:judged_outgroup" = "Accepted harmful deal x judged negotiator outgroup",
+    "decision_accept:judged_control" = "Accepted harmful deal x judged negotiator control label hidden",
+    "iri_total:judged_outgroup" = "Empathy x judged negotiator outgroup",
+    "iri_total:judged_control" = "Empathy x judged negotiator control label hidden",
+    "iri_fs:judged_outgroup" = "Fantasy x judged negotiator outgroup",
+    "iri_fs:judged_control" = "Fantasy x judged negotiator control label hidden",
+    "iri_ec:judged_outgroup" = "Empathic concern x judged negotiator outgroup",
+    "iri_ec:judged_control" = "Empathic concern x judged negotiator control label hidden",
+    "iri_pt:judged_outgroup" = "Perspective taking x judged negotiator outgroup",
+    "iri_pt:judged_control" = "Perspective taking x judged negotiator control label hidden",
+    "iri_pd:judged_outgroup" = "Personal distress x judged negotiator outgroup",
+    "iri_pd:judged_control" = "Personal distress x judged negotiator control label hidden",
     "iri_fs:perp_outgroup" = "Fantasy x outgroup perpetrator",
     "iri_fs:perp_control" = "Fantasy x control label hidden",
     "iri_ec:perp_outgroup" = "Empathic concern x outgroup perpetrator",
@@ -88,6 +110,14 @@ label_term <- function(term) {
     "economic_status" = "Socioeconomic status",
     "same_group_harm" = "Negotiator and victim share faculty",
     "decision_accept" = "Negotiator accepted harmful deal",
+    "counterpart_decision_accept" = "Counterpart negotiator accepted harmful deal",
+    "group_negotiator_judged" = "Judged negotiator alignment",
+    "group_negotiator_counterpart" = "Counterpart negotiator alignment",
+    "group_victim" = "Victim alignment for observer judgments",
+    "analytic_case_configuration" = "Role-dependent judgment configuration",
+    "analytic_case_configuration_decision" = "Role-dependent judgment configuration x decision context",
+    "analytic_case_configuration_context" = "Role-dependent judgment configuration x decision context",
+    "scenario_has_control" = "Scenario includes a control-labeled negotiator",
     "case_configuration" = "Victim x negotiator case configuration",
     "case_configuration_role" = "Case configuration x role",
     "case_configuration_decision" = "Case configuration x decision context",
@@ -296,7 +326,7 @@ summarize_bootstrap_distribution <- function(point_estimates, bootstrap_matrix, 
     "Cluster bootstrap by participant id"
   }
 
-  data.frame(
+  model_df <- data.frame(
     term = names(point_estimates),
     estimate = unname(point_estimates),
     std_error = unname(std_error),
@@ -310,10 +340,11 @@ summarize_bootstrap_distribution <- function(point_estimates, bootstrap_matrix, 
     inference = inference_text,
     stringsAsFactors = FALSE
   )
+  add_p_value_display_columns(model_df)
 }
 
 build_clad_estimate_only_table <- function(point_estimates, inference_text) {
-  data.frame(
+  model_df <- data.frame(
     term = names(point_estimates),
     estimate = unname(point_estimates),
     std_error = NA_real_,
@@ -327,6 +358,7 @@ build_clad_estimate_only_table <- function(point_estimates, inference_text) {
     inference = inference_text,
     stringsAsFactors = FALSE
   )
+  add_p_value_display_columns(model_df)
 }
 
 build_deferred_clad_result <- function(
@@ -482,7 +514,7 @@ extract_tobit_model_table <- function(model_fit) {
   model_df$label <- vapply(model_df$term, label_term, character(1))
   model_df$approach <- "Tobit"
   model_df$inference <- "Cluster-robust standard errors by participant id"
-  model_df
+  add_p_value_display_columns(model_df)
 }
 
 #' Pull coefficients and CI bounds from an interval-censored median regression (CLAD) object.
@@ -529,7 +561,7 @@ extract_clad_model_table <- function(model_fit) {
   model_df$label <- vapply(model_df$term, label_term, character(1))
   model_df$approach <- "CLAD"
   model_df$inference <- "ctqr asymptotic covariance"
-  model_df
+  add_p_value_display_columns(model_df)
 }
 
 extract_model_table <- function(model_fit) {

@@ -1,7 +1,7 @@
 # Guia sencilla para leer el informe TOBIT
 
 Base analizada: **Bucaramanga**
-Generado el: **2026-03-28 19:43:51**
+Generado el: **2026-03-30 14:42:10**
 
 Hola Diego, he creado este documento para orientar de manera un poco mas sencilla la lectura del informe.
 
@@ -30,7 +30,10 @@ Estas variables cambian en una escala numerica. Por ejemplo, una persona puede t
 
 ### 1.2 Predictores categoricos o de comparacion
 
-- Configuracion del caso: `Hum_x_Hum`, `Hum_x_Ing`, `Hum_x_Control`, `Ing_x_Hum`, `Ing_x_Ing`, `Ing_x_Control`.
+- Estatus del negociador juzgado: `judged_outgroup` y `judged_control`.
+- Estatus de la contraparte: `counterpart_outgroup` y `counterpart_control`.
+- Alineacion victima-observador: `observer_victim_outgroup`.
+- Decision del negociador juzgado: `decision_accept`.
 - Rol del participante en la escena: `role_observer`.
 - Facultad del participante: `participant_engineering`.
 - Sexo recodificado: `sex_man`.
@@ -42,7 +45,7 @@ Estas variables no miden una cantidad continua. Lo que hacen es comparar grupos,
 
 Aqui esta uno de los puntos mas importantes del proyecto. Antes uno podia pensar en variables sueltas como ingroup y outgroup. Ahora el proyecto prioriza el caso completo.
 
-Es decir, cada juicio se entiende como una combinacion victima x negociador. Eso hace que la pregunta sea mas interpretable: no es solo si el negociador es outgroup, sino por ejemplo como juzgan un caso `Hum_x_Ing` o un caso `Ing_x_Control`.
+Pero en H2 y H3 el pipeline ahora usa una descomposicion mas directa: estatus del negociador juzgado, decision de aceptar o rechazar, interaccion entre ambas, y controles relacionales para la contraparte y, cuando aplica, para la victima vista por el observador.
 
 ## 2. Data card corto
 
@@ -50,7 +53,7 @@ Es decir, cada juicio se entiende como una combinacion victima x negociador. Eso
 - Filas de participantes disponibles ahora: **209**.
 - Filas en formato largo de juicios disponibles ahora: **3,980**.
 - Filas de decisiones aceptadas usadas en la mayoria de modelos: **1,939**.
-- Filas del subconjunto de traicion usadas en H2a: **1,262**.
+- Filas del subconjunto de traicion usadas en H2a: **1,678**.
 - La base original empieza con una fila por participante.
 - Luego el pipeline reorganiza la informacion para que cada juicio sobre cada negociador quede como una fila propia.
 
@@ -92,119 +95,121 @@ judgement = juicio moral numerico del negociador en esa etapa y en ese slot
 condemnation = -judgement
 ```
 
-### 3.4 Variable relacional central: case configuration
+### 3.4 Variables relacionales centrales
 
 ```text
-case_configuration = grupo de la victima + '_x_' + grupo del negociador
-case_configuration_role = case_configuration + '__' + rol
-case_configuration_decision = case_configuration + '__' + decision
-case_configuration_context = case_configuration + '__' + rol + '__' + decision
+group_negotiator1 = estatus In/Out/Cont del negociador 1 respecto al referente del rol
+group_negotiator2 = estatus In/Out/Cont del negociador 2 respecto al referente del rol
+judged_outgroup = 1 si el negociador juzgado es outgroup, 0 si no
+judged_control = 1 si el negociador juzgado esta en control, 0 si no
+counterpart_outgroup = 1 si la contraparte es outgroup, 0 si no
+counterpart_control = 1 si la contraparte esta en control, 0 si no
+observer_victim_outgroup = 1 si en filas de observador la victima es outgroup, 0 si no
 ```
 
-Esto permite nombrar cada escena de una forma mas clara.
-
-- `Hum_x_Ing` = victima de Humanidades y negociador evaluado de Ingenieria.
-- `Ing_x_Hum` = victima de Ingenieria y negociador evaluado de Humanidades.
-- `Hum_x_Hum` = victima de Humanidades y negociador evaluado de Humanidades.
-
-La categoria de referencia principal en las regresiones es `Hum_x_Hum`.
+Esto permite nombrar cada escena de una forma mas clara y, en H2 y H3, modelar de forma directa el estatus del negociador juzgado y su cruce con la decision.
 
 ### 3.5 Subconjuntos analiticos
 
 ```text
 judgments_analysis = filas en formato largo con analysis_include = TRUE
 judgments_accept = filas de judgments_analysis donde decision_accept = 1
-judgments_betrayal = filas de judgments_accept donde el negociador no es control
+judgments_betrayal = filas de judgments_analysis donde ningun negociador del escenario esta en control
 ```
 
 ## 4. Hipotesis explicadas de manera sencilla
 
-### H1: empatia y juicio moral controlando por la configuracion del caso
+### H1: empatia y juicio moral controlando por relaciones del caso
 
-Pregunta simple: una vez tenemos en cuenta el tipo exacto de escenario, la empatia del participante se relaciona con el juicio moral?
-
-- Muestra usada: solo decisiones aceptadas.
-
-Ecuacion sencilla:
-
-```text
-judgement = empatia + configuracion del caso + controles
-```
-
-Version mas pegada al codigo:
-
-```text
-Modelo A: iri_total + terminos de caso + role_observer + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
-Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + terminos de caso + role_observer + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
-```
-
-En H1, los terminos de caso que entran son `case_hum_x_ing`, `case_hum_x_control`, `case_ing_x_hum`, `case_ing_x_ing`, `case_ing_x_control`, siempre comparados contra `Hum_x_Hum`.
-
-### H2a: comparaciones relacionales dentro de casos de traicion
-
-Pregunta simple: cuando miramos solo escenas de traicion, cambian los juicios segun la combinacion victima x negociador?
-
-- Muestra usada: decisiones aceptadas, excluyendo los casos control.
-
-Ecuacion sencilla:
-
-```text
-judgement = configuracion relacional de traicion + empatia + controles
-```
-
-Version mas pegada al codigo:
-
-```text
-Modelo A: terminos de traicion + iri_total + controles
-Modelo B: terminos de traicion + iri_fs + iri_ec + iri_pt + iri_pd + controles
-```
-
-En H2a, los terminos relacionales son `case_hum_x_ing`, `case_ing_x_hum`, `case_ing_x_ing`, siempre comparados contra `Hum_x_Hum`.
-
-### H2b: contrastes entre configuraciones completas del caso
-
-Pregunta simple: es mas util modelar el caso completo victima x negociador que usar solo indicadores sueltos como ingroup y outgroup?
+Pregunta simple: una vez tenemos en cuenta el estatus relacional del negociador juzgado, de la contraparte y de la victima cuando aplica, la empatia del participante se relaciona con el juicio moral?
 
 - Muestra usada: solo decisiones aceptadas.
 
 Ecuacion sencilla:
 
 ```text
-judgement = configuracion del caso + empatia + controles
+judgement = empatia + controles relacionales + controles demograficos
 ```
 
 Version mas pegada al codigo:
 
 ```text
-Modelo A: terminos de caso + iri_total + controles
-Modelo B: terminos de caso + iri_fs + iri_ec + iri_pt + iri_pd + controles
+Modelo A: iri_total + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + observer_victim_outgroup + role_observer + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
+Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + observer_victim_outgroup + role_observer + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
 ```
 
-### H3: interaccion entre empatia y configuracion del caso
+En H1, los controles relacionales que entran son `judged_outgroup`, `judged_control`, `counterpart_outgroup`, `counterpart_control`, `observer_victim_outgroup`.
 
-Pregunta simple: la relacion entre empatia y juicio cambia dependiendo del tipo de caso relacional?
+### H2a: estatus relacional del negociador x decision sin escenarios control
 
-- Muestra usada: solo decisiones aceptadas.
+Pregunta simple: cuando quitamos los escenarios con negociadores control, cambia el juicio segun si el negociador juzgado es ingroup u outgroup y segun si acepto o rechazo el trato danino?
+
+- Muestra usada: muestra completa de juicios, excluyendo escenarios con negociadores control.
 
 Ecuacion sencilla:
 
 ```text
-judgement = empatia + configuracion del caso + empatia x configuracion del caso + controles
+judgement = estatus del negociador juzgado + decision + estatus x decision + empatia + controles relacionales
 ```
 
 Version mas pegada al codigo:
 
 ```text
-Modelo A: iri_total + terminos de caso + iri_total:terminos de caso + controles
-Modelo B: subescalas de empatia + terminos de caso + interacciones entre subescalas y terminos de caso + controles
+Modelo A: judged_outgroup + decision_accept + judged_outgroup:decision_accept + iri_total + counterpart_outgroup + observer_victim_outgroup + role_observer + controles
+Modelo B: judged_outgroup + decision_accept + judged_outgroup:decision_accept + iri_fs + iri_ec + iri_pt + iri_pd + counterpart_outgroup + observer_victim_outgroup + role_observer + controles
 ```
+
+En H2a, `ingroup` es la referencia para el negociador juzgado y el termino central es la interaccion entre estatus relacional y decision.
+
+### H2b: estatus relacional del negociador x decision con control incluido
+
+Pregunta simple: cambia el juicio segun si el negociador juzgado es ingroup, outgroup o control y segun si acepto o rechazo el trato danino?
+
+- Muestra usada: muestra completa de juicios.
+
+Ecuacion sencilla:
+
+```text
+judgement = estatus del negociador juzgado + decision + estatus x decision + empatia + controles relacionales
+```
+
+Version mas pegada al codigo:
+
+```text
+Modelo A: judged_outgroup + judged_control + decision_accept + interacciones con decision + iri_total + controles relacionales
+Modelo B: judged_outgroup + judged_control + decision_accept + interacciones con decision + iri_fs + iri_ec + iri_pt + iri_pd + controles relacionales
+```
+
+En H2b, `ingroup` es la referencia para el negociador juzgado y la hipotesis central esta en los terminos de estatus relacional y su interaccion con `decision_accept`.
+
+### H3: interaccion entre empatia y estatus del negociador juzgado
+
+Pregunta simple: la relacion entre empatia y juicio cambia dependiendo del tipo de estatus relacional del negociador juzgado?
+
+- Muestra usada: muestra completa de juicios.
+
+Ecuacion sencilla:
+
+```text
+judgement = empatia + estatus del negociador + decision + estatus x decision + empatia x estatus + controles relacionales
+```
+
+Version mas pegada al codigo:
+
+```text
+Modelo A: iri_total + judged_outgroup + judged_control + decision_accept + interacciones con decision + iri_total:judged_outgroup + iri_total:judged_control + controles relacionales
+Modelo B: subescalas de empatia + judged_outgroup + judged_control + decision_accept + interacciones con decision + interacciones entre subescalas y estatus del negociador + controles relacionales
+```
+
+En H3, `ingroup` es la referencia para el negociador juzgado y las interacciones principales comparan como cambia la pendiente de empatia en outgroup y control.
+
 
 ## 5. Como leer las codificaciones de la regresion
 
 Esta parte sirve para que los coeficientes se lean con mas tranquilidad.
 
-- `Hum_x_Hum` es la categoria de referencia para los contrastes de caso.
-- Los dummies explicitos de caso que entran en las regresiones son `case_hum_x_ing`, `case_hum_x_control`, `case_ing_x_hum`, `case_ing_x_ing`, `case_ing_x_control`.
+- En H1, los controles centrales ya no dependen de etiquetas `Hum_x_...`; usan el estatus relacional del negociador juzgado, de la contraparte y de la victima cuando aplica.
+- En H2 y H3, los contrastes centrales usan el estatus del negociador juzgado (`judged_outgroup`, `judged_control`), la decision (`decision_accept`) y sus interacciones.
 - `role_observer = 1` significa observador y `0` significa victima.
 - `participant_engineering = 1` significa que el participante es de Ingenieria y `0` que es de Humanidades.
 - `sex_man = 1` significa hombre y `0` mujer.
@@ -214,9 +219,11 @@ Esta parte sirve para que los coeficientes se lean con mas tranquilidad.
 
 ### Como leer un coeficiente de caso
 
-Si el coeficiente de `case_hum_x_ing` es negativo, eso quiere decir que el caso `Hum_x_Ing` recibe un juicio mas negativo que el caso de referencia `Hum_x_Hum`, manteniendo lo demas constante.
+Si el coeficiente de `judged_outgroup` es negativo, eso quiere decir que el negociador juzgado recibe un juicio mas negativo cuando es outgroup que cuando es ingroup, manteniendo lo demas constante.
 
-Si una interaccion como `iri_total:case_hum_x_ing` es negativa, eso quiere decir que la pendiente de empatia es mas negativa en `Hum_x_Ing` que en `Hum_x_Hum`.
+Si una interaccion como `decision_accept:judged_outgroup` es negativa, eso quiere decir que la diferencia entre aceptar y rechazar se vuelve mas severa cuando el negociador juzgado es outgroup.
+
+Si una interaccion como `iri_total:judged_outgroup` es negativa, eso quiere decir que la pendiente de empatia es mas negativa cuando el negociador juzgado es outgroup que cuando es ingroup.
 
 ## 6. Por que el proyecto usa dos familias de modelos
 
@@ -224,7 +231,7 @@ Si una interaccion como `iri_total:case_hum_x_ing` es negativa, eso quiere decir
 - **Modelo de robustez no parametrico**: es una segunda revision usando los mismos predictores, pero con menos dependencia de supuestos fuertes sobre la distribucion.
 - En ambos casos, la parte teorica del modelo es la misma. Lo que cambia es la forma estadistica de estimarlo.
 
-El numero por defecto de bootstrap en este momento es **10** y se controla desde `R/00_config.R`.
+El numero por defecto de bootstrap en este momento es **5** y se controla desde `R/00_config.R`.
 
 ## 7. Archivos base usados para construir esta guia
 

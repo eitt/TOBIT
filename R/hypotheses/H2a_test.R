@@ -1,47 +1,34 @@
 # R/hypotheses/H2a_test.R
-# Hypothesis 2a: Relational betrayal comparisons under Option 2
-# Statement: Judgments of same-faculty harm should differ from cross-faculty
-# harm when we compare explicit victim x negotiator case configurations rather
-# than collapsing scenarios into a single same_group_harm indicator.
+# Hypothesis 2a: Judged-negotiator status x decision contrasts without control
+# Statement: Moral judgments should differ as a function of the judged
+# negotiator's ingroup versus outgroup status, and that relational contrast
+# should vary across Accept versus Reject decisions after controlling for the
+# counterpart negotiator and observer-side victim alignment.
 # Dependent Variable: judgement (-9 to 9)
-# Independent Variable: explicit betrayal-sample case configurations
-# (Hum_x_Hum reference, contrasted against Hum_x_Ing, Ing_x_Hum, and Ing_x_Ing)
-# Controls: iri_total or empathy subscales, role_observer,
-# participant_engineering, sex_man, age, economic_status, slot
-# Sample: Accepted decisions (decision_accept = 1) excluding control-label
-# scenarios
+# Independent Variable: judged-negotiator outgroup status, decision_accept,
+# and judged-status x decision_accept in the non-control sample
+# Controls: iri_total or empathy subscales, counterpart_outgroup,
+# observer_victim_outgroup, role_observer, participant_engineering, sex_man,
+# age, economic_status, slot
+# Sample: Full judgment sample excluding scenarios with any control-labeled
+# negotiator
 # Specification: Interval-censored clustered Tobit model plus
 # cluster-bootstrap non-parametric robustness check
 
 source("R/00_config.R")
-source("R/utils/case_configuration_functions.R")
 source("R/utils/model_functions.R")
-source("R/utils/table_functions.R")
+source("R/utils/hypothesis_metadata.R")
 paths <- get_project_paths()
+spec <- get_hypothesis_spec("H2a", paths = paths)
 
-message("Testing H2a: Relational betrayal case comparisons under Option 2 (Models A and B)")
+message("Testing H2a: Judged-status x decision contrasts without control scenarios (Models A and B)")
 
-judgments_betrayal <- read.csv(paths$processed_betrayal, stringsAsFactors = FALSE)
-
-betrayal_case_terms <- paste(
-  get_case_configuration_term_names(reference = "Hum_x_Hum", include_control = FALSE),
-  collapse = " + "
-)
+judgments_betrayal <- read.csv(spec$data_path, stringsAsFactors = FALSE)
 
 # Model A
-rhs_a <- paste(
-  betrayal_case_terms, "+ iri_total +",
-  "role_observer + participant_engineering + sex_man + age + economic_status +",
-  "factor(negotiator_slot)"
-)
-run_estimation_suite(judgments_betrayal, rhs_a, "H2a_A", "H2a_A_Total", paths$models_dir)
+run_estimation_suite(judgments_betrayal, spec$formula_rhs$A, "H2a_A", "H2a_A_Total", paths$models_dir)
 
 # Model B
-rhs_b <- paste(
-  betrayal_case_terms, "+ iri_fs + iri_ec + iri_pt + iri_pd +",
-  "role_observer + participant_engineering + sex_man + age + economic_status +",
-  "factor(negotiator_slot)"
-)
-run_estimation_suite(judgments_betrayal, rhs_b, "H2a_B", "H2a_B_Constructs", paths$models_dir)
+run_estimation_suite(judgments_betrayal, spec$formula_rhs$B, "H2a_B", "H2a_B_Constructs", paths$models_dir)
 
 message("H2a test completed. Outputs saved to models/.")

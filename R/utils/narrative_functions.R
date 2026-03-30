@@ -22,7 +22,7 @@ get_dataset_narration <- function(dataset_mode = "BOTH") {
     "with standardized negotiation scenarios where a negotiator's decision resulted in varying degrees of payoff for ",
     "themselves, their own group, and a victim group. Under ",
     get_case_configuration_option_label(),
-    ", each judgment is treated as relational and indexed by an explicit victim x negotiator scenario configuration rather than by isolated ingroup/outgroup attributes."
+    ", each judgment is treated as relational and linked both to a descriptive victim x negotiator scenario shorthand and to hypothesis-specific predictors for judged negotiator status, decision outcome, and additional relational controls."
   )
 }
 
@@ -30,23 +30,23 @@ get_dataset_narration <- function(dataset_mode = "BOTH") {
 get_math_foundations <- function() {
   c(
     "The analysis employs two complementary estimators for bounded moral judgments. The primary specification is a Two-Limit Tobit model, which is theoretically appropriate for dependent variables that are ",
-    "strictly bounded within a known interval. In this context, moral judgments ($y_{ij}$) are observed on a scale from -9 to 9. ",
-    "The Tobit model assumes the existence of a latent, unobserved preference index ($y^*_{ij}$) that follows a linear relationship. ",
+    "strictly bounded within a known interval. In this context, negotiator-specific moral judgments ($y_{isjr}$) are observed on a scale from -9 to 9. ",
+    "The Tobit model assumes the existence of a latent, unobserved preference index ($y^*_{isjr}$) that follows a linear relationship. ",
     get_case_configuration_option_text(latex = TRUE),
-    " The core design vector therefore includes empathy, explicit case-configuration contrasts, and contextual conditioning terms such as role and decision context:",
+    " H1 retains accepted-sample victim x judged-negotiator case contrasts, while H2 and H3 use judged-negotiator status, decision outcome, their interaction, and additional relational controls:",
     "",
-    "$$y^*_{ij} = \\beta_0 + \\beta_1 \\text{IRI}_i + \\boldsymbol{\\gamma}'\\text{CaseConfig}_{ij} + \\boldsymbol{\\delta}'\\text{Context}_{ij} + \\epsilon_{ij}, \\quad \\epsilon_{ij} \\sim N(0, \\sigma^2)$$",
+    "$$y^*_{isjr} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\beta}_2' G_{isjr} + \\beta_3 A_{is} + \\boldsymbol{\\beta}_4' (G_{isjr} \\times A_{is}) + \\boldsymbol{\\beta}_5' C_{isjr} + \\epsilon_{isjr}, \\quad \\epsilon_{isjr} \\sim N(0, \\sigma^2)$$",
     "",
-    "The actual observed judgment $y_{ij}$ relates to this latent variable via the censoring transformation:",
+    "The actual observed judgment $y_{isjr}$ relates to this latent variable via the censoring transformation:",
     "",
-    "$$y_{ij} = \\max(-9, \\min(9, y^*_{ij}))$$",
+    "$$y_{isjr} = \\max(-9, \\min(9, y^*_{isjr}))$$",
     "",
     "This approach prevents the 'ceiling' and 'floor' effects from biasing the linear coefficients, as would occur in standard OLS regression.",
     "",
     "Because the Tobit model relies on a Gaussian latent-error assumption, the pipeline also fits a distribution-robust censored median specification implemented as interval-censored quantile regression ($p = 0.5$). ",
     "This complementary estimator targets the conditional median of the latent bounded outcome and is less sensitive to heavy tails and non-normal disturbances:",
     "",
-    "$$Q_{0.5}(y^*_{ij} \\mid \\mathbf{x}_{ij}) = \\mathbf{x}_{ij}'\\beta_{0.5}$$",
+    "$$Q_{0.5}(y^*_{isjr} \\mid \\mathbf{x}_{isjr}) = \\mathbf{x}_{isjr}'\\beta_{0.5}$$",
     "",
     "The non-parametric branch preserves the censoring structure while relaxing the parametric normality assumption. The Tobit and robustness results should therefore be interpreted jointly: Tobit provides the clustered parametric benchmark with participant-clustered standard errors by id, while the non-parametric branch first establishes a converged full-sample censored median fit and then, in the default pipeline, adds participant-level cluster bootstrap inference that resamples ids with replacement and retains all repeated observations from each sampled participant. In both branches, id is used only to account for within-participant dependence and is not a substantive explanatory variable."
   )
@@ -78,34 +78,31 @@ get_error_analysis_narration <- function() {
 
 #' Get Symbols and Variables Dictionary (LaTeX format)
 get_symbols_dictionary <- function() {
-  example_labels <- paste(get_case_configuration_example_labels(latex = TRUE), collapse = ", ")
   data.frame(
     Symbol = c(
-      "$y_{ij}$",
-      "$y^*_{ij}$",
+      "$y_{isjr}$",
+      "$y^*_{isjr}$",
       "$\\beta_1$",
       "$\\beta_{0.5}$",
-      "$Q_{0.5}(y^*_{ij} \\mid \\mathbf{x}_{ij})$",
+      "$Q_{0.5}(y^*_{isjr} \\mid \\mathbf{x}_{isjr})$",
       "$\\text{IRI}_i$",
-      "$\\text{CaseConfig}_{ij}$",
-      "$\\text{Role}_{ij}$",
-      "$\\text{Decision}_{ij}$",
+      "$\\text{CaseConfig}_{isjr}$",
+      "$G_{isjr}$",
+      "$A_{is}$",
+      "$C_{isjr}$",
       "$\\text{ICC}$"
     ),
     Definition = c(
-      "Observed moral judgment of scenario $j$ by participant $i$.",
+      "Observed moral judgment for participant $i$, scenario $s$, judged negotiator $j$, and role $r$.",
       "Latent moral preference score (unbounded).",
       "Regression coefficient representing the marginal effect of the predictor.",
       "Median-regression coefficient from the non-parametric censored robustness model.",
       "Conditional median of the latent bounded outcome given the predictors.",
       "Empathy score (Average composite of the Interpersonal Reactivity Index).",
-      paste(
-        "Explicit victim x negotiator case-configuration factor capturing relational scenarios such as",
-        example_labels,
-        "."
-      ),
-      "Scenario-role conditioning indicator distinguishing Observer from Victim judgments.",
-      "Decision-context conditioning indicator distinguishing Accept from Reject judgments.",
+      "Judgment-level relational shorthand retained only for backward compatibility with older descriptive artifacts.",
+      "Judged negotiator relational status (ingroup, outgroup, or control) defined relative to the role-relevant reference actor.",
+      "Decision indicator distinguishing Accept from Reject.",
+      "Additional relational controls, including counterpart negotiator status, observer-side victim alignment, role, and demographic controls.",
       "Intraclass Correlation: ratio of between-cluster variance to total variance."
     ),
     stringsAsFactors = FALSE

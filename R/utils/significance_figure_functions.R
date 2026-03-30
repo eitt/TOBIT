@@ -41,12 +41,29 @@ get_binary_value_labels <- function(var_name) {
     ))
   }
 
+  if (grepl("^acfg_", var_name)) {
+    dummy_map <- get_analytic_case_configuration_dummy_names(include_control = TRUE)
+    matched_level <- names(dummy_map)[match(var_name, unname(dummy_map))]
+    if (length(matched_level) == 1L && !is.na(matched_level)) {
+      return(c(
+        "0" = "All other judgment configurations",
+        "1" = label_analytic_case_configuration(matched_level)
+      ))
+    }
+  }
+
   switch(
     var_name,
     perp_outgroup = c("0" = "Ingroup perpetrator", "1" = "Outgroup perpetrator"),
     perp_control = c("0" = "Named perpetrator", "1" = "Control label hidden"),
     same_group_harm = c("0" = "Cross-faculty harm", "1" = "Same-faculty harm"),
     victim_outgroup = c("0" = "Victim ingroup", "1" = "Victim outgroup"),
+    decision_accept = c("0" = "Reject harmful deal", "1" = "Accept harmful deal"),
+    judged_outgroup = c("0" = "Judged negotiator ingroup", "1" = "Judged negotiator outgroup"),
+    judged_control = c("0" = "Judged negotiator ingroup", "1" = "Judged negotiator control label hidden"),
+    counterpart_outgroup = c("0" = "Counterpart negotiator ingroup", "1" = "Counterpart negotiator outgroup"),
+    counterpart_control = c("0" = "Counterpart negotiator ingroup", "1" = "Counterpart negotiator control label hidden"),
+    observer_victim_outgroup = c("0" = "Victim ingroup or victim-role row", "1" = "Observer-side victim outgroup"),
     role_observer = c("0" = "Victim role", "1" = "Observer role"),
     participant_engineering = c("0" = "Humanities participant", "1" = "Engineering participant"),
     sex_man = c("0" = "Woman", "1" = "Man"),
@@ -65,8 +82,11 @@ get_plot_axis_label <- function(var_name) {
     role_observer = "Participant role",
     participant_engineering = "Participant group",
     sex_man = "Participant sex",
-    decision_accept = "Decision context",
+    decision_accept = "Decision outcome",
     negotiator_slot = "Negotiator slot",
+    analytic_case_configuration = "Role-dependent judgment configuration",
+    analytic_case_configuration_decision = "Judgment configuration x decision context",
+    analytic_case_configuration_context = "Judgment configuration x decision context",
     case_configuration = "Victim x negotiator case configuration",
     case_configuration_role = "Case configuration x role",
     case_configuration_decision = "Case configuration x decision context",
@@ -104,6 +124,23 @@ format_discrete_value_label <- function(var_name, value) {
 
   if (identical(var_name, "case_configuration")) {
     return(label_case_configuration(value_chr))
+  }
+  if (identical(var_name, "analytic_case_configuration")) {
+    return(label_analytic_case_configuration(value_chr))
+  }
+  if (identical(var_name, "analytic_case_configuration_decision")) {
+    parts <- strsplit(value_chr, "__Accept|__Reject", perl = TRUE)[[1]]
+    decision_label <- if (grepl("__Accept$", value_chr)) "Accept" else if (grepl("__Reject$", value_chr)) "Reject" else NA_character_
+    if (length(parts) == 1L && !is.na(decision_label)) {
+      return(sprintf("%s (%s)", label_analytic_case_configuration(parts[1]), decision_label))
+    }
+  }
+  if (identical(var_name, "analytic_case_configuration_context")) {
+    parts <- strsplit(value_chr, "__Accept|__Reject", perl = TRUE)[[1]]
+    decision_label <- if (grepl("__Accept$", value_chr)) "Accept" else if (grepl("__Reject$", value_chr)) "Reject" else NA_character_
+    if (length(parts) == 1L && !is.na(decision_label)) {
+      return(sprintf("%s (%s)", label_analytic_case_configuration(parts[1]), decision_label))
+    }
   }
   if (identical(var_name, "case_configuration_role")) {
     parts <- strsplit(value_chr, "__", fixed = TRUE)[[1]]
@@ -367,25 +404,28 @@ compute_prediction_summary <- function(model_fit, newdata) {
 
   if (inherits(model_fit, "clustered_ctqr_bootstrap")) {
     bootstrap_matrix <- model_fit[["bootstrap_coefficients"]]
-    alpha <- 1 - if (!is.null(model_fit[["bootstrap_conf_level"]])) {
+    conf_level <- if (!is.null(model_fit[["bootstrap_conf_level"]])) {
       as.numeric(model_fit[["bootstrap_conf_level"]][1])
     } else {
       0.95
     }
+    alpha <- 1 - conf_level
 
-    if (!is.null(bootstrap_matrix) && nrow(bootstrap_matrix) > 0L) {
+    if (!is.null(bootstrap_matrix) && nrow(bootstrap_matrix) > 1L) {
       bootstrap_matrix <- bootstrap_matrix[, names(coefficients), drop = FALSE]
       bootstrap_predictions <- design_matrix %*% t(bootstrap_matrix)
-      conf_low <- apply(
+      prediction_se <- apply(
         bootstrap_predictions,
         1,
-        function(x) stats::quantile(x, probs = alpha / 2, na.rm = TRUE, names = FALSE)
+        function(x) {
+          finite_x <- x[is.finite(x)]
+          if (length(finite_x) < 2L) return(NA_real_)
+          stats::sd(finite_x)
+        }
       )
-      conf_high <- apply(
-        bootstrap_predictions,
-        1,
-        function(x) stats::quantile(x, probs = 1 - alpha / 2, na.rm = TRUE, names = FALSE)
-      )
+      z_multiplier <- stats::qnorm(1 - alpha / 2)
+      conf_low <- predicted - z_multiplier * prediction_se
+      conf_high <- predicted + z_multiplier * prediction_se
       return(data.frame(predicted = predicted, conf_low = conf_low, conf_high = conf_high))
     }
 

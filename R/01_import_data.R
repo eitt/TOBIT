@@ -61,5 +61,30 @@ if (length(missing_vars) > 0L) {
   stop("Missing required columns: ", paste(missing_vars, collapse = ", "))
 }
 
+original_n <- nrow(df)
+configured_sample_fraction <- resolve_dataset_sample_fraction()
+configured_sample_seed <- resolve_dataset_sample_seed()
+df <- sample_pipeline_dataset(
+  df,
+  sample_fraction = configured_sample_fraction,
+  seed = configured_sample_seed
+)
+
+if (nrow(df) < original_n) {
+  message(sprintf(
+    "Applied random participant-level sample: kept %s of %s rows (%.1f%%) using seed %s.",
+    nrow(df),
+    original_n,
+    100 * configured_sample_fraction,
+    configured_sample_seed
+  ))
+} else {
+  message(sprintf(
+    "Dataset sampling kept all %s rows (configured fraction %.1f%%).",
+    original_n,
+    100 * configured_sample_fraction
+  ))
+}
+
 message("Validation passed. Saving step to 01_imported.csv.")
 write.csv(df, file.path(paths$root, "data", "processed", "01_imported.csv"), row.names = FALSE, na = "")

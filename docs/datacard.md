@@ -6,7 +6,7 @@ The `datacard.md` documentation details how original survey measures flow dynami
 
 - **Filtering:** Erroneous tracking flags (`ac1` & `ac2`) are parsed via `R/02_clean_data.R`.
 - **Psychometric Missing Data & Scoring:** Handled within `R/03_transform_data.R`. Classical IRI responses are summarized by 80% completeness thresholds (`row_mean_with_floor`) providing aggregate scale derivations. `iri_total` and the IRI subscales are retained on their original response scale; no predictor z-score normalization is applied.
-- **Data Matrix Reshaping:** Raw matrices maintain wide row configurations per participant. The `R/04_generate_variables.R` function shifts inputs logically grouping 10 repeated scenarios into vertical clusters (`judgements`). Under Option 2, it now builds an explicit relational case-configuration variable from the paired-group structure of each judgment, recording the victim group first and the judged negotiator second. This yields interpretable scenarios such as `Hum_x_Hum`, `Hum_x_Ing`, `Hum_x_Control`, `Ing_x_Hum`, `Ing_x_Ing`, and `Ing_x_Control`, plus role- and decision-conditioned variants used in reports and the local playground.
+- **Data Matrix Reshaping:** Raw matrices maintain wide row configurations per participant. The `R/04_generate_variables.R` function shifts inputs logically grouping 10 repeated scenarios into vertical clusters (`judgements`). Under Option 2, the long data now exposes explicit negotiator-level relational variables for the judged negotiator, the counterpart negotiator, and, for observer rows, the victim alignment relative to the participant; older case-label fields remain only for backward compatibility.
 
 ## **1. Dataset Overview**
 
@@ -262,7 +262,45 @@ This means the dataset is currently in **wide format**, with repeated scenario-l
 
 ---
 
-## **8.1 Option 2 Relational Variables in the Long Data**
+## **8.1 Construction of the Dependent Variable in the Long Data**
+
+The models do **not** use one single outcome per scenario. They use a negotiator-level long-format outcome built in `R/04_generate_variables.R`.
+
+For each participant and each stage `sX`, the source file contains two numerical judgment columns:
+
+- `judgement_n1_sX` = moral judgment of Negotiator 1
+- `judgement_n2_sX` = moral judgment of Negotiator 2
+
+During the wide-to-long reshaping step:
+
+- one long row is created for `negotiator_slot = 1`
+- one long row is created for `negotiator_slot = 2`
+- the corresponding source value is copied into the long-format variable `judgement`
+
+Therefore, each participant-stage pair contributes **two dependent-variable observations**, one per judged negotiator.
+
+In compact form:
+
+```text
+judgement = judgement_n1_sX when negotiator_slot = 1
+judgement = judgement_n2_sX when negotiator_slot = 2
+```
+
+The analytical dependent variable used in the Tobit and CLAD models is:
+
+- `judgement`
+  Negotiator-specific moral judgment on the observed bounded scale from `-9` to `9`
+
+The pipeline also creates:
+
+- `condemnation = -judgement`
+  A sign-flipped convenience variable where larger values indicate stronger condemnation, but the current hypothesis scripts use `judgement` itself as the primary dependent variable.
+
+This means the dependent variable is defined at the **judgment-by-negotiator level**, not only at the participant-stage or vignette level.
+
+---
+
+## **8.2 Option 2 Relational Variables in the Long Data**
 
 After `R/04_generate_variables.R` reshapes the data to the negotiator-level long format, the analytical datasets add:
 
@@ -274,8 +312,50 @@ After `R/04_generate_variables.R` reshapes the data to the negotiator-level long
   The explicit case configuration further conditioned by `Accept` or `Reject`.
 - `case_configuration_context`
   The full scenario context combining victim x negotiator pairing, role, and decision context.
+- `analytic_case_configuration`
+  Role-dependent judgment configuration. Victim rows encode judged negotiator plus counterpart negotiator; observer rows additionally encode victim alignment relative to the participant.
+- `analytic_case_configuration_decision`
+  The role-dependent analytic configuration further conditioned by `Accept` or `Reject`.
+- `analytic_case_configuration_context`
+  Alias for the role-dependent analytic configuration conditioned by the judged negotiator's decision context.
+- `group_negotiator_judged`
+  Judged negotiator relation to the role-relevant reference actor (`In`, `Out`, `Cont`).
+- `group_negotiator_counterpart`
+  Counterpart negotiator relation to the role-relevant reference actor (`In`, `Out`, `Cont`).
+- `group_victim`
+  Observer-side victim relation to the participant (`In` or `Out`; not used for victim-role rows).
+- `judged_outgroup`
+  Dummy equal to `1` when the judged negotiator is outgroup relative to the role-relevant reference actor.
+- `judged_control`
+  Dummy equal to `1` when the judged negotiator is in the control / unlabeled condition.
+- `counterpart_outgroup`
+  Dummy equal to `1` when the counterpart negotiator is outgroup.
+- `counterpart_control`
+  Dummy equal to `1` when the counterpart negotiator is in the control / unlabeled condition.
+- `observer_victim_outgroup`
+  Dummy equal to `1` only for observer-role rows where the victim is outgroup relative to the participant.
 
-These variables are the preferred relational representation for modeling and reporting. Legacy isolated indicators such as `perp_outgroup`, `victim_outgroup`, and `same_group_harm` remain available for backward comparison only.
+For H1 and descriptive summaries, the compact `case_configuration` shorthand remains useful. For H2 and H3, the executable models now use the decomposed judged-negotiator relational predictors, `decision_accept`, the judged-status x decision interaction, and the additional relational controls above. Legacy isolated indicators such as `perp_outgroup`, `victim_outgroup`, and `same_group_harm` remain available for backward comparison only.
+
+---
+
+## **8.3 Hypothesis-Specific Analytical Subsets**
+
+The executable hypotheses in `docs/hypotheses.md` map onto the processed long-format datasets as follows:
+
+- **H1 (`R/hypotheses/H1_test.R`)**
+  Uses `data/processed/judgments_accept_only.csv`. The core modeled terms are `iri_total` in Model A or `iri_fs`, `iri_ec`, `iri_pt`, and `iri_pd` in Model B, plus the relational controls `judged_outgroup`, `judged_control`, `counterpart_outgroup`, `counterpart_control`, `observer_victim_outgroup`, and `role_observer`.
+
+- **H2a (`R/hypotheses/H2a_test.R`)**
+  Uses `data/processed/judgments_betrayal_only.csv`. This subset excludes any scenario with a control-labeled negotiator. The core modeled terms are `judged_outgroup`, `decision_accept`, `judged_outgroup:decision_accept`, plus empathy controls and the relational controls `counterpart_outgroup`, `observer_victim_outgroup`, and `role_observer`.
+
+- **H2b (`R/hypotheses/H2b_test.R`)**
+  Uses `data/processed/judgments_analysis.csv`. The core modeled terms are `judged_outgroup`, `judged_control`, `decision_accept`, the judged-status x decision interactions, plus empathy controls and the relational controls `counterpart_outgroup`, `counterpart_control`, `observer_victim_outgroup`, and `role_observer`.
+
+- **H3 (`R/hypotheses/H3_test.R`)**
+  Uses `data/processed/judgments_analysis.csv`. The core modeled terms are empathy x judged-status interactions (`iri_total` in Model A; empathy-subscale terms in Model B), while also retaining judged status, `decision_accept`, judged-status x decision interactions, and the same relational controls as H2b.
+
+This mapping matters because the dynamic report, significance summary tables, and generated figures all read these same processed subsets and term definitions when deciding which coefficients are hypothesis-relevant.
 
 ---
 

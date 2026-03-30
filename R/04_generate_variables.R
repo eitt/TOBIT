@@ -31,14 +31,40 @@ for (row_id in seq_len(nrow(participants))) {
     role_numeric <- ifelse(row$treatment == 1, ifelse(stage <= 5, 2, 1),
                     ifelse(row$treatment == 2, ifelse(stage <= 5, 1, 2), NA_real_))
     role <- ifelse(is.na(role_numeric), NA_character_, ifelse(role_numeric == 2, "victim", "observer"))
+    faculty_negotiator1 <- as.integer(row[[sprintf("faculty_neg_1_s%d", stage)]])
+    faculty_negotiator2 <- as.integer(row[[sprintf("faculty_neg_2_s%d", stage)]])
+    victim_faculty <- as.integer(row[[sprintf("faculty_victim_s%d", stage)]])
+    participant_faculty <- as.integer(row$faculty_player)
+    group_negotiator1 <- build_relative_group(faculty_negotiator1, participant_faculty, allow_control = TRUE)
+    group_negotiator2 <- build_relative_group(faculty_negotiator2, participant_faculty, allow_control = TRUE)
+    group_victim_stage <- if (identical(role, "observer")) {
+      build_relative_group(victim_faculty, participant_faculty, allow_control = FALSE)
+    } else {
+      NA_character_
+    }
     
     for (slot in 1:2) {
       neg_faculty <- as.integer(row[[sprintf("faculty_neg_%d_s%d", slot, stage)]])
-      victim_faculty <- as.integer(row[[sprintf("faculty_victim_s%d", stage)]])
-      participant_faculty <- as.integer(row$faculty_player)
+      counterpart_slot <- ifelse(slot == 1L, 2L, 1L)
+      counterpart_faculty <- as.integer(row[[sprintf("faculty_neg_%d_s%d", counterpart_slot, stage)]])
       judgement <- as.numeric(row[[sprintf("judgement_n%d_s%d", slot, stage)]])
+      counterpart_decision_accept <- as.integer(row[[sprintf("decision_neg%d_s%d", counterpart_slot, stage)]])
       
       negotiator_alignment <- if (is.na(neg_faculty)) NA_character_ else if (neg_faculty == 3L) "control" else if (neg_faculty == participant_faculty) "ingroup" else "outgroup"
+      counterpart_alignment <- if (is.na(counterpart_faculty)) NA_character_ else if (counterpart_faculty == 3L) "control" else if (counterpart_faculty == participant_faculty) "ingroup" else "outgroup"
+      group_negotiator_judged <- if (slot == 1L) group_negotiator1 else group_negotiator2
+      group_negotiator_counterpart <- if (slot == 1L) group_negotiator2 else group_negotiator1
+      group_victim <- group_victim_stage
+      analytic_case_configuration <- build_analytic_case_configuration(
+        role = role,
+        judged_group = group_negotiator_judged,
+        counterpart_group = group_negotiator_counterpart,
+        victim_group = group_victim
+      )
+      scenario_has_control <- as.integer(
+        (!is.na(neg_faculty) && neg_faculty == 3L) ||
+          (!is.na(counterpart_faculty) && counterpart_faculty == 3L)
+      )
       
       long_rows[[index]] <- data.frame(
         id = as.integer(row$id),
@@ -59,14 +85,36 @@ for (row_id in seq_len(nrow(participants))) {
         iri_ec = as.numeric(row$iri_ec),
         iri_pt = as.numeric(row$iri_pt),
         iri_pd = as.numeric(row$iri_pd),
+        relational_reference_faculty = participant_faculty,
+        faculty_negotiator1 = faculty_negotiator1,
+        faculty_negotiator2 = faculty_negotiator2,
         faculty_negotiator = neg_faculty,
+        faculty_counterpart_negotiator = counterpart_faculty,
         faculty_victim = victim_faculty,
+        group_negotiator1 = group_negotiator1,
+        group_negotiator2 = group_negotiator2,
         negotiator_alignment = negotiator_alignment,
+        counterpart_alignment = counterpart_alignment,
         perp_outgroup = as.integer(negotiator_alignment == "outgroup"),
         perp_control = as.integer(negotiator_alignment == "control"),
         victim_outgroup = as.integer(victim_faculty != participant_faculty),
         same_group_harm = if (is.na(neg_faculty) || neg_faculty == 3L) NA_integer_ else as.integer(neg_faculty == victim_faculty),
         decision_accept = as.integer(row[[sprintf("decision_neg%d_s%d", slot, stage)]]),
+        counterpart_decision_accept = counterpart_decision_accept,
+        group_negotiator_judged = group_negotiator_judged,
+        group_negotiator_counterpart = group_negotiator_counterpart,
+        group_victim = group_victim,
+        negotiator1_outgroup = as.integer(group_negotiator1 == "Out"),
+        negotiator1_control = as.integer(group_negotiator1 == "Cont"),
+        negotiator2_outgroup = as.integer(group_negotiator2 == "Out"),
+        negotiator2_control = as.integer(group_negotiator2 == "Cont"),
+        judged_outgroup = as.integer(group_negotiator_judged == "Out"),
+        judged_control = as.integer(group_negotiator_judged == "Cont"),
+        counterpart_outgroup = as.integer(group_negotiator_counterpart == "Out"),
+        counterpart_control = as.integer(group_negotiator_counterpart == "Cont"),
+        observer_victim_outgroup = as.integer(identical(role, "observer") && identical(group_victim, "Out")),
+        analytic_case_configuration = analytic_case_configuration,
+        scenario_has_control = scenario_has_control,
         judgement = judgement,
         condemnation = -judgement,
         stringsAsFactors = FALSE
@@ -78,11 +126,12 @@ for (row_id in seq_len(nrow(participants))) {
 
 judgments_all <- do.call(rbind, long_rows)
 judgments_all <- add_case_configuration_columns(judgments_all)
+judgments_all <- add_analytic_case_configuration_columns(judgments_all)
 
 # Filter for relevant analytical datasets
 judgments_analysis <- judgments_all[judgments_all$analysis_include == TRUE, , drop = FALSE]
 judgments_accept <- judgments_analysis[!is.na(judgments_analysis$decision_accept) & judgments_analysis$decision_accept == 1L, , drop = FALSE]
-judgments_betrayal <- judgments_accept[!is.na(judgments_accept$perp_control) & judgments_accept$perp_control == 0L, , drop = FALSE]
+judgments_betrayal <- judgments_analysis[!is.na(judgments_analysis$scenario_has_control) & judgments_analysis$scenario_has_control == 0L, , drop = FALSE]
 
 write.csv(participants, paths$processed_participants, row.names = FALSE, na = "")
 write.csv(judgments_analysis, paths$processed_judgments, row.names = FALSE, na = "")

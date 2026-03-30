@@ -1,14 +1,13 @@
 # R/hypotheses/H1_test.R
-# Hypothesis 1: Empathy Effect under Option 2 explicit case configuration
+# Hypothesis 1: Empathy Effect under relational controls
 # Statement: Higher empathy predicts lower moral-judgment scores for harmful
-# decisions after conditioning on explicit victim x negotiator case
-# configurations such as Hum_x_Hum, Hum_x_Ing, Hum_x_Control, Ing_x_Hum,
-# Ing_x_Ing, and Ing_x_Control.
+# decisions after conditioning on the judged negotiator, the counterpart
+# negotiator, and observer-side victim alignment.
 # Dependent Variable: judgement (-9 to 9)
 # Independent Variable: iri_total (empathy composite average) or empathy
 # subscales
-# Relational controls: explicit case-configuration indicators with Hum_x_Hum as
-# the reference scenario
+# Relational controls: judged-negotiator status, counterpart-negotiator status,
+# and observer-side victim alignment
 # Additional controls: role_observer, participant_engineering, sex_man, age,
 # economic_status, slot
 # Sample: Accepted decisions (decision_accept = 1)
@@ -16,34 +15,19 @@
 # cluster-bootstrap non-parametric robustness check
 
 source("R/00_config.R")
-source("R/utils/case_configuration_functions.R")
 source("R/utils/model_functions.R")
-source("R/utils/table_functions.R")
+source("R/utils/hypothesis_metadata.R")
 paths <- get_project_paths()
+spec <- get_hypothesis_spec("H1", paths = paths)
 
-message("Testing H1: Empathy Effect under Option 2 explicit case configurations (Models A and B)")
+message("Testing H1: Empathy effect under judged/counterpart relational controls (Models A and B)")
 
-judgments_accept <- read.csv(paths$processed_accept, stringsAsFactors = FALSE)
-
-accepted_case_terms <- paste(
-  get_case_configuration_term_names(reference = "Hum_x_Hum", include_control = TRUE),
-  collapse = " + "
-)
+judgments_accept <- read.csv(spec$data_path, stringsAsFactors = FALSE)
 
 # Model A: Total Empathy
-rhs_a <- paste(
-  "iri_total +", accepted_case_terms, "+",
-  "role_observer + participant_engineering + sex_man + age + economic_status +",
-  "factor(negotiator_slot)"
-)
-run_estimation_suite(judgments_accept, rhs_a, "H1_A", "H1_A_Total", paths$models_dir)
+run_estimation_suite(judgments_accept, spec$formula_rhs$A, "H1_A", "H1_A_Total", paths$models_dir)
 
 # Model B: Empathy Subscales
-rhs_b <- paste(
-  "iri_fs + iri_ec + iri_pt + iri_pd +", accepted_case_terms, "+",
-  "role_observer + participant_engineering + sex_man + age + economic_status +",
-  "factor(negotiator_slot)"
-)
-run_estimation_suite(judgments_accept, rhs_b, "H1_B", "H1_B_Constructs", paths$models_dir)
+run_estimation_suite(judgments_accept, spec$formula_rhs$B, "H1_B", "H1_B_Constructs", paths$models_dir)
 
 message("H1 test completed. Outputs saved to models/.")

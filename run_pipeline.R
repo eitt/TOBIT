@@ -21,11 +21,25 @@ message(sprintf(
   "Configured participant-level CLAD bootstrap replicates: %s",
   resolve_clad_bootstrap_reps()
 ))
+message(sprintf(
+  "Configured participant-level raw-data sample fraction: %.1f%% (seed %s)",
+  100 * resolve_dataset_sample_fraction(),
+  resolve_dataset_sample_seed()
+))
 paths <- get_project_paths()
 
 if (!ensure_pipeline_dependencies()) {
   stop("Environmental requirements not met. Please check the logs above.", call. = FALSE)
 }
+removed_output_entries <- clear_pipeline_outputs(paths)
+message(sprintf(
+  "Cleared previous outputs before the fresh run: tables=%s, figures=%s, models=%s, logs=%s, report=%s",
+  removed_output_entries[["tables"]],
+  removed_output_entries[["figures"]],
+  removed_output_entries[["models"]],
+  removed_output_entries[["logs"]],
+  removed_output_entries[["report"]]
+))
 message("--- Preparation Complete ---")
 message("==========================================")
 

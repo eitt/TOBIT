@@ -55,13 +55,13 @@ judgement_summary <- data.frame(
 )
 write.csv(judgement_summary, file.path(paths$tables_dir, "judgement_summary.csv"), row.names = FALSE)
 
-# 4. Case-configuration summary
-case_configuration_summary <- summarise_group(
-  judgments_analysis[!is.na(judgments_analysis$case_configuration), , drop = FALSE],
-  group_vars = c("case_configuration", "role", "decision_accept"),
+# 4. Relational-status summary
+relational_status_summary <- summarise_group(
+  judgments_analysis[!is.na(judgments_analysis$group_negotiator_judged), , drop = FALSE],
+  group_vars = c("group_negotiator_judged", "group_negotiator_counterpart", "group_victim", "role", "decision_accept"),
   outcome = "judgement"
 )
-write.csv(case_configuration_summary, file.path(paths$tables_dir, "case_configuration_summary.csv"), row.names = FALSE)
+write.csv(relational_status_summary, file.path(paths$tables_dir, "relational_status_summary.csv"), row.names = FALSE)
 
 # Generate Figures
 style <- get_plot_style()
@@ -87,36 +87,36 @@ iri_means <- c(safe_mean(analysis_participants$iri_fs), safe_mean(analysis_parti
                safe_mean(analysis_participants$iri_pt), safe_mean(analysis_participants$iri_pd))
 iri_labels <- c("FS", "EC", "PT", "PD")
 iri_legend <- c("FS: Fantasy", "EC: Empathic concern", "PT: Perspective taking", "PD: Personal distress")
-draw_base_radar_plot(values = iri_means, labels = iri_labels, max_scale = 5, min_scale = 1, 
+draw_base_radar_plot(values = iri_means, labels = iri_labels, max_scale = 4, min_scale = 0,
                      title = "IRI Latent Variable Averages", legend_text = iri_legend)
 dev.off()
 
-# Severity by Case-Configuration Panels
+# Severity by Judged-Status Panels
 open_accessible_png(file.path(paths$figures_dir, "figure_04_severity_panels.png"), width = 12, height = 7)
 apply_accessible_theme()
 graphics::par(mfrow = c(2, 3))
-case_levels <- get_case_configuration_levels(include_control = TRUE)
-panel_counts <- lapply(case_levels, function(case_level) {
-  judgments_accept$judgement[judgments_accept$case_configuration == case_level]
+judged_levels <- c("In", "Out", "Cont")
+panel_counts <- lapply(judged_levels, function(group_level) {
+  judgments_accept$judgement[judgments_accept$group_negotiator_judged == group_level]
 })
 max_freq <- max(vapply(panel_counts, function(x) {
   if (length(x) == 0L) return(0)
   max(table(cut(x, breaks = pretty(judgments_accept$judgement, n = 10))))
 }, numeric(1))) * 1.2
 
-for (case_level in case_levels) {
-  panel_values <- judgments_accept$judgement[judgments_accept$case_configuration == case_level]
+for (group_level in judged_levels) {
+  panel_values <- judgments_accept$judgement[judgments_accept$group_negotiator_judged == group_level]
   hist(
     panel_values,
     breaks = pretty(judgments_accept$judgement, n = 10),
     col = grDevices::adjustcolor(style$primary_light, alpha.f = 0.75),
     border = style$primary_dark,
-    main = case_level,
+    main = group_level,
     xlab = "Judgment Severity",
     ylim = c(0, max_freq)
   )
 }
-graphics::mtext("Accepted-decision judgment distributions by victim x negotiator case configuration", outer = TRUE, line = -1.5, cex = 1.05, font = 2)
+graphics::mtext("Accepted-decision judgment distributions by judged negotiator status", outer = TRUE, line = -1.5, cex = 1.05, font = 2)
 graphics::par(mfrow = c(1, 1))
 dev.off()
 

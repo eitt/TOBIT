@@ -1,46 +1,33 @@
 # R/hypotheses/H2b_test.R
-# Hypothesis 2b: Explicit case-configuration contrasts under Option 2
-# Statement: Judgments should be interpreted through explicit relational case
-# configurations such as Hum_x_Ing, Hum_x_Control, Ing_x_Hum, Ing_x_Ing, and
-# Ing_x_Control rather than through a single outgroup-perpetrator indicator.
+# Hypothesis 2b: Judged-negotiator status x decision contrasts with control
+# Statement: Moral judgments should differ as a function of the judged
+# negotiator's ingroup, outgroup, or control status, and that relational
+# contrast should vary across Accept versus Reject decisions after controlling
+# for the counterpart negotiator and observer-side victim alignment.
 # Dependent Variable: judgement (-9 to 9)
-# Independent Variable: explicit victim x negotiator case configurations with
-# Hum_x_Hum as the reference scenario
-# Controls: iri_total or empathy subscales, role_observer,
+# Independent Variable: judged-negotiator outgroup/control status,
+# decision_accept, and judged-status x decision_accept
+# Controls: iri_total or empathy subscales, counterpart_outgroup,
+# counterpart_control, observer_victim_outgroup, role_observer,
 # participant_engineering, sex_man, age, economic_status, slot
-# Sample: Accepted decisions (decision_accept = 1)
+# Sample: Full judgment sample
 # Specification: Interval-censored clustered Tobit model plus
 # cluster-bootstrap non-parametric robustness check
 
 source("R/00_config.R")
-source("R/utils/case_configuration_functions.R")
 source("R/utils/model_functions.R")
-source("R/utils/table_functions.R")
+source("R/utils/hypothesis_metadata.R")
 paths <- get_project_paths()
+spec <- get_hypothesis_spec("H2b", paths = paths)
 
-message("Testing H2b: Explicit case-configuration contrasts under Option 2 (Models A and B)")
+message("Testing H2b: Judged-status x decision contrasts with control included (Models A and B)")
 
-judgments_accept <- read.csv(paths$processed_accept, stringsAsFactors = FALSE)
-
-accepted_case_terms <- paste(
-  get_case_configuration_term_names(reference = "Hum_x_Hum", include_control = TRUE),
-  collapse = " + "
-)
+judgments_analysis <- read.csv(spec$data_path, stringsAsFactors = FALSE)
 
 # Model A
-rhs_a <- paste(
-  accepted_case_terms, "+ iri_total +",
-  "role_observer + participant_engineering + sex_man + age + economic_status +",
-  "factor(negotiator_slot)"
-)
-run_estimation_suite(judgments_accept, rhs_a, "H2b_A", "H2b_A_Total", paths$models_dir)
+run_estimation_suite(judgments_analysis, spec$formula_rhs$A, "H2b_A", "H2b_A_Total", paths$models_dir)
 
 # Model B
-rhs_b <- paste(
-  accepted_case_terms, "+ iri_fs + iri_ec + iri_pt + iri_pd +",
-  "role_observer + participant_engineering + sex_man + age + economic_status +",
-  "factor(negotiator_slot)"
-)
-run_estimation_suite(judgments_accept, rhs_b, "H2b_B", "H2b_B_Constructs", paths$models_dir)
+run_estimation_suite(judgments_analysis, spec$formula_rhs$B, "H2b_B", "H2b_B_Constructs", paths$models_dir)
 
 message("H2b test completed. Outputs saved to models/.")

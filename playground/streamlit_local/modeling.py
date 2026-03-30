@@ -516,6 +516,30 @@ def _prettify_single_part(part: str) -> str:
     return DISPLAY_LABELS.get(part, part)
 
 
+def significance_symbol(p_value: float) -> str:
+    if pd.isna(p_value):
+        return ""
+    if p_value < 0.001:
+        return "***"
+    if p_value < 0.01:
+        return "**"
+    if p_value < 0.05:
+        return "*"
+    if p_value < 0.10:
+        return "+"
+    return ""
+
+
+def format_p_value_with_symbol(p_value: float) -> str:
+    if pd.isna(p_value):
+        return "NA"
+    if p_value < 0.001:
+        base = "<0.001"
+    else:
+        base = f"{p_value:.3f}"
+    return f"{base}{significance_symbol(p_value)}"
+
+
 def coefficient_table(result: TobitFitResult) -> pd.DataFrame:
     table = pd.DataFrame(
         {
@@ -524,7 +548,7 @@ def coefficient_table(result: TobitFitResult) -> pd.DataFrame:
             "estimate": result.coefficients.values,
             "std_error": result.standard_errors.values,
             "z_value": result.z_values.values,
-            "p_value": result.p_values.values,
+            "p_value": [format_p_value_with_symbol(value) for value in result.p_values.values],
             "conf_low": result.conf_low.values,
             "conf_high": result.conf_high.values,
         }

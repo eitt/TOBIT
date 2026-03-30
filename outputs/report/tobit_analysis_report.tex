@@ -1,0 +1,1204 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb, amsfonts}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{float}
+\usepackage{hyperref}
+\title{Scientific Analysis of Moral Judgments using Tobit and Cluster-Aware Non-Parametric Robustness Models}
+\author{Automated Research Pipeline}
+\date{March 30, 2026}
+\begin{document}
+\maketitle
+
+\section{Dataset and Sample Description}
+The empirical foundation of this project rests on two primary experimental datasets: FLORIDA and BUC.  The sample consists of students from the Bucaramanga Campus.  These datasets capture incentivized moral judgments from distinct socio-economic contexts. Participants were presented  with standardized negotiation scenarios where a negotiator's decision resulted in varying degrees of payoff for  themselves, their own group, and a victim group. Under  Option 2: judgment-level relational modeling , each judgment is treated as relational and linked both to a descriptive victim x negotiator scenario shorthand and to hypothesis-specific predictors for judged negotiator status, decision outcome, and additional relational controls.
+
+\section{Datacard and Variable Definitions}
+The following table defines the primary symbols and variables used in the mathematical specifications and hypothesis tests.
+\begin{table}[H]
+\centering
+\caption{Symbols and Variable Dictionary.}
+\label{tab:symbols}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{ll}
+\toprule
+Symbol & Definition \\
+\midrule
+$y_{isjr}$ & Observed moral judgment for participant $i$, scenario $s$, judged negotiator $j$, and role $r$. \\
+$y^*_{isjr}$ & Latent moral preference score (unbounded). \\
+$\beta_1$ & Regression coefficient representing the marginal effect of the predictor. \\
+$\beta_{0.5}$ & Median-regression coefficient from the non-parametric censored robustness model. \\
+$Q_{0.5}(y^*_{isjr} \mid \mathbf{x}_{isjr})$ & Conditional median of the latent bounded outcome given the predictors. \\
+$\text{IRI}_i$ & Empathy score (Average composite of the Interpersonal Reactivity Index). \\
+$\text{CaseConfig}_{isjr}$ & Judgment-level relational shorthand retained only for backward compatibility with older descriptive artifacts. \\
+$G_{isjr}$ & Judged negotiator relational status (ingroup, outgroup, or control) defined relative to the role-relevant reference actor. \\
+$A_{is}$ & Decision indicator distinguishing Accept from Reject. \\
+$C_{isjr}$ & Additional relational controls, including counterpart negotiator status, observer-side victim alignment, role, and demographic controls. \\
+$\text{ICC}$ & Intraclass Correlation: ratio of between-cluster variance to total variance. \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+Option 2: judgment-level relational modeling retains a victim x judged-negotiator shorthand for descriptive summaries, while H2 and H3 decompose relational structure into judged-negotiator status, decision outcome, judged-status x decision interactions, and additional relational controls for the counterpart negotiator and, in observer rows, victim alignment.
+
+\section{Hypotheses to Test}
+\begin{itemize}
+  \item \textbf{H1 (Empathy under relational controls):} Higher empathy predicts lower moral-judgment scores for harmful decisions after conditioning on judged-negotiator, counterpart, and observer-side victim relational controls.
+  \item \textbf{H2 (Judged-status x decision contrasts):} Moral-judgment severity will differ significantly as a function of relational group membership, decision outcome, and their interaction.
+  \item \textbf{H3 (Empathy x judged-status moderation):} The empathy effect may vary across judged-negotiator relational status, while decision outcome and relational controls remain in the model.
+\end{itemize}
+
+\section{Mathematical Approach and Theoretical Foundations}
+The analysis employs two complementary estimators for bounded moral judgments. The primary specification is a Two-Limit Tobit model, which is theoretically appropriate for dependent variables that are 
+strictly bounded within a known interval. In this context, negotiator-specific moral judgments ($y_{isjr}$) are observed on a scale from -9 to 9. 
+The Tobit model assumes the existence of a latent, unobserved preference index ($y^*_{isjr}$) that follows a linear relationship. 
+Option 2 replaces isolated ingroup/outgroup indicators with explicit judgment-level relational variables built from the paired-group structure of each judgment. The analytic hypothesis models decompose that structure into the judged negotiator's relational status, decision outcome (Accept/Reject), their interaction, and additional relational controls for the counterpart negotiator and, in observer rows, victim alignment.
+ H1 retains accepted-sample victim x judged-negotiator case contrasts, while H2 and H3 use judged-negotiator status, decision outcome, their interaction, and additional relational controls:
+
+$$y^*_{isjr} = \beta_0 + \beta_1 \text{Empathy}_i + \boldsymbol{\beta}_2' G_{isjr} + \beta_3 A_{is} + \boldsymbol{\beta}_4' (G_{isjr} \times A_{is}) + \boldsymbol{\beta}_5' C_{isjr} + \epsilon_{isjr}, \quad \epsilon_{isjr} \sim N(0, \sigma^2)$$
+
+The actual observed judgment $y_{isjr}$ relates to this latent variable via the censoring transformation:
+
+$$y_{isjr} = \max(-9, \min(9, y^*_{isjr}))$$
+
+This approach prevents the 'ceiling' and 'floor' effects from biasing the linear coefficients, as would occur in standard OLS regression.
+
+Because the Tobit model relies on a Gaussian latent-error assumption, the pipeline also fits a distribution-robust censored median specification implemented as interval-censored quantile regression ($p = 0.5$). 
+This complementary estimator targets the conditional median of the latent bounded outcome and is less sensitive to heavy tails and non-normal disturbances:
+
+$$Q_{0.5}(y^*_{isjr} \mid \mathbf{x}_{isjr}) = \mathbf{x}_{isjr}'\beta_{0.5}$$
+
+The non-parametric branch preserves the censoring structure while relaxing the parametric normality assumption. The Tobit and robustness results should therefore be interpreted jointly: Tobit provides the clustered parametric benchmark with participant-clustered standard errors by id, while the non-parametric branch first establishes a converged full-sample censored median fit and then, in the default pipeline, adds participant-level cluster bootstrap inference that resamples ids with replacement and retains all repeated observations from each sampled participant. In both branches, id is used only to account for within-participant dependence and is not a substantive explanatory variable.
+
+\section{Analysis of Sample Size Impact}
+The statistical validity of our inferences depends on the trade-off between False Positives (Type I error, $\alpha$) 
+and False Negatives (Type II error, $\beta$). Given the clustered nature of our data, sample size impact is not 
+merely a count of observations, but a function of cluster correlation.
+
+\subsubsection{Step-by-Step Sensitivity Analysis}
+To determine the impact of our sample size on our ability to detect effects, we follow these steps:
+
+1. Calculate the Design Effect (Deff): As multiple judgments are nested within individuals, we adjust for the Intraclass Correlation (ICC).
+$$Deff = 1 + (m - 1) \times ICC$$
+where $m$ is the average number of scenarios per participant. 
+
+2. Determine the Effective Sample Size (ESS): The ESS represents the number of independent observations that would provide the same statistical power as our clustered sample.
+$$ESS = \frac{n_{total}}{Deff}$$
+
+3. Inference Impact: A higher ICC reduces the ESS, thereby increasing the Standard Error of our Tobit coefficients. 
+If the ESS is low, our models become 'conservative', increasing the risk of Type II errors (failing to support a hypothesis). 
+By using clustered robust standard errors for Tobit and participant-level cluster bootstrap inference for the non-parametric robustness model after each converged full-sample fit, we ensure that both sets of p-values acknowledge this reduced information density, 
+protecting the integrity of our Type I error threshold ($\alpha = 0.05$).
+
+Based on the current run, the observed Intraclass Correlation (ICC) is 0.717, with an Effective Sample Size (ESS) of 266.9.
+
+\section{Descriptive Statistics}
+The empathy profile of the sample is visualized in Figure \ref{fig:radar}, showing the average scores across the four IRI latent variables.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_03_empathy_radar.png}
+\caption{IRI Latent Variable Averages (Radar Plot profile).}
+\label{fig:radar}
+\end{figure}
+The descriptive branch no longer centers the main report on victim x negotiator case-label tables; the hypothesis tests below work directly with negotiator-level relational predictors.
+
+\section{Bi-variate Statistics}
+The correlation matrix between the psychometric subscales and the mean moral judgment is presented below.
+\begin{table}[H]
+\centering
+\caption{Correlation Matrix: IRI Subscales and Moral Judgment.}
+\label{tab:bivar}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llllll}
+\toprule
+Fantasy & Empathic Concern & Perspective Taking & Personal Distress & Total IRI & Mean Judgment \\
+\midrule
+1.000 & 0.500 & 0.554 & 0.509 & 0.830 & -0.030 \\
+0.500 & 1.000 & 0.424 & 0.649 & 0.818 & -0.116 \\
+0.554 & 0.424 & 1.000 & 0.301 & 0.730 & 0.074 \\
+0.509 & 0.649 & 0.301 & 1.000 & 0.762 & -0.010 \\
+0.830 & 0.818 & 0.730 & 0.762 & 1.000 & -0.029 \\
+-0.030 & -0.116 & 0.074 & -0.010 & -0.029 & 1.000 \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+Visual representations of these relationships are provided in Figure \ref{fig:bivar_scatters}.
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_05_bivariate_scatters.png}
+\caption{Bivariate Scatters: IRI Scales vs. Mean Judgment.}
+\label{fig:bivar_scatters}
+\end{figure}
+
+\section{Estimator Fit Summary}
+The following table consolidates the fit-status information for the primary Tobit models and the non-parametric robustness branch. In the default pipeline, participant-level cluster bootstrap launches immediately after a converged full-sample non-parametric fit is available; if bootstrap is disabled manually or too few bootstrap refits converge, that status is shown explicitly.
+This run uses 5 participant-level bootstrap replicates for the non-parametric branch. A bootstrap\_failed status means the full-sample CLAD fit converged but none of the attempted bootstrap refits converged; it does not imply that the full non-parametric estimator itself failed to converge.
+\begin{table}[H]
+\centering
+\caption{Estimator fit summary across Tobit and cluster-aware non-parametric specifications.}
+\label{tab:model_fit_summary}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llllllllll}
+\toprule
+Model & Approach & Status & Converged & Iterations & BootstrapReplicates & BootstrapSuccessful & Observations & Participants & ClusterUnit \\
+\midrule
+H1\_A\_Total\_CLAD & CLAD & not\_converged & FALSE & 2000 & 5 & NA & 1939 & 199 & id \\
+H1\_B\_Constructs\_CLAD & CLAD & not\_converged & FALSE & 2000 & 5 & NA & 1939 & 199 & id \\
+H2a\_A\_Total\_CLAD & CLAD & not\_converged & FALSE & 2000 & 5 & NA & 1678 & 198 & id \\
+H2a\_B\_Constructs\_CLAD & CLAD & not\_converged & FALSE & 2000 & 5 & NA & 1678 & 198 & id \\
+H2b\_A\_Total\_CLAD & CLAD & not\_converged & FALSE & 2000 & 5 & NA & 3980 & 199 & id \\
+H2b\_B\_Constructs\_CLAD & CLAD & not\_converged & FALSE & 2000 & 5 & NA & 3980 & 199 & id \\
+H3\_A\_Total\_CLAD & CLAD & not\_converged & FALSE & 2000 & 5 & NA & 3980 & 199 & id \\
+H3\_B\_Constructs\_CLAD & CLAD & not\_converged & FALSE & 2000 & 5 & NA & 3980 & 199 & id \\
+H1\_A\_Total\_Tobit & Tobit & completed & NA & 3 & NA & NA & 1939 & 199 & id \\
+H1\_B\_Constructs\_Tobit & Tobit & completed & NA & 3 & NA & NA & 1939 & 199 & id \\
+H2a\_A\_Total\_Tobit & Tobit & completed & NA & 6 & NA & NA & 1678 & 198 & id \\
+H2a\_B\_Constructs\_Tobit & Tobit & completed & NA & 6 & NA & NA & 1678 & 198 & id \\
+H2b\_A\_Total\_Tobit & Tobit & completed & NA & 6 & NA & NA & 3980 & 199 & id \\
+H2b\_B\_Constructs\_Tobit & Tobit & completed & NA & 6 & NA & NA & 3980 & 199 & id \\
+H3\_A\_Total\_Tobit & Tobit & completed & NA & 6 & NA & NA & 3980 & 199 & id \\
+H3\_B\_Constructs\_Tobit & Tobit & completed & NA & 6 & NA & NA & 3980 & 199 & id \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\subsection{Hypothesis Significance Summary}
+The following concise table lists only hypothesis-relevant predictors that reached at least p < 0.10, using conventional symbols to indicate strength of evidence (+ p < 0.10, * p < 0.05, ** p < 0.01, *** p < 0.001). If the non-parametric bootstrap is disabled, too sparse, or the censored median fit does not converge, the non-parametric column reports that status instead of inferential symbols. Dynamic figures are generated only for predictors that appear in this table with at least one significance symbol.
+\begin{table}[H]
+\centering
+\small
+\renewcommand{\arraystretch}{1.15}
+\caption{Hypothesis-level significance summary across Tobit and cluster-aware non-parametric models.}
+\label{tab:hypothesis_summary}
+\begin{tabular}{>{\raggedright\arraybackslash}p{0.10\textwidth}>{\raggedright\arraybackslash}p{0.38\textwidth}>{\raggedright\arraybackslash}p{0.38\textwidth}}
+\toprule
+Hypothesis & Tobit support & Non-parametric support \\
+\midrule
+H1 & Empathy: Empathic concern*;\newline Empathy: Perspective taking* & None \\
+H2 & None & None \\
+H3 & Personal distress x judged negotiator outgroup**;\newline Empathic concern x judged negotiator outgroup* & None \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Significance-Driven Figures}
+Only hypothesis-relevant predictors that reach p < 0.10 or better are visualized automatically. These dynamic figures use the saved Tobit and clustered non-parametric outputs, and participant id remains only an inference-level clustering unit rather than a substantive explanatory variable.
+
+\paragraph{H1: Empathy under relational controls}
+
+Empathy: Empathic concern is statistically significant in the Tobit model (*, p = 0.023). Figure \ref{fig:sig_H1_iri_ec} shows that across the observed range, higher Empathy: Empathic concern corresponds to lower predicted latent judgment.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_H1_iri_ec.png}
+\caption{Effect Plot for Empathy: Empathic concern in H1: Empathy under relational controls. Support comes from the Tobit model (*, p = 0.023). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_H1_iri_ec}
+\end{figure}
+
+Empathy: Perspective taking is statistically significant in the Tobit model (*, p = 0.045). Figure \ref{fig:sig_H1_iri_pt} shows that across the observed range, higher Empathy: Perspective taking corresponds to higher predicted latent judgment.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_H1_iri_pt.png}
+\caption{Effect Plot for Empathy: Perspective taking in H1: Empathy under relational controls. Support comes from the Tobit model (*, p = 0.045). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_H1_iri_pt}
+\end{figure}
+
+\paragraph{H3: Empathy x judged-status moderation}
+
+Personal distress x judged negotiator outgroup is statistically significant in the Tobit model (**, p = 0.002). Figure \ref{fig:sig_H3_iri_pd_judged_outgroup} shows that the predicted relationship rises most sharply for Empathy: Personal distress when the condition is Judged negotiator outgroup.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_H3_iri_pd_judged_outgroup.png}
+\caption{Interaction Plot for Personal distress x judged negotiator outgroup in H3: Empathy x judged-status moderation. Support comes from the Tobit model (**, p = 0.002). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_H3_iri_pd_judged_outgroup}
+\end{figure}
+
+Empathic concern x judged negotiator outgroup is statistically significant in the Tobit model (*, p = 0.025). Figure \ref{fig:sig_H3_iri_ec_judged_outgroup} shows that the predicted relationship falls most sharply for Empathy: Empathic concern when the condition is Judged negotiator outgroup.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_H3_iri_ec_judged_outgroup.png}
+\caption{Interaction Plot for Empathic concern x judged negotiator outgroup in H3: Empathy x judged-status moderation. Support comes from the Tobit model (*, p = 0.025). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_H3_iri_ec_judged_outgroup}
+\end{figure}
+
+
+\subsection{All Significant Predictors (p < 0.10)}
+The following figures extend beyond the hypothesis-target terms and visualize every predictor that reaches p < 0.10 in the available H1-H3 Tobit or clustered non-parametric models. This includes significant controls such as age when they clear the threshold.
+
+\paragraph{Accepted-decision sample}
+
+Observer role (ref = victim) is statistically significant in:
+\begin{itemize}
+  \item H1: Empathy under relational controls Model B (Tobit)
+  \item H1: Empathy under relational controls Model A (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_accepted_decision_sample_role_observer} shows that predicted latent judgment is higher for Observer role than for Victim role.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_accepted_decision_sample_role_observer.png}
+\caption{Grouped Prediction Plot for Observer role (ref = victim) in the Accepted-decision sample. Statistically significant support appears in H1: Empathy under relational controls Model B (Tobit) and H1: Empathy under relational controls Model A (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_accepted_decision_sample_role_observer}
+\end{figure}
+
+Empathy: Empathic concern is statistically significant in:
+\begin{itemize}
+  \item H1: Empathy under relational controls Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_accepted_decision_sample_iri_ec} shows that across the observed range, higher Empathy: Empathic concern corresponds to lower predicted latent judgment.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_accepted_decision_sample_iri_ec.png}
+\caption{Effect Plot for Empathy: Empathic concern in the Accepted-decision sample. Statistically significant support appears in H1: Empathy under relational controls Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_accepted_decision_sample_iri_ec}
+\end{figure}
+
+Age is statistically significant in:
+\begin{itemize}
+  \item H1: Empathy under relational controls Model A (Tobit)
+  \item H1: Empathy under relational controls Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_accepted_decision_sample_age} shows that across the observed range, higher Age corresponds to higher predicted latent judgment.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_accepted_decision_sample_age.png}
+\caption{Effect Plot for Age in the Accepted-decision sample. Statistically significant support appears in H1: Empathy under relational controls Model A (Tobit) and H1: Empathy under relational controls Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_accepted_decision_sample_age}
+\end{figure}
+
+Empathy: Perspective taking is statistically significant in:
+\begin{itemize}
+  \item H1: Empathy under relational controls Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_accepted_decision_sample_iri_pt} shows that across the observed range, higher Empathy: Perspective taking corresponds to higher predicted latent judgment.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_accepted_decision_sample_iri_pt.png}
+\caption{Effect Plot for Empathy: Perspective taking in the Accepted-decision sample. Statistically significant support appears in H1: Empathy under relational controls Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_accepted_decision_sample_iri_pt}
+\end{figure}
+
+Engineering participant (ref = humanities) is statistically significant in:
+\begin{itemize}
+  \item H1: Empathy under relational controls Model A (Tobit)
+  \item H1: Empathy under relational controls Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_accepted_decision_sample_participant_engineering} shows that predicted latent judgment is higher for Engineering participant than for Humanities participant.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_accepted_decision_sample_participant_engineering.png}
+\caption{Grouped Prediction Plot for Engineering participant (ref = humanities) in the Accepted-decision sample. Statistically significant support appears in H1: Empathy under relational controls Model A (Tobit) and H1: Empathy under relational controls Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_accepted_decision_sample_participant_engineering}
+\end{figure}
+
+\paragraph{Betrayal sample}
+
+Negotiator accepted harmful deal is statistically significant in:
+\begin{itemize}
+  \item H2: Judged-status x decision contrasts Model A (Tobit)
+  \item H2: Judged-status x decision contrasts Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_betrayal_sample_decision_accept} shows that predicted latent judgment is lower for Accept harmful deal than for Reject harmful deal.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_betrayal_sample_decision_accept.png}
+\caption{Grouped Prediction Plot for Negotiator accepted harmful deal in the Betrayal sample. Statistically significant support appears in H2: Judged-status x decision contrasts Model A (Tobit) and H2: Judged-status x decision contrasts Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_betrayal_sample_decision_accept}
+\end{figure}
+
+Empathy: Perspective taking is statistically significant in:
+\begin{itemize}
+  \item H2: Judged-status x decision contrasts Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_betrayal_sample_iri_pt} shows that across the observed range, higher Empathy: Perspective taking corresponds to higher predicted latent judgment.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_betrayal_sample_iri_pt.png}
+\caption{Effect Plot for Empathy: Perspective taking in the Betrayal sample. Statistically significant support appears in H2: Judged-status x decision contrasts Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_betrayal_sample_iri_pt}
+\end{figure}
+
+Socioeconomic status is statistically significant in:
+\begin{itemize}
+  \item H2: Judged-status x decision contrasts Model A (Tobit)
+  \item H2: Judged-status x decision contrasts Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_betrayal_sample_economic_status} shows that predicted latent judgment is higher for Socioeconomic status 5 than for Socioeconomic status 0.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_betrayal_sample_economic_status.png}
+\caption{Grouped Prediction Plot for Socioeconomic status in the Betrayal sample. Statistically significant support appears in H2: Judged-status x decision contrasts Model A (Tobit) and H2: Judged-status x decision contrasts Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_betrayal_sample_economic_status}
+\end{figure}
+
+Empathy: Empathic concern is statistically significant in:
+\begin{itemize}
+  \item H2: Judged-status x decision contrasts Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_betrayal_sample_iri_ec} shows that across the observed range, higher Empathy: Empathic concern corresponds to lower predicted latent judgment.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_betrayal_sample_iri_ec.png}
+\caption{Effect Plot for Empathy: Empathic concern in the Betrayal sample. Statistically significant support appears in H2: Judged-status x decision contrasts Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_betrayal_sample_iri_ec}
+\end{figure}
+
+\paragraph{Full judgment sample}
+
+Negotiator accepted harmful deal is statistically significant in:
+\begin{itemize}
+  \item H2: Judged-status x decision contrasts Model B (Tobit)
+  \item H3: Empathy x judged-status moderation Model B (Tobit)
+  \item H2: Judged-status x decision contrasts Model A (Tobit)
+  \item H3: Empathy x judged-status moderation Model A (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_full_judgment_sample_decision_accept} shows that predicted latent judgment is lower for Accept harmful deal than for Reject harmful deal.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_full_judgment_sample_decision_accept.png}
+\caption{Grouped Prediction Plot for Negotiator accepted harmful deal in the Full judgment sample. Statistically significant support appears in H2: Judged-status x decision contrasts Model B (Tobit), H3: Empathy x judged-status moderation Model B (Tobit), H2: Judged-status x decision contrasts Model A (Tobit), and H3: Empathy x judged-status moderation Model A (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_full_judgment_sample_decision_accept}
+\end{figure}
+
+Personal distress x judged negotiator outgroup is statistically significant in:
+\begin{itemize}
+  \item H3: Empathy x judged-status moderation Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_full_judgment_sample_iri_pd_judged_outgroup} shows that the predicted relationship rises most sharply for Empathy: Personal distress when the condition is Judged negotiator outgroup.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_full_judgment_sample_iri_pd_judged_outgroup.png}
+\caption{Interaction Plot for Personal distress x judged negotiator outgroup in the Full judgment sample. Statistically significant support appears in H3: Empathy x judged-status moderation Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_full_judgment_sample_iri_pd_judged_outgroup}
+\end{figure}
+
+Empathy: Perspective taking is statistically significant in:
+\begin{itemize}
+  \item H2: Judged-status x decision contrasts Model B (Tobit)
+  \item H3: Empathy x judged-status moderation Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_full_judgment_sample_iri_pt} shows that across the observed range, higher Empathy: Perspective taking corresponds to higher predicted latent judgment.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_full_judgment_sample_iri_pt.png}
+\caption{Effect Plot for Empathy: Perspective taking in the Full judgment sample. Statistically significant support appears in H2: Judged-status x decision contrasts Model B (Tobit) and H3: Empathy x judged-status moderation Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_full_judgment_sample_iri_pt}
+\end{figure}
+
+Engineering participant (ref = humanities) is statistically significant in:
+\begin{itemize}
+  \item H2: Judged-status x decision contrasts Model A (Tobit)
+  \item H3: Empathy x judged-status moderation Model A (Tobit)
+  \item H3: Empathy x judged-status moderation Model B (Tobit)
+  \item H2: Judged-status x decision contrasts Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_full_judgment_sample_participant_engineering} shows that predicted latent judgment is higher for Engineering participant than for Humanities participant.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_full_judgment_sample_participant_engineering.png}
+\caption{Grouped Prediction Plot for Engineering participant (ref = humanities) in the Full judgment sample. Statistically significant support appears in H2: Judged-status x decision contrasts Model A (Tobit), H3: Empathy x judged-status moderation Model A (Tobit), H3: Empathy x judged-status moderation Model B (Tobit), and H2: Judged-status x decision contrasts Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_full_judgment_sample_participant_engineering}
+\end{figure}
+
+Empathic concern x judged negotiator outgroup is statistically significant in:
+\begin{itemize}
+  \item H3: Empathy x judged-status moderation Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_full_judgment_sample_iri_ec_judged_outgroup} shows that the predicted relationship falls most sharply for Empathy: Empathic concern when the condition is Judged negotiator outgroup.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_full_judgment_sample_iri_ec_judged_outgroup.png}
+\caption{Interaction Plot for Empathic concern x judged negotiator outgroup in the Full judgment sample. Statistically significant support appears in H3: Empathy x judged-status moderation Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_full_judgment_sample_iri_ec_judged_outgroup}
+\end{figure}
+
+Empathy: Empathic concern is statistically significant in:
+\begin{itemize}
+  \item H2: Judged-status x decision contrasts Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_full_judgment_sample_iri_ec} shows that across the observed range, higher Empathy: Empathic concern corresponds to lower predicted latent judgment.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_full_judgment_sample_iri_ec.png}
+\caption{Effect Plot for Empathy: Empathic concern in the Full judgment sample. Statistically significant support appears in H2: Judged-status x decision contrasts Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_full_judgment_sample_iri_ec}
+\end{figure}
+
+Socioeconomic status is statistically significant in:
+\begin{itemize}
+  \item H3: Empathy x judged-status moderation Model A (Tobit)
+  \item H2: Judged-status x decision contrasts Model A (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_full_judgment_sample_economic_status} shows that predicted latent judgment is higher for Socioeconomic status 5 than for Socioeconomic status 0.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_full_judgment_sample_economic_status.png}
+\caption{Grouped Prediction Plot for Socioeconomic status in the Full judgment sample. Statistically significant support appears in H3: Empathy x judged-status moderation Model A (Tobit) and H2: Judged-status x decision contrasts Model A (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_full_judgment_sample_economic_status}
+\end{figure}
+
+Judged negotiator outgroup (ref = ingroup) is statistically significant in:
+\begin{itemize}
+  \item H3: Empathy x judged-status moderation Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_full_judgment_sample_judged_outgroup} shows that predicted latent judgment is higher for Judged negotiator outgroup than for Judged negotiator ingroup.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_full_judgment_sample_judged_outgroup.png}
+\caption{Grouped Prediction Plot for Judged negotiator outgroup (ref = ingroup) in the Full judgment sample. Statistically significant support appears in H3: Empathy x judged-status moderation Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_full_judgment_sample_judged_outgroup}
+\end{figure}
+
+Empathy: Personal distress is statistically significant in:
+\begin{itemize}
+  \item H2: Judged-status x decision contrasts Model B (Tobit)
+\end{itemize}
+Figure \ref{fig:sig_all_full_judgment_sample_iri_pd} shows that across the observed range, higher Empathy: Personal distress corresponds to higher predicted latent judgment.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.92\textwidth]{../figures/figure_sig_all_full_judgment_sample_iri_pd.png}
+\caption{Effect Plot for Empathy: Personal distress in the Full judgment sample. Statistically significant support appears in H2: Judged-status x decision contrasts Model B (Tobit). The panels show predicted latent judgments with 95\% confidence intervals.}
+\label{fig:sig_all_full_judgment_sample_iri_pd}
+\end{figure}
+
+
+\subsection{Integrated Hypothesis Conclusions}
+The following summary restates each original hypothesis and indicates whether the available Tobit estimates and the cluster-aware non-parametric models support it in the current data. Non-parametric conclusions are drawn when the participant-level bootstrap inference is available and are otherwise labeled explicitly.
+\begin{itemize}
+\item H1. Original hypothesis: Higher empathy predicts lower moral-judgment scores for harmful decisions after conditioning on judged-negotiator, counterpart, and observer-side victim relational controls. Tobit conclusion: the evidence is mixed but offers partial support for the hypothesis. Model A does not support the hypothesis; Empathy composite (average) is negative but not statistically significant (p = 0.492). Model B supports the hypothesis through Empathy: Empathic concern with a negative association (p = 0.023). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.023) and Age with a positive association (p = 0.034). Non-parametric conclusion: no converged second-phase non-parametric model is available, so the robustness check is inconclusive for this hypothesis.
+\item H2a. Original hypothesis: Moral-judgment severity should vary with the judged negotiator's ingroup-versus-outgroup status, and that relational effect should depend on whether the harmful deal was accepted or rejected. Tobit conclusion: the available models do not support the hypothesis. Model A does not support the hypothesis; none of the judged-negotiator relational-status terms and their decision interaction in the non-control sample are statistically significant, and the closest signal is Judged negotiator outgroup (ref = ingroup) with a negative association (p = 0.706). Model B does not support the hypothesis; none of the judged-negotiator relational-status terms and their decision interaction in the non-control sample are statistically significant, and the closest signal is Accepted harmful deal x judged negotiator outgroup with a negative association (p = 0.896). Additional statistically significant signals include Negotiator accepted harmful deal with a negative association (p < 0.001) and Empathy: Perspective taking with a positive association (p = 0.012). Non-parametric conclusion: no converged second-phase non-parametric model is available, so the robustness check is inconclusive for this hypothesis.
+\item H2b. Original hypothesis: Moral-judgment severity should vary with the judged negotiator's ingroup-versus-outgroup-versus-control status, and that relational effect should depend on whether the harmful deal was accepted or rejected. Tobit conclusion: the available models do not support the hypothesis. Model A does not support the hypothesis; none of the judged-negotiator relational-status terms and their decision interaction in the full sample are statistically significant, and the closest signal is Accepted harmful deal x judged negotiator outgroup with a negative association (p = 0.396). Model B does not support the hypothesis; none of the judged-negotiator relational-status terms and their decision interaction in the full sample are statistically significant, and the closest signal is Accepted harmful deal x judged negotiator outgroup with a negative association (p = 0.291). Additional statistically significant signals include Negotiator accepted harmful deal with a negative association (p < 0.001) and Empathy: Perspective taking with a positive association (p = 0.005). Non-parametric conclusion: no converged second-phase non-parametric model is available, so the robustness check is inconclusive for this hypothesis.
+\item H3. Original hypothesis: The empathy effect may vary according to whether the judged negotiator is ingroup, outgroup, or control, while decision outcome and the additional relational controls remain explicitly modeled. Tobit conclusion: the evidence is mixed but offers partial support for the hypothesis. Model A does not support the hypothesis; none of the composite empathy x judged-negotiator relational-status interactions are statistically significant, and the closest signal is Empathy x judged negotiator outgroup with a negative association (p = 0.262). Model B supports the hypothesis through Personal distress x judged negotiator outgroup with a positive association (p = 0.002) and Empathic concern x judged negotiator outgroup with a negative association (p = 0.025). Additional statistically significant signals include Negotiator accepted harmful deal with a negative association (p < 0.001) and Empathy: Perspective taking with a positive association (p = 0.007). Non-parametric conclusion: no converged second-phase non-parametric model is available, so the robustness check is inconclusive for this hypothesis.
+\end{itemize}
+
+\section{Hypothesis Validation and Results}
+Detailed coefficient tables for each Tobit model, coupled with non-parametric robustness outputs, natural language interpretive narratives, and estimator-specific diagnostics, are provided below. In the default pipeline, converged non-parametric fits immediately attempt participant-level cluster-bootstrap inference; the report labels deferred and sparse-bootstrap cases explicitly when full inference is not available.
+
+\subsection{H1: Empathy Effect}
+This section evaluates the primary effect of empathy on moral judgments while holding judged-negotiator status, counterpart status, and observer-side victim alignment constant.
+\subsubsection{Model A: Composite Empathy}
+\paragraph{Tobit Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H1 Model A: Composite Empathy Regression Coefficients (Tobit).}
+\label{tab:h1_a}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & -13.463 & 4.389 & 0.002** \\
+Empathy composite (average) & -0.692 & 1.006 & 0.492 \\
+Judged negotiator outgroup (ref = ingroup) & -0.369 & 0.400 & 0.357 \\
+Judged negotiator control label hidden (ref = ingroup) & 0.461 & 0.371 & 0.214 \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.278 & 0.373 & 0.456 \\
+Counterpart negotiator control label hidden (ref = ingroup) & -0.103 & 0.356 & 0.773 \\
+Observer-side victim outgroup (ref = ingroup victim) & 0.022 & 0.508 & 0.965 \\
+Observer role (ref = victim) & 0.902 & 0.437 & 0.039* \\
+Engineering participant (ref = humanities) & 1.547 & 0.879 & 0.078+ \\
+Man (ref = woman) & 0.339 & 0.895 & 0.704 \\
+Age & 0.413 & 0.194 & 0.034* \\
+Socioeconomic status & 0.261 & 0.391 & 0.504 \\
+Negotiator 2 (ref = negotiator 1) & 0.620 & 0.263 & 0.018* \\
+Scale variance (log) & 1.893 & 0.060 & <0.001*** \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at -13.463 (p=0.002). The term iri\_total (representing the average composite of empathetic propensity across the participant) has an estimated $\beta$ coefficient of -0.692. The p-value of 0.492 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.369. The p-value of 0.357 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_control (representing whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.461. The p-value of 0.214 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.278. The p-value of 0.456 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term counterpart\_control (representing whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.103. The p-value of 0.773 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of 0.022. The p-value of 0.965 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 0.902. The p-value of 0.039 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of 1.547. The p-value of 0.078 indicates the effect is marginally significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of 0.339. The p-value of 0.704 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.413. The p-value of 0.034 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.261. The p-value of 0.504 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The Log(scale) is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.893, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.953, p = 2.244e-24). The primary Tobit model still uses participant-clustered standard errors by id, and the report pairs it with a cluster-bootstrap non-parametric censored robustness model.
+
+
+\paragraph{Non-parametric Robustness Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H1 Model A: Composite Empathy Regression Coefficients (cluster-aware non-parametric robustness).}
+\label{tab:h1_a_clad}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+label & estimate & inference \\
+\midrule
+Intercept & -16.504 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy composite (average) & -0.355 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator outgroup (ref = ingroup) & -0.146 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator control label hidden (ref = ingroup) & 0.342 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.410 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator control label hidden (ref = ingroup) & -0.007 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer-side victim outgroup (ref = ingroup victim) & 0.329 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer role (ref = victim) & 0.882 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Engineering participant (ref = humanities) & -0.196 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Man (ref = woman) & 0.178 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Age & 0.626 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Socioeconomic status & 0.067 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator 2 (ref = negotiator 1) & 0.264 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline conditional median latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, that baseline median is estimated at -16.504 (p=NA). The term iri\_total (representing the average composite of empathetic propensity across the participant) has an estimated $\beta$ coefficient of -0.355. The p-value of NA the p-value cannot be determined. The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.146. The p-value of NA the p-value cannot be determined. The term judged\_control (representing whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.342. The p-value of NA the p-value cannot be determined. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.410. The p-value of NA the p-value cannot be determined. The term counterpart\_control (representing whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.007. The p-value of NA the p-value cannot be determined. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of 0.329. The p-value of NA the p-value cannot be determined. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 0.882. The p-value of NA the p-value cannot be determined. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of -0.196. The p-value of NA the p-value cannot be determined. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of 0.178. The p-value of NA the p-value cannot be determined. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.626. The p-value of NA the p-value cannot be determined. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.067. The p-value of NA the p-value cannot be determined.
+
+\textbf{Diagnostics}
+
+The non-parametric robustness model did not achieve convergence in the full sample after 2000 iterations, so participant-level cluster bootstrap inference was not attempted for this specification. The reported point estimates remain on the original judgement scale because the internal response shift of 10.0 units was back-transformed.
+
+\subsubsection{Model B: Separated Empathy Constructs}
+\paragraph{Tobit Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H1 Model B: Separated Constructs Regression Coefficients (Tobit).}
+\label{tab:h1_b}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & -13.061 & 4.595 & 0.004** \\
+Empathy: Fantasy scale & -0.921 & 0.808 & 0.254 \\
+Empathy: Empathic concern & -2.573 & 1.135 & 0.023* \\
+Empathy: Perspective taking & 1.722 & 0.858 & 0.045* \\
+Empathy: Personal distress & 1.312 & 0.966 & 0.175 \\
+Judged negotiator outgroup (ref = ingroup) & -0.313 & 0.393 & 0.425 \\
+Judged negotiator control label hidden (ref = ingroup) & 0.389 & 0.365 & 0.287 \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.143 & 0.357 & 0.688 \\
+Counterpart negotiator control label hidden (ref = ingroup) & -0.147 & 0.357 & 0.680 \\
+Observer-side victim outgroup (ref = ingroup victim) & -0.171 & 0.497 & 0.731 \\
+Observer role (ref = victim) & 0.982 & 0.433 & 0.023* \\
+Engineering participant (ref = humanities) & 1.511 & 0.897 & 0.092+ \\
+Man (ref = woman) & 0.233 & 0.947 & 0.805 \\
+Age & 0.373 & 0.196 & 0.057+ \\
+Socioeconomic status & 0.122 & 0.393 & 0.755 \\
+Negotiator 2 (ref = negotiator 1) & 0.528 & 0.257 & 0.040* \\
+Scale variance (log) & 1.877 & 0.057 & <0.001*** \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at -13.061 (p=0.004). The term iri\_fs (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)) has an estimated $\beta$ coefficient of -0.921. The p-value of 0.254 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_ec (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)) has an estimated $\beta$ coefficient of -2.573. The p-value of 0.023 indicates statistically significant, meaning the predictor has a negative effect on the latent moral judgment. The term iri\_pt (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)) has an estimated $\beta$ coefficient of 1.722. The p-value of 0.045 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term iri\_pd (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)) has an estimated $\beta$ coefficient of 1.312. The p-value of 0.175 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.313. The p-value of 0.425 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_control (representing whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.389. The p-value of 0.287 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.143. The p-value of 0.688 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term counterpart\_control (representing whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.147. The p-value of 0.680 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of -0.171. The p-value of 0.731 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 0.982. The p-value of 0.023 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of 1.511. The p-value of 0.092 indicates the effect is marginally significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of 0.233. The p-value of 0.805 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.373. The p-value of 0.057 indicates the effect is marginally significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.122. The p-value of 0.755 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The Log(scale) is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.877, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.963, p = 6.382e-22). The primary Tobit model still uses participant-clustered standard errors by id, and the report pairs it with a cluster-bootstrap non-parametric censored robustness model.
+
+
+\paragraph{Non-parametric Robustness Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H1 Model B: Separated Constructs Regression Coefficients (cluster-aware non-parametric robustness).}
+\label{tab:h1_b_clad}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+label & estimate & inference \\
+\midrule
+Intercept & -16.145 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Fantasy scale & -0.678 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Empathic concern & -1.033 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Perspective taking & 0.460 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Personal distress & 0.612 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator outgroup (ref = ingroup) & -0.153 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator control label hidden (ref = ingroup) & 0.243 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.333 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator control label hidden (ref = ingroup) & 0.062 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer-side victim outgroup (ref = ingroup victim) & 0.225 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer role (ref = victim) & 1.061 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Engineering participant (ref = humanities) & 0.091 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Man (ref = woman) & 0.225 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Age & 0.620 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Socioeconomic status & 0.046 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator 2 (ref = negotiator 1) & 0.217 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline conditional median latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, that baseline median is estimated at -16.145 (p=NA). The term iri\_fs (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)) has an estimated $\beta$ coefficient of -0.678. The p-value of NA the p-value cannot be determined. The term iri\_ec (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)) has an estimated $\beta$ coefficient of -1.033. The p-value of NA the p-value cannot be determined. The term iri\_pt (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)) has an estimated $\beta$ coefficient of 0.460. The p-value of NA the p-value cannot be determined. The term iri\_pd (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)) has an estimated $\beta$ coefficient of 0.612. The p-value of NA the p-value cannot be determined. The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.153. The p-value of NA the p-value cannot be determined. The term judged\_control (representing whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.243. The p-value of NA the p-value cannot be determined. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.333. The p-value of NA the p-value cannot be determined. The term counterpart\_control (representing whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.062. The p-value of NA the p-value cannot be determined. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of 0.225. The p-value of NA the p-value cannot be determined. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 1.061. The p-value of NA the p-value cannot be determined. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of 0.091. The p-value of NA the p-value cannot be determined. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of 0.225. The p-value of NA the p-value cannot be determined. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.620. The p-value of NA the p-value cannot be determined. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.046. The p-value of NA the p-value cannot be determined.
+
+\textbf{Diagnostics}
+
+The non-parametric robustness model did not achieve convergence in the full sample after 2000 iterations, so participant-level cluster bootstrap inference was not attempted for this specification. The reported point estimates remain on the original judgement scale because the internal response shift of 10.0 units was back-transformed.
+
+
+\subsection{H2a: Judged-Status x Decision Contrasts Without Control}
+This section tests whether moral judgment differs when the judged negotiator is ingroup versus outgroup and whether that contrast changes across Accept versus Reject decisions after excluding any scenario with a control-labeled negotiator.
+\subsubsection{Model A: Composite Empathy Control}
+\paragraph{Tobit Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H2a Model A: Composite Empathy Regression Coefficients (Tobit).}
+\label{tab:h2a_a}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & 5.196 & 2.758 & 0.060+ \\
+Judged negotiator outgroup (ref = ingroup) & -0.205 & 0.543 & 0.706 \\
+Empathy composite (average) & 0.095 & 0.664 & 0.887 \\
+Negotiator accepted harmful deal & -14.038 & 1.054 & <0.001*** \\
+Counterpart negotiator outgroup (ref = ingroup) & 0.027 & 0.379 & 0.944 \\
+Observer-side victim outgroup (ref = ingroup victim) & 0.621 & 0.546 & 0.255 \\
+Observer role (ref = victim) & -0.110 & 0.533 & 0.836 \\
+Engineering participant (ref = humanities) & 0.395 & 0.586 & 0.501 \\
+Man (ref = woman) & -0.047 & 0.573 & 0.934 \\
+Age & 0.121 & 0.120 & 0.314 \\
+Socioeconomic status & 0.537 & 0.254 & 0.035* \\
+Negotiator 2 (ref = negotiator 1) & 0.292 & 0.332 & 0.379 \\
+Accepted harmful deal x judged negotiator outgroup & 0.050 & 0.681 & 0.942 \\
+Scale variance (log) & 1.954 & 0.055 & <0.001*** \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at 5.196 (p=0.060). The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.205. The p-value of 0.706 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_total (representing the average composite of empathetic propensity across the participant) has an estimated $\beta$ coefficient of 0.095. The p-value of 0.887 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it) has an estimated $\beta$ coefficient of -14.038. The p-value of 0.000 indicates highly statistically significant, meaning the predictor has a negative effect on the latent moral judgment. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 0.027. The p-value of 0.944 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of 0.621. The p-value of 0.255 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of -0.110. The p-value of 0.836 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of 0.395. The p-value of 0.501 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of -0.047. The p-value of 0.934 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.121. The p-value of 0.314 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.537. The p-value of 0.035 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term judged\_outgroup:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 0.050. The p-value of 0.942 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The Log(scale) is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.954, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.936, p = 2.814e-26). The primary Tobit model still uses participant-clustered standard errors by id, and the report pairs it with a cluster-bootstrap non-parametric censored robustness model.
+
+
+\paragraph{Non-parametric Robustness Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H2a Model A: Composite Empathy Regression Coefficients (cluster-aware non-parametric robustness).}
+\label{tab:h2a_a_clad}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+label & estimate & inference \\
+\midrule
+Intercept & -1.319 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator outgroup (ref = ingroup) & -0.163 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy composite (average) & 1.473 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator accepted harmful deal & -14.849 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.180 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer-side victim outgroup (ref = ingroup victim) & 0.332 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer role (ref = victim) & -0.000 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Engineering participant (ref = humanities) & -1.098 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Man (ref = woman) & 0.308 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Age & 0.406 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Socioeconomic status & 0.519 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator 2 (ref = negotiator 1) & 0.251 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Accepted harmful deal x judged negotiator outgroup & 0.307 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline conditional median latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, that baseline median is estimated at -1.319 (p=NA). The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.163. The p-value of NA the p-value cannot be determined. The term iri\_total (representing the average composite of empathetic propensity across the participant) has an estimated $\beta$ coefficient of 1.473. The p-value of NA the p-value cannot be determined. The term decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it) has an estimated $\beta$ coefficient of -14.849. The p-value of NA the p-value cannot be determined. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.180. The p-value of NA the p-value cannot be determined. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of 0.332. The p-value of NA the p-value cannot be determined. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of -0.000. The p-value of NA the p-value cannot be determined. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of -1.098. The p-value of NA the p-value cannot be determined. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of 0.308. The p-value of NA the p-value cannot be determined. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.406. The p-value of NA the p-value cannot be determined. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.519. The p-value of NA the p-value cannot be determined. The term judged\_outgroup:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 0.307. The p-value of NA the p-value cannot be determined.
+
+\textbf{Diagnostics}
+
+The non-parametric robustness model did not achieve convergence in the full sample after 2000 iterations, so participant-level cluster bootstrap inference was not attempted for this specification. The reported point estimates remain on the original judgement scale because the internal response shift of 10.0 units was back-transformed.
+
+\subsubsection{Model B: Separated Construct Controls}
+\paragraph{Tobit Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H2a Model B: Separated Constructs Regression Coefficients (Tobit).}
+\label{tab:h2a_b}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & 5.333 & 3.041 & 0.079+ \\
+Judged negotiator outgroup (ref = ingroup) & -0.039 & 0.544 & 0.943 \\
+Empathy: Fantasy scale & -0.718 & 0.567 & 0.205 \\
+Empathy: Empathic concern & -1.703 & 0.885 & 0.054+ \\
+Empathy: Perspective taking & 1.476 & 0.589 & 0.012* \\
+Empathy: Personal distress & 1.178 & 0.742 & 0.113 \\
+Negotiator accepted harmful deal & -13.871 & 1.042 & <0.001*** \\
+Counterpart negotiator outgroup (ref = ingroup) & 0.116 & 0.376 & 0.758 \\
+Observer-side victim outgroup (ref = ingroup victim) & 0.526 & 0.542 & 0.332 \\
+Observer role (ref = victim) & -0.115 & 0.527 & 0.827 \\
+Engineering participant (ref = humanities) & 0.273 & 0.575 & 0.635 \\
+Man (ref = woman) & -0.130 & 0.588 & 0.825 \\
+Age & 0.092 & 0.127 & 0.468 \\
+Socioeconomic status & 0.461 & 0.251 & 0.066+ \\
+Negotiator 2 (ref = negotiator 1) & 0.286 & 0.331 & 0.388 \\
+Accepted harmful deal x judged negotiator outgroup & -0.086 & 0.660 & 0.896 \\
+Scale variance (log) & 1.945 & 0.054 & <0.001*** \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at 5.333 (p=0.079). The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.039. The p-value of 0.943 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_fs (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)) has an estimated $\beta$ coefficient of -0.718. The p-value of 0.205 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_ec (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)) has an estimated $\beta$ coefficient of -1.703. The p-value of 0.054 indicates the effect is marginally significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_pt (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)) has an estimated $\beta$ coefficient of 1.476. The p-value of 0.012 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term iri\_pd (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)) has an estimated $\beta$ coefficient of 1.178. The p-value of 0.113 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it) has an estimated $\beta$ coefficient of -13.871. The p-value of 0.000 indicates highly statistically significant, meaning the predictor has a negative effect on the latent moral judgment. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 0.116. The p-value of 0.758 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of 0.526. The p-value of 0.332 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of -0.115. The p-value of 0.827 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of 0.273. The p-value of 0.635 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of -0.130. The p-value of 0.825 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.092. The p-value of 0.468 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.461. The p-value of 0.066 indicates the effect is marginally significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_outgroup:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.086. The p-value of 0.896 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The Log(scale) is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.945, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.942, p = 3.904e-25). The primary Tobit model still uses participant-clustered standard errors by id, and the report pairs it with a cluster-bootstrap non-parametric censored robustness model.
+
+
+\paragraph{Non-parametric Robustness Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H2a Model B: Separated Constructs Regression Coefficients (cluster-aware non-parametric robustness).}
+\label{tab:h2a_b_clad}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+label & estimate & inference \\
+\midrule
+Intercept & -3.616 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator outgroup (ref = ingroup) & -0.336 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Fantasy scale & -0.647 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Empathic concern & 1.143 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Perspective taking & 1.373 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Personal distress & -0.083 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator accepted harmful deal & -15.533 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.193 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer-side victim outgroup (ref = ingroup victim) & -0.186 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer role (ref = victim) & 0.244 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Engineering participant (ref = humanities) & -0.925 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Man (ref = woman) & 0.462 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Age & 0.461 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Socioeconomic status & 0.608 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator 2 (ref = negotiator 1) & 0.359 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Accepted harmful deal x judged negotiator outgroup & 0.636 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline conditional median latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, that baseline median is estimated at -3.616 (p=NA). The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.336. The p-value of NA the p-value cannot be determined. The term iri\_fs (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)) has an estimated $\beta$ coefficient of -0.647. The p-value of NA the p-value cannot be determined. The term iri\_ec (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)) has an estimated $\beta$ coefficient of 1.143. The p-value of NA the p-value cannot be determined. The term iri\_pt (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)) has an estimated $\beta$ coefficient of 1.373. The p-value of NA the p-value cannot be determined. The term iri\_pd (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)) has an estimated $\beta$ coefficient of -0.083. The p-value of NA the p-value cannot be determined. The term decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it) has an estimated $\beta$ coefficient of -15.533. The p-value of NA the p-value cannot be determined. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.193. The p-value of NA the p-value cannot be determined. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of -0.186. The p-value of NA the p-value cannot be determined. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 0.244. The p-value of NA the p-value cannot be determined. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of -0.925. The p-value of NA the p-value cannot be determined. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of 0.462. The p-value of NA the p-value cannot be determined. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.461. The p-value of NA the p-value cannot be determined. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.608. The p-value of NA the p-value cannot be determined. The term judged\_outgroup:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 0.636. The p-value of NA the p-value cannot be determined.
+
+\textbf{Diagnostics}
+
+The non-parametric robustness model did not achieve convergence in the full sample after 2000 iterations, so participant-level cluster bootstrap inference was not attempted for this specification. The reported point estimates remain on the original judgement scale because the internal response shift of 10.0 units was back-transformed.
+
+
+\subsection{H2b: Judged-Status x Decision Contrasts With Control}
+This section examines judged-negotiator ingroup, outgroup, and control status directly, while retaining decision outcome, judged-status x decision interactions, counterpart status, and observer-side victim alignment in the full judgment sample.
+\subsubsection{Model A: Composite Empathy Control}
+\paragraph{Tobit Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H2b Model A: Composite Empathy Regression Coefficients (Tobit).}
+\label{tab:h2b_a}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & 4.053 & 2.227 & 0.069+ \\
+Judged negotiator outgroup (ref = ingroup) & 0.171 & 0.437 & 0.696 \\
+Judged negotiator control label hidden (ref = ingroup) & 0.234 & 0.474 & 0.621 \\
+Empathy composite (average) & 0.159 & 0.550 & 0.773 \\
+Negotiator accepted harmful deal & -14.033 & 0.927 & <0.001*** \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.146 & 0.284 & 0.608 \\
+Counterpart negotiator control label hidden (ref = ingroup) & 0.176 & 0.285 & 0.536 \\
+Observer-side victim outgroup (ref = ingroup victim) & 0.001 & 0.373 & 0.998 \\
+Observer role (ref = victim) & 0.343 & 0.335 & 0.305 \\
+Engineering participant (ref = humanities) & 1.236 & 0.496 & 0.013* \\
+Man (ref = woman) & 0.109 & 0.500 & 0.827 \\
+Age & 0.149 & 0.100 & 0.137 \\
+Socioeconomic status & 0.445 & 0.231 & 0.054+ \\
+Negotiator 2 (ref = negotiator 1) & 0.360 & 0.239 & 0.132 \\
+Accepted harmful deal x judged negotiator outgroup & -0.506 & 0.597 & 0.396 \\
+Accepted harmful deal x judged negotiator control label hidden & 0.210 & 0.601 & 0.727 \\
+Scale variance (log) & 1.947 & 0.048 & <0.001*** \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at 4.053 (p=0.069). The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 0.171. The p-value of 0.696 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_control (representing whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.234. The p-value of 0.621 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_total (representing the average composite of empathetic propensity across the participant) has an estimated $\beta$ coefficient of 0.159. The p-value of 0.773 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it) has an estimated $\beta$ coefficient of -14.033. The p-value of 0.000 indicates highly statistically significant, meaning the predictor has a negative effect on the latent moral judgment. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.146. The p-value of 0.608 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term counterpart\_control (representing whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.176. The p-value of 0.536 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of 0.001. The p-value of 0.998 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 0.343. The p-value of 0.305 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of 1.236. The p-value of 0.013 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of 0.109. The p-value of 0.827 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.149. The p-value of 0.137 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.445. The p-value of 0.054 indicates the effect is marginally significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_outgroup:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.506. The p-value of 0.396 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_control:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.210. The p-value of 0.727 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The Log(scale) is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.947, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.940, p = 1.526e-37). The primary Tobit model still uses participant-clustered standard errors by id, and the report pairs it with a cluster-bootstrap non-parametric censored robustness model.
+
+
+\paragraph{Non-parametric Robustness Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H2b Model A: Composite Empathy Regression Coefficients (cluster-aware non-parametric robustness).}
+\label{tab:h2b_a_clad}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+label & estimate & inference \\
+\midrule
+Intercept & -3.744 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator outgroup (ref = ingroup) & 0.763 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator control label hidden (ref = ingroup) & 0.375 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy composite (average) & 0.726 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator accepted harmful deal & -14.309 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.315 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator control label hidden (ref = ingroup) & -0.203 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer-side victim outgroup (ref = ingroup victim) & 0.180 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer role (ref = victim) & 0.192 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Engineering participant (ref = humanities) & -0.325 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Man (ref = woman) & 0.043 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Age & 0.585 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Socioeconomic status & 0.328 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator 2 (ref = negotiator 1) & 0.416 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Accepted harmful deal x judged negotiator outgroup & -0.935 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Accepted harmful deal x judged negotiator control label hidden & -0.177 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline conditional median latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, that baseline median is estimated at -3.744 (p=NA). The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 0.763. The p-value of NA the p-value cannot be determined. The term judged\_control (representing whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.375. The p-value of NA the p-value cannot be determined. The term iri\_total (representing the average composite of empathetic propensity across the participant) has an estimated $\beta$ coefficient of 0.726. The p-value of NA the p-value cannot be determined. The term decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it) has an estimated $\beta$ coefficient of -14.309. The p-value of NA the p-value cannot be determined. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.315. The p-value of NA the p-value cannot be determined. The term counterpart\_control (representing whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.203. The p-value of NA the p-value cannot be determined. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of 0.180. The p-value of NA the p-value cannot be determined. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 0.192. The p-value of NA the p-value cannot be determined. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of -0.325. The p-value of NA the p-value cannot be determined. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of 0.043. The p-value of NA the p-value cannot be determined. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.585. The p-value of NA the p-value cannot be determined. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.328. The p-value of NA the p-value cannot be determined. The term judged\_outgroup:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.935. The p-value of NA the p-value cannot be determined. The term judged\_control:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.177. The p-value of NA the p-value cannot be determined.
+
+\textbf{Diagnostics}
+
+The non-parametric robustness model did not achieve convergence in the full sample after 2000 iterations, so participant-level cluster bootstrap inference was not attempted for this specification. The reported point estimates remain on the original judgement scale because the internal response shift of 10.0 units was back-transformed.
+
+\subsubsection{Model B: Separated Construct Controls}
+\paragraph{Tobit Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H2b Model B: Separated Constructs Regression Coefficients (Tobit).}
+\label{tab:h2b_b}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & 3.915 & 2.400 & 0.103 \\
+Judged negotiator outgroup (ref = ingroup) & 0.312 & 0.428 & 0.467 \\
+Judged negotiator control label hidden (ref = ingroup) & 0.242 & 0.469 & 0.606 \\
+Empathy: Fantasy scale & -0.631 & 0.491 & 0.199 \\
+Empathy: Empathic concern & -1.541 & 0.744 & 0.038* \\
+Empathy: Perspective taking & 1.368 & 0.482 & 0.005** \\
+Empathy: Personal distress & 1.145 & 0.664 & 0.085+ \\
+Negotiator accepted harmful deal & -13.913 & 0.916 & <0.001*** \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.058 & 0.278 & 0.834 \\
+Counterpart negotiator control label hidden (ref = ingroup) & 0.154 & 0.283 & 0.587 \\
+Observer-side victim outgroup (ref = ingroup victim) & -0.119 & 0.371 & 0.748 \\
+Observer role (ref = victim) & 0.387 & 0.335 & 0.247 \\
+Engineering participant (ref = humanities) & 1.137 & 0.499 & 0.023* \\
+Man (ref = woman) & 0.103 & 0.527 & 0.845 \\
+Age & 0.130 & 0.102 & 0.205 \\
+Socioeconomic status & 0.357 & 0.224 & 0.111 \\
+Negotiator 2 (ref = negotiator 1) & 0.355 & 0.239 & 0.137 \\
+Accepted harmful deal x judged negotiator outgroup & -0.608 & 0.576 & 0.291 \\
+Accepted harmful deal x judged negotiator control label hidden & 0.156 & 0.587 & 0.791 \\
+Scale variance (log) & 1.939 & 0.048 & <0.001*** \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at 3.915 (p=0.103). The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 0.312. The p-value of 0.467 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_control (representing whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.242. The p-value of 0.606 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_fs (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)) has an estimated $\beta$ coefficient of -0.631. The p-value of 0.199 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_ec (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)) has an estimated $\beta$ coefficient of -1.541. The p-value of 0.038 indicates statistically significant, meaning the predictor has a negative effect on the latent moral judgment. The term iri\_pt (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)) has an estimated $\beta$ coefficient of 1.368. The p-value of 0.005 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term iri\_pd (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)) has an estimated $\beta$ coefficient of 1.145. The p-value of 0.085 indicates the effect is marginally significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it) has an estimated $\beta$ coefficient of -13.913. The p-value of 0.000 indicates highly statistically significant, meaning the predictor has a negative effect on the latent moral judgment. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.058. The p-value of 0.834 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term counterpart\_control (representing whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.154. The p-value of 0.587 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of -0.119. The p-value of 0.748 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 0.387. The p-value of 0.247 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of 1.137. The p-value of 0.023 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of 0.103. The p-value of 0.845 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.130. The p-value of 0.205 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.357. The p-value of 0.111 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_outgroup:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.608. The p-value of 0.291 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_control:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.156. The p-value of 0.791 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The Log(scale) is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.939, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.942, p = 7.986e-37). The primary Tobit model still uses participant-clustered standard errors by id, and the report pairs it with a cluster-bootstrap non-parametric censored robustness model.
+
+
+\paragraph{Non-parametric Robustness Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H2b Model B: Separated Constructs Regression Coefficients (cluster-aware non-parametric robustness).}
+\label{tab:h2b_b_clad}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+label & estimate & inference \\
+\midrule
+Intercept & -3.643 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator outgroup (ref = ingroup) & 0.760 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator control label hidden (ref = ingroup) & 0.377 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Fantasy scale & -0.243 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Empathic concern & -0.513 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Perspective taking & 1.060 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Personal distress & 0.336 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator accepted harmful deal & -14.627 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.331 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator control label hidden (ref = ingroup) & -0.086 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer-side victim outgroup (ref = ingroup victim) & 0.125 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer role (ref = victim) & 0.415 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Engineering participant (ref = humanities) & -0.079 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Man (ref = woman) & -0.104 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Age & 0.586 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Socioeconomic status & 0.243 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator 2 (ref = negotiator 1) & 0.314 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Accepted harmful deal x judged negotiator outgroup & -0.821 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Accepted harmful deal x judged negotiator control label hidden & -0.125 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline conditional median latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, that baseline median is estimated at -3.643 (p=NA). The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 0.760. The p-value of NA the p-value cannot be determined. The term judged\_control (representing whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.377. The p-value of NA the p-value cannot be determined. The term iri\_fs (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)) has an estimated $\beta$ coefficient of -0.243. The p-value of NA the p-value cannot be determined. The term iri\_ec (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)) has an estimated $\beta$ coefficient of -0.513. The p-value of NA the p-value cannot be determined. The term iri\_pt (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)) has an estimated $\beta$ coefficient of 1.060. The p-value of NA the p-value cannot be determined. The term iri\_pd (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)) has an estimated $\beta$ coefficient of 0.336. The p-value of NA the p-value cannot be determined. The term decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it) has an estimated $\beta$ coefficient of -14.627. The p-value of NA the p-value cannot be determined. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.331. The p-value of NA the p-value cannot be determined. The term counterpart\_control (representing whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.086. The p-value of NA the p-value cannot be determined. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of 0.125. The p-value of NA the p-value cannot be determined. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 0.415. The p-value of NA the p-value cannot be determined. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of -0.079. The p-value of NA the p-value cannot be determined. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of -0.104. The p-value of NA the p-value cannot be determined. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.586. The p-value of NA the p-value cannot be determined. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.243. The p-value of NA the p-value cannot be determined. The term judged\_outgroup:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.821. The p-value of NA the p-value cannot be determined. The term judged\_control:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.125. The p-value of NA the p-value cannot be determined.
+
+\textbf{Diagnostics}
+
+The non-parametric robustness model did not achieve convergence in the full sample after 2000 iterations, so participant-level cluster bootstrap inference was not attempted for this specification. The reported point estimates remain on the original judgement scale because the internal response shift of 10.0 units was back-transformed.
+
+
+\subsection{H3: Empathy x Judged-Status Moderation}
+This section tests whether empathy slopes differ across judged-negotiator status categories after retaining decision outcome, judged-status x decision terms, counterpart status, and observer-side victim alignment.
+\subsubsection{Model A: Composite Empathy Interaction}
+\paragraph{Tobit Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H3 Model A: Composite Empathy Regression Coefficients (Tobit).}
+\label{tab:h3_a}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & 3.877 & 2.535 & 0.126 \\
+Empathy composite (average) & 0.235 & 0.617 & 0.703 \\
+Judged negotiator outgroup (ref = ingroup) & 1.571 & 1.318 & 0.233 \\
+Judged negotiator control label hidden (ref = ingroup) & -0.511 & 1.510 & 0.735 \\
+Negotiator accepted harmful deal & -14.036 & 0.930 & <0.001*** \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.156 & 0.285 & 0.583 \\
+Counterpart negotiator control label hidden (ref = ingroup) & 0.161 & 0.283 & 0.570 \\
+Observer-side victim outgroup (ref = ingroup victim) & -0.001 & 0.373 & 0.998 \\
+Observer role (ref = victim) & 0.351 & 0.336 & 0.296 \\
+Engineering participant (ref = humanities) & 1.233 & 0.497 & 0.013* \\
+Man (ref = woman) & 0.104 & 0.501 & 0.836 \\
+Age & 0.150 & 0.100 & 0.135 \\
+Socioeconomic status & 0.446 & 0.231 & 0.053+ \\
+Negotiator 2 (ref = negotiator 1) & 0.347 & 0.237 & 0.142 \\
+Accepted harmful deal x judged negotiator outgroup & -0.486 & 0.598 & 0.417 \\
+Accepted harmful deal x judged negotiator control label hidden & 0.203 & 0.601 & 0.735 \\
+Empathy x judged negotiator outgroup & -0.634 & 0.565 & 0.262 \\
+Empathy x judged negotiator control label hidden & 0.337 & 0.637 & 0.597 \\
+Scale variance (log) & 1.946 & 0.048 & <0.001*** \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at 3.877 (p=0.126). The term iri\_total (representing the average composite of empathetic propensity across the participant) has an estimated $\beta$ coefficient of 0.235. The p-value of 0.703 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 1.571. The p-value of 0.233 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_control (representing whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.511. The p-value of 0.735 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it) has an estimated $\beta$ coefficient of -14.036. The p-value of 0.000 indicates highly statistically significant, meaning the predictor has a negative effect on the latent moral judgment. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.156. The p-value of 0.583 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term counterpart\_control (representing whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.161. The p-value of 0.570 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of -0.001. The p-value of 0.998 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 0.351. The p-value of 0.296 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of 1.233. The p-value of 0.013 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of 0.104. The p-value of 0.836 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.150. The p-value of 0.135 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.446. The p-value of 0.053 indicates the effect is marginally significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_outgroup:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.486. The p-value of 0.417 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_control:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.203. The p-value of 0.735 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_total:judged\_outgroup (representing the average composite of empathetic propensity across the participant interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.634. The p-value of 0.262 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_total:judged\_control (representing the average composite of empathetic propensity across the participant interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.337. The p-value of 0.597 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The Log(scale) is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.946, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.940, p = 1.675e-37). The primary Tobit model still uses participant-clustered standard errors by id, and the report pairs it with a cluster-bootstrap non-parametric censored robustness model.
+
+
+\paragraph{Non-parametric Robustness Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H3 Model A: Composite Empathy Regression Coefficients (cluster-aware non-parametric robustness).}
+\label{tab:h3_a_clad}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+label & estimate & inference \\
+\midrule
+Intercept & -4.030 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy composite (average) & 1.033 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator outgroup (ref = ingroup) & 2.167 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator control label hidden (ref = ingroup) & 1.100 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator accepted harmful deal & -14.490 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.343 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator control label hidden (ref = ingroup) & -0.176 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer-side victim outgroup (ref = ingroup victim) & 0.279 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer role (ref = victim) & 0.176 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Engineering participant (ref = humanities) & -0.303 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Man (ref = woman) & 0.010 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Age & 0.574 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Socioeconomic status & 0.297 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator 2 (ref = negotiator 1) & 0.427 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Accepted harmful deal x judged negotiator outgroup & -0.664 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Accepted harmful deal x judged negotiator control label hidden & 0.049 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy x judged negotiator outgroup & -0.710 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy x judged negotiator control label hidden & -0.412 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline conditional median latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, that baseline median is estimated at -4.030 (p=NA). The term iri\_total (representing the average composite of empathetic propensity across the participant) has an estimated $\beta$ coefficient of 1.033. The p-value of NA the p-value cannot be determined. The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 2.167. The p-value of NA the p-value cannot be determined. The term judged\_control (representing whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 1.100. The p-value of NA the p-value cannot be determined. The term decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it) has an estimated $\beta$ coefficient of -14.490. The p-value of NA the p-value cannot be determined. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.343. The p-value of NA the p-value cannot be determined. The term counterpart\_control (representing whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.176. The p-value of NA the p-value cannot be determined. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of 0.279. The p-value of NA the p-value cannot be determined. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 0.176. The p-value of NA the p-value cannot be determined. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of -0.303. The p-value of NA the p-value cannot be determined. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of 0.010. The p-value of NA the p-value cannot be determined. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.574. The p-value of NA the p-value cannot be determined. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.297. The p-value of NA the p-value cannot be determined. The term judged\_outgroup:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.664. The p-value of NA the p-value cannot be determined. The term judged\_control:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.049. The p-value of NA the p-value cannot be determined. The term iri\_total:judged\_outgroup (representing the average composite of empathetic propensity across the participant interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.710. The p-value of NA the p-value cannot be determined. The term iri\_total:judged\_control (representing the average composite of empathetic propensity across the participant interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.412. The p-value of NA the p-value cannot be determined.
+
+\textbf{Diagnostics}
+
+The non-parametric robustness model did not achieve convergence in the full sample after 2000 iterations, so participant-level cluster bootstrap inference was not attempted for this specification. The reported point estimates remain on the original judgement scale because the internal response shift of 10.0 units was back-transformed.
+
+\subsubsection{Model B: Separated Constructs Interaction}
+\paragraph{Tobit Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H3 Model B: Separated Constructs Regression Coefficients (Tobit).}
+\label{tab:h3_b}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llll}
+\toprule
+label & estimate & std\_error & p\_value \\
+\midrule
+Intercept & 3.020 & 2.761 & 0.274 \\
+Empathy: Fantasy scale & -0.834 & 0.575 & 0.147 \\
+Empathy: Empathic concern & -0.857 & 0.830 & 0.302 \\
+Empathy: Perspective taking & 1.792 & 0.667 & 0.007** \\
+Empathy: Personal distress & 0.438 & 0.694 & 0.528 \\
+Judged negotiator outgroup (ref = ingroup) & 2.673 & 1.445 & 0.064+ \\
+Judged negotiator control label hidden (ref = ingroup) & 0.127 & 1.804 & 0.944 \\
+Negotiator accepted harmful deal & -13.961 & 0.921 & <0.001*** \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.039 & 0.276 & 0.887 \\
+Counterpart negotiator control label hidden (ref = ingroup) & 0.134 & 0.283 & 0.636 \\
+Observer-side victim outgroup (ref = ingroup victim) & -0.117 & 0.373 & 0.753 \\
+Observer role (ref = victim) & 0.378 & 0.337 & 0.261 \\
+Engineering participant (ref = humanities) & 1.146 & 0.499 & 0.022* \\
+Man (ref = woman) & 0.067 & 0.527 & 0.899 \\
+Age & 0.139 & 0.103 & 0.180 \\
+Socioeconomic status & 0.354 & 0.224 & 0.113 \\
+Negotiator 2 (ref = negotiator 1) & 0.345 & 0.235 & 0.142 \\
+Accepted harmful deal x judged negotiator outgroup & -0.610 & 0.576 & 0.290 \\
+Accepted harmful deal x judged negotiator control label hidden & 0.213 & 0.592 & 0.719 \\
+Fantasy x judged negotiator outgroup & -0.247 & 0.529 & 0.641 \\
+Empathic concern x judged negotiator outgroup & -1.658 & 0.740 & 0.025* \\
+Perspective taking x judged negotiator outgroup & -0.901 & 0.621 & 0.147 \\
+Personal distress x judged negotiator outgroup & 2.047 & 0.662 & 0.002** \\
+Fantasy x judged negotiator control label hidden & 0.699 & 0.714 & 0.328 \\
+Empathic concern x judged negotiator control label hidden & -0.342 & 0.808 & 0.672 \\
+Perspective taking x judged negotiator control label hidden & -0.290 & 0.775 & 0.708 \\
+Personal distress x judged negotiator control label hidden & 0.107 & 0.664 & 0.872 \\
+Scale variance (log) & 1.935 & 0.047 & <0.001*** \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at 3.020 (p=0.274). The term iri\_fs (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)) has an estimated $\beta$ coefficient of -0.834. The p-value of 0.147 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_ec (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)) has an estimated $\beta$ coefficient of -0.857. The p-value of 0.302 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_pt (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)) has an estimated $\beta$ coefficient of 1.792. The p-value of 0.007 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term iri\_pd (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)) has an estimated $\beta$ coefficient of 0.438. The p-value of 0.528 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 2.673. The p-value of 0.064 indicates the effect is marginally significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_control (representing whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.127. The p-value of 0.944 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it) has an estimated $\beta$ coefficient of -13.961. The p-value of 0.000 indicates highly statistically significant, meaning the predictor has a negative effect on the latent moral judgment. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.039. The p-value of 0.887 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term counterpart\_control (representing whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.134. The p-value of 0.636 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of -0.117. The p-value of 0.753 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 0.378. The p-value of 0.261 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of 1.146. The p-value of 0.022 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of 0.067. The p-value of 0.899 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.139. The p-value of 0.180 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.354. The p-value of 0.113 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_outgroup:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.610. The p-value of 0.290 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term judged\_control:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.213. The p-value of 0.719 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_fs:judged\_outgroup (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale) interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.247. The p-value of 0.641 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_ec:judged\_outgroup (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern) interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -1.658. The p-value of 0.025 indicates statistically significant, meaning the predictor has a negative effect on the latent moral judgment. The term iri\_pt:judged\_outgroup (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking) interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.901. The p-value of 0.147 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_pd:judged\_outgroup (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress) interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 2.047. The p-value of 0.002 indicates statistically significant, meaning the predictor has a positive effect on the latent moral judgment. The term iri\_fs:judged\_control (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale) interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.699. The p-value of 0.328 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_ec:judged\_control (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern) interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.342. The p-value of 0.672 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_pt:judged\_control (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking) interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.290. The p-value of 0.708 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The term iri\_pd:judged\_control (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress) interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.107. The p-value of 0.872 indicates the effect is not statistically significant, meaning we do not have enough evidence to reject the null hypothesis for this vector. The Log(scale) is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is 1.935, capturing the underlying dispersion of latent judgments.
+
+\textbf{Diagnostics}
+
+The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption (W = 0.944, p = 1.721e-36). The primary Tobit model still uses participant-clustered standard errors by id, and the report pairs it with a cluster-bootstrap non-parametric censored robustness model.
+
+
+\paragraph{Non-parametric Robustness Estimator}
+
+\begin{table}[H]
+\centering
+\caption{H3 Model B: Separated Constructs Regression Coefficients (cluster-aware non-parametric robustness).}
+\label{tab:h3_b_clad}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lll}
+\toprule
+label & estimate & inference \\
+\midrule
+Intercept & -5.464 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Fantasy scale & -0.745 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Empathic concern & 0.547 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Perspective taking & 1.660 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathy: Personal distress & -0.128 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator outgroup (ref = ingroup) & 3.399 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Judged negotiator control label hidden (ref = ingroup) & 2.682 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator accepted harmful deal & -14.808 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator outgroup (ref = ingroup) & -0.277 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Counterpart negotiator control label hidden (ref = ingroup) & -0.055 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer-side victim outgroup (ref = ingroup victim) & 0.057 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Observer role (ref = victim) & 0.267 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Engineering participant (ref = humanities) & -0.137 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Man (ref = woman) & -0.004 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Age & 0.584 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Socioeconomic status & 0.275 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Negotiator 2 (ref = negotiator 1) & 0.254 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Accepted harmful deal x judged negotiator outgroup & -0.600 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Accepted harmful deal x judged negotiator control label hidden & 0.192 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Fantasy x judged negotiator outgroup & 0.320 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathic concern x judged negotiator outgroup & -1.888 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Perspective taking x judged negotiator outgroup & -0.657 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Personal distress x judged negotiator outgroup & 1.192 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Fantasy x judged negotiator control label hidden & 0.715 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Empathic concern x judged negotiator control label hidden & -1.349 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Perspective taking x judged negotiator control label hidden & -0.645 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+Personal distress x judged negotiator control label hidden & 0.367 & Cluster bootstrap skipped because the full-sample non-parametric fit did not converge \\
+\bottomrule
+\end{tabular}
+}
+\end{table}
+
+\textbf{Interpretation}
+
+The Intercept represents the baseline conditional median latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, that baseline median is estimated at -5.464 (p=NA). The term iri\_fs (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)) has an estimated $\beta$ coefficient of -0.745. The p-value of NA the p-value cannot be determined. The term iri\_ec (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)) has an estimated $\beta$ coefficient of 0.547. The p-value of NA the p-value cannot be determined. The term iri\_pt (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)) has an estimated $\beta$ coefficient of 1.660. The p-value of NA the p-value cannot be determined. The term iri\_pd (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)) has an estimated $\beta$ coefficient of -0.128. The p-value of NA the p-value cannot be determined. The term judged\_outgroup (representing whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 3.399. The p-value of NA the p-value cannot be determined. The term judged\_control (representing whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 2.682. The p-value of NA the p-value cannot be determined. The term decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it) has an estimated $\beta$ coefficient of -14.808. The p-value of NA the p-value cannot be determined. The term counterpart\_outgroup (representing whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.277. The p-value of NA the p-value cannot be determined. The term counterpart\_control (representing whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.055. The p-value of NA the p-value cannot be determined. The term observer\_victim\_outgroup (representing whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant) has an estimated $\beta$ coefficient of 0.057. The p-value of NA the p-value cannot be determined. The term role\_observer (representing the procedural role where the participant acted exclusively as an observer rather than a victim) has an estimated $\beta$ coefficient of 0.267. The p-value of NA the p-value cannot be determined. The term participant\_engineering (representing whether the participant belonged to the Engineering faculty as opposed to Humanities) has an estimated $\beta$ coefficient of -0.137. The p-value of NA the p-value cannot be determined. The term sex\_man (representing whether the participant identified as a man instead of a woman) has an estimated $\beta$ coefficient of -0.004. The p-value of NA the p-value cannot be determined. The term age (representing the participant's biological age in years) has an estimated $\beta$ coefficient of 0.584. The p-value of NA the p-value cannot be determined. The term economic\_status (representing the socioeconomic contextual stratum of the participant's background) has an estimated $\beta$ coefficient of 0.275. The p-value of NA the p-value cannot be determined. The term judged\_outgroup:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.600. The p-value of NA the p-value cannot be determined. The term judged\_control:decision\_accept (representing whether the judged negotiator accepted the harmful deal instead of rejecting it interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.192. The p-value of NA the p-value cannot be determined. The term iri\_fs:judged\_outgroup (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale) interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 0.320. The p-value of NA the p-value cannot be determined. The term iri\_ec:judged\_outgroup (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern) interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -1.888. The p-value of NA the p-value cannot be determined. The term iri\_pt:judged\_outgroup (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking) interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of -0.657. The p-value of NA the p-value cannot be determined. The term iri\_pd:judged\_outgroup (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress) interacted with whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)) has an estimated $\beta$ coefficient of 1.192. The p-value of NA the p-value cannot be determined. The term iri\_fs:judged\_control (representing the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale) interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.715. The p-value of NA the p-value cannot be determined. The term iri\_ec:judged\_control (representing the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern) interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -1.349. The p-value of NA the p-value cannot be determined. The term iri\_pt:judged\_control (representing the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking) interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of -0.645. The p-value of NA the p-value cannot be determined. The term iri\_pd:judged\_control (representing the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress) interacted with whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition) has an estimated $\beta$ coefficient of 0.367. The p-value of NA the p-value cannot be determined.
+
+\textbf{Diagnostics}
+
+The non-parametric robustness model did not achieve convergence in the full sample after 2000 iterations, so participant-level cluster bootstrap inference was not attempted for this specification. The reported point estimates remain on the original judgement scale because the internal response shift of 10.0 units was back-transformed.
+
+
+\section{Discussion and Limitations}
+While the dual-estimator strategy strengthens the analysis, several limitations remain. First, both inference strategies assume  independence between participants, which may still be violated by broader shared institutional or contextual shocks. Second, we assume a  normal distribution for the latent errors $\epsilon_{ij}$ in the Tobit branch; departures from normality could affect the consistency of  the maximum likelihood estimators. The non-parametric robustness branch reduces dependence on that assumption and adds participant-level cluster bootstrap inference after converged full-sample fits, but bootstrap summaries still carry Monte Carlo error and can be sensitive to convergence problems in difficult specifications.  Finally, the use of unstandardized averages for empathy assumes a linear mapping between the psychometric scale and the latent moral preference across both estimators.
+
+\section{Conclusion}
+Based on the combined interval-censored Tobit estimations and the cluster-aware non-parametric robustness workflow, empathy and relational judgment structure have been documented together under Option 2 through negotiator-level relational predictors rather than descriptive case labels.
+\end{document}

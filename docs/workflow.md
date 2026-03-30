@@ -6,10 +6,13 @@ This document explains the sequential logic of the TOBIT data analysis pipeline.
 
 The pipeline can be executed completely via the `run_pipeline.R` master orchestrator, which sequentially runs the following scripts:
 
+Before the analytical steps begin, `run_pipeline.R` clears the existing generated artifacts inside `outputs/tables/`, `outputs/figures/`, `outputs/models/`, `outputs/logs/`, and `outputs/report/` so each fresh full run writes a clean set of outputs.
+
 ### 1. Data Import (`R/01_import_data.R`)
 - Loads configuration paths and safely identifies the Python Excel fallback script if `readxl` is missing.
 - Reads `data_final_FLORIDA.xlsx` from `data/raw/`.
 - Validates that all required columns are present.
+- Applies a reproducible random participant-level sample after validation. The default from `R/00_config.R` is `10%` of the imported dataset for quicker test runs, but this can be overridden back to the full dataset.
 - Exports the `data/processed/01_imported.csv` file.
 
 ### 2. Data Cleaning (`R/02_clean_data.R`)
@@ -28,27 +31,39 @@ The pipeline can be executed completely via the `run_pipeline.R` master orchestr
 ### 4. Variable Generation (`R/04_generate_variables.R`)
 - Reshapes the wide format (participant-level) into long-format (negotiator-level).
 - Each participant contributes 10 stages x 2 negotiators = 20 judgment rows.
+- Builds the dependent variable `judgement` by copying `judgement_n1_sX` into the long row where `negotiator_slot = 1` and `judgement_n2_sX` into the long row where `negotiator_slot = 2`.
+- The pipeline also creates `condemnation = -judgement`, but the current hypothesis scripts use `judgement` as the modeled bounded outcome.
 - Derives legacy identity indicators such as `perp_outgroup`, `perp_control`, and `same_group_harm` for backward comparison.
-- Derives the **Option 2 explicit case-configuration variables**:
+- Derives legacy **case-configuration variables** for backward compatibility:
   - `case_configuration`
   - `case_configuration_role`
   - `case_configuration_decision`
   - `case_configuration_context`
-- The core relational case is built with the victim group first and the judged negotiator second, yielding interpretable pairings such as `Hum_x_Hum`, `Hum_x_Ing`, `Hum_x_Control`, `Ing_x_Hum`, `Ing_x_Ing`, and `Ing_x_Control`.
-- Splits the long data into `judgments_analysis.csv` (full sample), `judgments_accept_only.csv` (restricted to H1, H2b, H3 models), and `judgments_betrayal_only.csv` (restricted for H2a).
+- These shorthand variables are retained only for compatibility with older descriptive artifacts; the executable hypotheses now rely on the negotiator-level relational predictors below.
+- Derives the **judgment-level relational predictors** used directly in H2 and H3:
+  - `group_negotiator_judged`
+  - `group_negotiator_counterpart`
+  - `group_victim`
+  - `judged_outgroup`
+  - `judged_control`
+  - `counterpart_outgroup`
+  - `counterpart_control`
+  - `observer_victim_outgroup`
+- These variables encode the judged negotiator's ingroup/outgroup/control status, the counterpart negotiator's corresponding status, and, for observer rows, whether the victim is ingroup or outgroup relative to the participant.
+- Splits the long data into `judgments_analysis.csv` (full sample), `judgments_accept_only.csv` (accepted-decision subset used by H1), and `judgments_betrayal_only.csv` (full judgment subset excluding scenarios with any control-labeled negotiator, used by H2a).
 
 ### 5. Descriptive Statistics (`R/05_descriptive_statistics.R`)
 - Implements grouped summaries using strict missing-value safety functions (`safe_mean`, `safe_sd`).
 - Generates histograms and plots matching high-contrast aesthetic requirements.
-- Generates `empathy_summary.csv`, `participant_summary.csv`, `judgement_summary.csv`, and `case_configuration_summary.csv`.
+- Generates `empathy_summary.csv`, `participant_summary.csv`, `judgement_summary.csv`, and the remaining descriptive summary tables.
 
 ### 6. Run Hypothesis-Specific Models (`R/hypotheses/*`)
 Each of the 4 hypotheses has its own isolated script that sets up its explicit bounded-outcome formula, estimates a clustered Tobit model using interval boundaries (-9 and 9), then fits a non-parametric robustness companion as interval-censored median regression. The non-parametric branch first fits the full sample once and, if that fit converges, immediately launches participant-level cluster bootstrap inference by resampling ids with replacement while retaining all repeated observations from each sampled participant. Repeated observations from the same participant are therefore handled inferentially in both branches, with `id` serving only as the clustering unit. If too few bootstrap refits converge, the workflow carries that forward as a sparse-bootstrap status rather than presenting the non-parametric branch as fully inferential.
 
-- `H1_test.R`: Uses empathy plus explicit case-configuration controls to estimate the empathy effect under Option 2.
-- `H2a_test.R`: Uses explicit betrayal-sample case contrasts (`Hum_x_Hum`, `Hum_x_Ing`, `Ing_x_Hum`, `Ing_x_Ing`) instead of a single `same_group_harm` flag.
-- `H2b_test.R`: Uses explicit accepted-sample case contrasts (`Hum_x_Control`, `Hum_x_Ing`, `Ing_x_Hum`, `Ing_x_Ing`, `Ing_x_Control`) instead of a single `perp_outgroup` flag.
-- `H3_test.R`: Uses empathy x case-configuration interactions to test moderation directly on relational scenarios.
+- `H1_test.R`: Uses empathy plus accepted-sample judged-negotiator, counterpart, and observer-side victim relational controls to estimate the empathy effect under Option 2.
+- `H2a_test.R`: Uses judged-negotiator outgroup status, `decision_accept`, and their interaction in the non-control sample, while controlling for counterpart status and observer-side victim alignment.
+- `H2b_test.R`: Uses judged-negotiator ingroup/outgroup/control status, `decision_accept`, and their interaction in the full judgment sample, with the same relational controls retained.
+- `H3_test.R`: Uses empathy x judged-negotiator-status interactions while retaining decision outcome, judged-status x decision terms, counterpart status, and observer-side victim alignment.
 
 ### 7. Export Tables and Figures (`Outputs directory`)
 
@@ -67,8 +82,8 @@ Each of the 4 hypotheses has its own isolated script that sets up its explicit b
 ### 8. Dynamic Reporting (`R/06_generate_report.R`)
 
 - Automates clustered statistical power analysis estimating the Intraclass Correlation Coefficient (ICC) and translating repeated measures into an Effective Sample Size (ESS).
-- Reads the output tables natively, detects hypothesis-relevant empathy and case-configuration predictors that reach at least `p < .10`, generates the most suitable dynamic figure for each such predictor, then also generates an additional figure set for every significant predictor below `p < .10` in the H-model families, including significant controls such as `age`.
-- The report now states Option 2 explicitly, documents the origin of the case-configuration variable, and includes descriptive summaries of scenario x role x decision combinations.
+- Reads the output tables natively, detects hypothesis-relevant empathy and relational predictors that reach at least `p < .10`, generates the most suitable dynamic figure for each such predictor, then also generates an additional figure set for every significant predictor below `p < .10` in the H-model families, including significant controls such as `age`.
+- The report now states Option 2 explicitly and centers the hypothesis sections on negotiator-level relational predictors rather than descriptive case labels.
 - Writes compiled narrative markdown reports to `outputs/report/tobit_analysis_report.md` and `outputs/logs/dynamic_report.md`.
 
 This guarantees reproducibility from a fresh R session without requiring workspace state. All steps communicate securely through the artifacts generated in `data/processed/`.
