@@ -17,6 +17,10 @@ apply_pipeline_runtime_options(
   run_bootstrap = TRUE,
   skip_tobit_refit = FALSE
 )
+message(sprintf(
+  "Configured participant-level CLAD bootstrap replicates: %s",
+  resolve_clad_bootstrap_reps()
+))
 paths <- get_project_paths()
 
 if (!ensure_pipeline_dependencies()) {
@@ -61,6 +65,7 @@ message("Starting Dynamic Report Generation")
 message("==========================================")
 
 source("R/06_generate_report.R")
+source("R/08_generate_plain_language_report.R")
 
 message("\n==========================================")
 message("Pipeline Finished Successfully!")

@@ -131,6 +131,18 @@ get_clad_bootstrap_defaults <- function() {
   )
 }
 
+emit_pipeline_progress <- function(...) {
+  message(sprintf("[%s] %s", format(Sys.time(), "%H:%M:%S"), paste0(..., collapse = "")))
+}
+
+format_formula_for_progress <- function(rhs_formula) {
+  formula_text <- tryCatch(
+    paste(deparse(rhs_formula, width.cutoff = 500L), collapse = " "),
+    error = function(e) "<formula unavailable>"
+  )
+  gsub("\\s+", " ", trimws(formula_text))
+}
+
 should_skip_tobit_refit <- function() {
   isTRUE(getOption("tobit.skip_tobit_refit", FALSE))
 }
@@ -365,6 +377,60 @@ build_deferred_clad_result <- function(
   model_fit
 }
 
+build_bootstrap_failed_clad_result <- function(
+    full_fit,
+    point_estimates,
+    planned_bootstrap_reps,
+    quantile,
+    response_shift,
+    cluster_var,
+    conf_level,
+    seed,
+    bootstrap_messages = character(0)) {
+  template_terms <- names(point_estimates)
+  bootstrap_messages <- stats::na.omit(as.character(bootstrap_messages))
+  if (length(bootstrap_messages) == 0L) {
+    bootstrap_messages <- "Participant-level cluster bootstrap produced no converged refits."
+  }
+
+  model_fit <- list(
+    base_fit = full_fit,
+    coefficients = point_estimates,
+    bootstrap_coefficients = matrix(
+      numeric(0),
+      nrow = 0L,
+      ncol = length(template_terms),
+      dimnames = list(NULL, template_terms)
+    ),
+    bootstrap_summary = build_clad_estimate_only_table(
+      point_estimates,
+      paste(
+        "Full-sample non-parametric fit converged, but none of the participant-level",
+        "cluster-bootstrap refits converged in this run, so no cluster-aware standard",
+        "errors, confidence intervals, or p-values are reported."
+      )
+    ),
+    call = match.call(),
+    terms = full_fit$terms,
+    quantile_target = quantile,
+    response_shift = response_shift,
+    cluster_var = cluster_var,
+    bootstrap_replicates = as.integer(planned_bootstrap_reps),
+    bootstrap_successes = 0L,
+    bootstrap_failures = as.integer(planned_bootstrap_reps),
+    bootstrap_success_rate = 0,
+    bootstrap_conf_level = conf_level,
+    bootstrap_seed = seed,
+    bootstrap_messages = bootstrap_messages,
+    bootstrap_status = "bootstrap_failed",
+    converged = TRUE,
+    n.it = if (!is.null(full_fit$n.it)) as.integer(full_fit$n.it[1]) else NA_integer_,
+    approach = "CLAD"
+  )
+  class(model_fit) <- "clustered_ctqr_bootstrap"
+  model_fit
+}
+
 build_cluster_row_index <- function(data, cluster_var = "id") {
   if (!(cluster_var %in% names(data))) {
     stop(sprintf("Cluster variable '%s' is missing from the modeling data.", cluster_var), call. = FALSE)
@@ -562,6 +628,8 @@ extract_clad_model_stats <- function(model_fit, model_data, model_label) {
       "not_converged"
     } else if (identical(bootstrap_status, "deferred")) {
       "bootstrap_deferred"
+    } else if (identical(bootstrap_status, "bootstrap_failed")) {
+      "bootstrap_failed"
     } else if (is.na(bootstrap_successful) || bootstrap_successful < 1L) {
       "bootstrap_failed"
     } else if (bootstrap_successful < 2L) {
@@ -571,6 +639,8 @@ extract_clad_model_stats <- function(model_fit, model_data, model_label) {
     }
     inference_text <- if (identical(bootstrap_status, "deferred")) {
       "Full-sample interval-censored non-parametric fit converged; participant-level cluster bootstrap was not run because bootstrap inference was disabled for this pass"
+    } else if (identical(bootstrap_status, "bootstrap_failed")) {
+      "Full-sample interval-censored non-parametric fit converged, but none of the participant-level bootstrap refits converged in this run"
     } else if (!is.na(bootstrap_successful) && bootstrap_successful < 2L) {
       "Participant-level cluster bootstrap after interval-censored median regression produced fewer than two successful refits, so inference is sparse"
     } else {
@@ -682,6 +752,11 @@ fit_cluster_bootstrap_clad <- function(
   if (is.null(maxit)) maxit <- defaults$maxit
   if (is.null(run_bootstrap)) run_bootstrap <- defaults$run_bootstrap
 
+  emit_pipeline_progress(
+    "CLAD full-sample fit started for ",
+    format_formula_for_progress(rhs_formula),
+    "."
+  )
   model_data <- prepare_clad_model_data(data, response_shift = response_shift)
   full_fit <- suppressWarnings(
     fit_ctqr_core(model_data, rhs_formula, quantile = quantile, maxit = maxit)
@@ -690,6 +765,13 @@ fit_cluster_bootstrap_clad <- function(
   point_estimates <- extract_clad_point_estimates(full_fit)
   template_terms <- names(point_estimates)
   full_fit_converged <- if (!is.null(full_fit$converged)) isTRUE(as.logical(full_fit$converged[1])) else FALSE
+  emit_pipeline_progress(
+    "CLAD full-sample fit finished; converged = ",
+    full_fit_converged,
+    ", iterations = ",
+    if (!is.null(full_fit$n.it)) as.integer(full_fit$n.it[1]) else NA_integer_,
+    "."
+  )
 
   if (!full_fit_converged) {
     model_fit <- list(
@@ -727,6 +809,7 @@ fit_cluster_bootstrap_clad <- function(
   }
 
   if (!isTRUE(run_bootstrap)) {
+    emit_pipeline_progress("CLAD bootstrap skipped for this run.")
     return(
       build_deferred_clad_result(
         full_fit = full_fit,
@@ -755,6 +838,12 @@ fit_cluster_bootstrap_clad <- function(
   )
   bootstrap_success <- rep(FALSE, bootstrap_reps)
   bootstrap_messages <- rep(NA_character_, bootstrap_reps)
+  progress_step <- max(1L, ceiling(bootstrap_reps / 10L))
+  emit_pipeline_progress(
+    "Starting participant-level CLAD bootstrap with ",
+    bootstrap_reps,
+    " replicate(s)."
+  )
 
   for (boot_idx in seq_len(bootstrap_reps)) {
     boot_data <- draw_cluster_bootstrap_sample(data, cluster_index)
@@ -768,29 +857,62 @@ fit_cluster_bootstrap_clad <- function(
 
     if (inherits(boot_fit, "error")) {
       bootstrap_messages[boot_idx] <- boot_fit$message
-      next
-    }
-
-    if (!isTRUE(as.logical(boot_fit$converged[1]))) {
+    } else if (!isTRUE(as.logical(boot_fit$converged[1]))) {
       bootstrap_messages[boot_idx] <- "ctqr did not converge"
-      next
+    } else {
+      boot_fit$response_shift <- response_shift
+      bootstrap_store[boot_idx, ] <- align_coefficient_vector(
+        extract_clad_point_estimates(boot_fit),
+        template_terms
+      )
+      bootstrap_success[boot_idx] <- TRUE
     }
 
-    boot_fit$response_shift <- response_shift
-    bootstrap_store[boot_idx, ] <- align_coefficient_vector(
-      extract_clad_point_estimates(boot_fit),
-      template_terms
+    should_report_progress <- (
+      boot_idx == 1L ||
+        boot_idx == bootstrap_reps ||
+        boot_idx %% progress_step == 0L
     )
-    bootstrap_success[boot_idx] <- TRUE
+    if (should_report_progress) {
+      emit_pipeline_progress(
+        "CLAD bootstrap progress: ",
+        boot_idx,
+        "/",
+        bootstrap_reps,
+        " replicate(s) processed; successes = ",
+        sum(bootstrap_success),
+        ", failures = ",
+        sum(!bootstrap_success[seq_len(boot_idx)]),
+        "."
+      )
+    }
   }
 
   successful_bootstrap <- bootstrap_store[bootstrap_success, , drop = FALSE]
   if (nrow(successful_bootstrap) == 0L) {
-    stop(
-      "The participant-level cluster bootstrap produced no converged non-parametric refits, so cluster-aware inference could not be computed.",
-      call. = FALSE
+    emit_pipeline_progress("CLAD bootstrap completed with 0 converged refits.")
+    return(
+      build_bootstrap_failed_clad_result(
+        full_fit = full_fit,
+        point_estimates = point_estimates,
+        planned_bootstrap_reps = bootstrap_reps,
+        quantile = quantile,
+        response_shift = response_shift,
+        cluster_var = cluster_var,
+        conf_level = conf_level,
+        seed = seed,
+        bootstrap_messages = bootstrap_messages
+      )
     )
   }
+
+  emit_pipeline_progress(
+    "CLAD bootstrap completed; successes = ",
+    sum(bootstrap_success),
+    ", failures = ",
+    sum(!bootstrap_success),
+    "."
+  )
 
   model_fit <- list(
     base_fit = full_fit,
@@ -904,11 +1026,20 @@ run_estimation_suite <- function(data, rhs_formula, output_prefix, model_label, 
   clad_defaults <- get_clad_bootstrap_defaults()
   tobit_fit <- NULL
   if (!should_skip_tobit_refit()) {
+    emit_pipeline_progress("Starting Tobit fit for ", model_label, ".")
     tobit_fit <- fit_clustered_tobit(data, rhs_formula)
     save_model_outputs(tobit_fit, data, output_prefix, paste0(model_label, "_Tobit"), model_dir)
+    emit_pipeline_progress("Finished Tobit fit for ", model_label, ".")
   }
 
   clad_prefix <- paste0(output_prefix, "_CLAD")
+  emit_pipeline_progress(
+    "Starting CLAD fit for ",
+    model_label,
+    " with ",
+    clad_defaults$bootstrap_reps,
+    " bootstrap replicate(s)."
+  )
   clad_result <- tryCatch(
     fit_clad(
       data,
@@ -944,6 +1075,13 @@ run_estimation_suite <- function(data, rhs_formula, output_prefix, model_label, 
   }
 
   save_model_outputs(clad_result, data, clad_prefix, paste0(model_label, "_CLAD"), model_dir)
+  emit_pipeline_progress(
+    "Finished CLAD fit for ",
+    model_label,
+    " with status ",
+    if (!is.null(clad_result$bootstrap_status)) clad_result$bootstrap_status else "unknown",
+    "."
+  )
   invisible(list(tobit = tobit_fit, clad = clad_result))
 }
 
@@ -1022,6 +1160,19 @@ summarize_clad_diagnostics <- function(model_fit) {
           "but participant-level cluster bootstrap inference was disabled for this run.",
           "The reported coefficients are back-transformed to the original judgement scale after an internal response shift of %.1f units.",
           "Cluster-aware p-values and confidence intervals will appear once the bootstrap-enabled run is executed."
+        ),
+        if (is.na(iterations)) "NA" else as.character(iterations),
+        shift_value
+      ))
+    }
+
+    if (isTRUE(converged) && !is.null(model_fit$bootstrap_status) && model_fit$bootstrap_status[1] == "bootstrap_failed") {
+      return(sprintf(
+        paste(
+          "The non-parametric robustness model converged in the full sample after %s iterations,",
+          "but none of the participant-level cluster-bootstrap refits converged in this run.",
+          "The reported coefficients are back-transformed to the original judgement scale after an internal response shift of %.1f units,",
+          "but cluster-aware p-values and confidence intervals are unavailable until at least one bootstrap refit converges."
         ),
         if (is.na(iterations)) "NA" else as.character(iterations),
         shift_value

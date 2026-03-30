@@ -16,6 +16,7 @@ source("R/utils/significance_figure_functions.R")
 source("R/utils/nl_generation.R")
 paths <- get_project_paths()
 case_examples_latex <- paste(get_case_configuration_example_labels(latex = TRUE), collapse = ", ")
+configured_clad_bootstrap_reps <- resolve_clad_bootstrap_reps()
 
 message("Generating Comprehensive Scientific Manuscript (LaTeX/PDF/Word)...")
 
@@ -730,6 +731,40 @@ write_hypothesis_significance_summary <- function(alpha = 0.10, signal_details =
   summary_df
 }
 
+format_hypothesis_summary_cell_latex <- function(x) {
+  text <- escape_latex(x)
+  text <- gsub("; ", ";\\\\newline ", text, fixed = TRUE)
+  text <- gsub("None", "None", text, fixed = TRUE)
+  text
+}
+
+to_latex_wrapped_hypothesis_summary <- function(df, caption, label) {
+  if (!is.data.frame(df) || ncol(df) != 3L) return("")
+
+  formatted_df <- df
+  formatted_df[] <- lapply(formatted_df, format_hypothesis_summary_cell_latex)
+  header <- paste(vapply(names(formatted_df), escape_latex, character(1)), collapse = " & ")
+  body <- apply(formatted_df, 1, function(row) paste(row, collapse = " & "))
+  caption_text <- escape_latex(caption)
+
+  c(
+    "\\begin{table}[H]",
+    "\\centering",
+    "\\small",
+    "\\renewcommand{\\arraystretch}{1.15}",
+    paste0("\\caption{", caption_text, "}"),
+    paste0("\\label{", label, "}"),
+    "\\begin{tabular}{p{0.42\\textwidth}p{0.24\\textwidth}p{0.24\\textwidth}}",
+    "\\toprule",
+    paste0(header, " \\\\"),
+    "\\midrule",
+    paste0(body, " \\\\"),
+    "\\bottomrule",
+    "\\end{tabular}",
+    "\\end{table}"
+  )
+}
+
 format_support_phrase <- function(row) {
   estimator_label <- if (identical(row$approach, "Tobit")) {
     "the Tobit model"
@@ -931,6 +966,48 @@ summarize_supporting_models <- function(rows) {
   collapse_with_and(unique(descriptors))
 }
 
+get_supporting_model_descriptors <- function(rows) {
+  rows <- rows[order(rows$p_value, rows$short_label, rows$model_suffix), , drop = FALSE]
+  unique(paste0(rows$short_label, " Model ", rows$model_suffix, " (", rows$approach, ")"))
+}
+
+format_supporting_models_latex <- function(descriptors) {
+  descriptors <- unique(descriptors[nzchar(descriptors)])
+  if (length(descriptors) == 0L) {
+    return(escape_latex("No supporting models were available."))
+  }
+  paste(escape_latex(descriptors), collapse = ";\\newline ")
+}
+
+format_supporting_models_markdown <- function(descriptors) {
+  descriptors <- unique(descriptors[nzchar(descriptors)])
+  if (length(descriptors) == 0L) {
+    return("No supporting models were available.")
+  }
+  paste(descriptors, collapse = ";<br>")
+}
+
+build_latex_all_significant_predictor_narrative <- function(artifact) {
+  c(
+    escape_latex(sprintf("%s is statistically significant in:", artifact$label)),
+    "\\begin{itemize}",
+    paste0("  \\item ", escape_latex(artifact$supporting_models_list)),
+    "\\end{itemize}",
+    paste0(
+      "Figure \\ref{", artifact$latex_label, "} ",
+      escape_latex(sprintf("shows that %s.", artifact$pattern_text))
+    )
+  )
+}
+
+build_markdown_all_significant_predictor_narrative <- function(artifact) {
+  c(
+    sprintf("%s is statistically significant in:", artifact$label),
+    paste0("- ", artifact$supporting_models_list),
+    sprintf("The figure below shows that %s.", artifact$pattern_text)
+  )
+}
+
 build_all_significant_predictor_figure_artifacts <- function(signal_details) {
   if (is.null(signal_details) || nrow(signal_details) == 0L) {
     empty_catalog <- data.frame(
@@ -1020,6 +1097,7 @@ build_all_significant_predictor_figure_artifacts <- function(signal_details) {
     )
 
     support_phrase <- summarize_support_phrases(support_rows)
+    supporting_models_list <- get_supporting_model_descriptors(support_rows_all)
     supporting_models <- summarize_supporting_models(support_rows_all)
     pattern_text <- if (length(plot_payloads) == 1L) {
       plot_payloads[[1]]$pattern
@@ -1053,6 +1131,7 @@ build_all_significant_predictor_figure_artifacts <- function(signal_details) {
       support_rows = support_rows,
       support_rows_all = support_rows_all,
       support_phrase = support_phrase,
+      supporting_models_list = supporting_models_list,
       supporting_models = supporting_models,
       caption = caption,
       pattern_text = pattern_text,
@@ -1126,7 +1205,7 @@ build_latex_all_significant_predictor_figure_section <- function(artifacts) {
 
     section_lines <- c(
       section_lines,
-      escape_latex(sprintf("%s is statistically significant in %s. Figure \\ref{%s} shows that %s.", artifact$label, artifact$supporting_models, artifact$latex_label, artifact$pattern_text)),
+      build_latex_all_significant_predictor_narrative(artifact),
       "",
       latex_include_graphic(file.path("../figures", artifact$figure_file), artifact$caption, artifact$latex_label),
       ""
@@ -1154,7 +1233,7 @@ build_markdown_all_significant_predictor_figure_section <- function(artifacts) {
 
     section_lines <- c(
       section_lines,
-      sprintf("%s is statistically significant in %s. The figure below shows that %s.", artifact$label, artifact$supporting_models, artifact$pattern_text),
+      build_markdown_all_significant_predictor_narrative(artifact),
       "",
       sprintf("![%s](../figures/%s)", artifact$caption, artifact$figure_file),
       ""
@@ -1394,6 +1473,11 @@ latex_lines <- c(
   "",
   "\\section{Estimator Fit Summary}",
   "The following table consolidates the fit-status information for the primary Tobit models and the non-parametric robustness branch. In the default pipeline, participant-level cluster bootstrap launches immediately after a converged full-sample non-parametric fit is available; if bootstrap is disabled manually or too few bootstrap refits converge, that status is shown explicitly.",
+  escape_latex(sprintf(
+    "This run uses %s participant-level bootstrap replicate%s for the non-parametric branch. A bootstrap_failed status means the full-sample CLAD fit converged but none of the attempted bootstrap refits converged; it does not imply that the full non-parametric estimator itself failed to converge.",
+    configured_clad_bootstrap_reps,
+    if (configured_clad_bootstrap_reps == 1L) "" else "s"
+  )),
   if (!is.null(model_fit_summary)) {
     to_latex_table(
       model_fit_summary[, c("Model", "Approach", "Status", "Converged", "Iterations", "BootstrapReplicates", "BootstrapSuccessful", "Observations", "Participants", "ClusterUnit")],
@@ -1407,7 +1491,7 @@ latex_lines <- c(
   "\\subsection{Hypothesis Significance Summary}",
   "The following concise table lists only hypothesis-relevant predictors that reached at least p < 0.10, using conventional symbols to indicate strength of evidence. If the non-parametric bootstrap is disabled, too sparse, or the censored median fit does not converge, the non-parametric column reports that status instead of inferential symbols. Dynamic figures are generated only for predictors that appear in this table with at least one significance symbol.",
   if (!is.null(hypothesis_significance_summary)) {
-    to_latex_table(
+    to_latex_wrapped_hypothesis_summary(
       hypothesis_significance_summary,
       "Hypothesis-level significance summary across Tobit and cluster-aware non-parametric models.",
       "tab:hypothesis_summary"

@@ -18,6 +18,13 @@ apply_pipeline_runtime_options(
   skip_tobit_refit = TRUE
 )
 
+message(
+  sprintf(
+    "Configured participant-level CLAD bootstrap replicates: %s",
+    resolve_clad_bootstrap_reps()
+  )
+)
+
 hypothesis_scripts <- c(
   "R/hypotheses/H1_test.R",
   "R/hypotheses/H2a_test.R",
@@ -32,6 +39,7 @@ for (script in hypothesis_scripts) {
 
 message("\n--- Regenerating report with refreshed non-parametric bootstrap outputs ---")
 source("R/06_generate_report.R")
+source("R/08_generate_plain_language_report.R")
 
 message("==========================================")
 message("Non-parametric bootstrap refresh complete.")

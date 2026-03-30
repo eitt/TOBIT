@@ -9,17 +9,31 @@ get_default_case_modeling_option <- function() {
   "Option 2: explicit case-configuration modeling"
 }
 
-# Debug default for coherence checks. Restore this single value to 10L when
-# you want the usual bootstrap setting back.
+# Central bootstrap setting for the cluster-aware non-parametric branch.
+# Change this single value when you want to use a different default.
 get_default_clad_bootstrap_reps <- function() {
-  1L
+  10L
+}
+
+parse_bootstrap_reps_value <- function(x) {
+  if (length(x) == 0L || is.null(x) || is.na(x[1])) {
+    return(NA_integer_)
+  }
+
+  if (is.numeric(x) || is.integer(x)) {
+    return(suppressWarnings(as.integer(x[1])))
+  }
+
+  x_chr <- trimws(as.character(x[1]))
+  x_chr <- sub("[Ll]$", "", x_chr)
+  suppressWarnings(as.integer(x_chr))
 }
 
 resolve_clad_bootstrap_reps <- function() {
-  bootstrap_reps <- suppressWarnings(
-    as.integer(getOption("tobit.clad_bootstrap_reps", get_default_clad_bootstrap_reps()))
+  bootstrap_reps <- parse_bootstrap_reps_value(
+    getOption("tobit.clad_bootstrap_reps", get_default_clad_bootstrap_reps())
   )
-  if (is.na(bootstrap_reps) || bootstrap_reps < 10L) {
+  if (is.na(bootstrap_reps) || bootstrap_reps < 1L) {
     bootstrap_reps <- get_default_clad_bootstrap_reps()
   }
   bootstrap_reps
@@ -28,15 +42,24 @@ resolve_clad_bootstrap_reps <- function() {
 apply_pipeline_runtime_options <- function(
   dataset_mode = NULL,
   run_bootstrap = TRUE,
-  skip_tobit_refit = FALSE
+  skip_tobit_refit = FALSE,
+  clad_bootstrap_reps = NULL
 ) {
+  effective_bootstrap_reps <- parse_bootstrap_reps_value(clad_bootstrap_reps)
+  if (is.na(effective_bootstrap_reps)) {
+    effective_bootstrap_reps <- parse_bootstrap_reps_value(get_default_clad_bootstrap_reps())
+  }
+  if (is.na(effective_bootstrap_reps) || effective_bootstrap_reps < 1L) {
+    effective_bootstrap_reps <- get_default_clad_bootstrap_reps()
+  }
+
   if (!is.null(dataset_mode)) {
     options(tobit.dataset_mode = dataset_mode)
   }
   options(tobit.modeling_option = get_default_case_modeling_option())
   options(tobit.clad_run_bootstrap = isTRUE(run_bootstrap))
   options(tobit.skip_tobit_refit = isTRUE(skip_tobit_refit))
-  options(tobit.clad_bootstrap_reps = resolve_clad_bootstrap_reps())
+  options(tobit.clad_bootstrap_reps = effective_bootstrap_reps)
   invisible(TRUE)
 }
 
@@ -48,7 +71,7 @@ apply_pipeline_runtime_options <- function(
 get_project_paths <- function(project_root = ".", dataset_mode = NULL) {
   # Priority: 1. Argument, 2. Global Option, 3. Default "BOTH"
   if (is.null(dataset_mode)) {
-    dataset_mode <- getOption("tobit.dataset_mode", default = "BOTH")
+    dataset_mode <- getOption("tobit.dataset_mode", default = "BUC")
   }
 
   root <- normalizePath(project_root, winslash = "/", mustWork = TRUE)

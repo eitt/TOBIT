@@ -56,7 +56,7 @@ This means repeated observations from the same participant are not treated as in
 
 In the default pipeline, the bootstrap step follows automatically after each converged non-parametric fit, so the saved CLAD tables contain cluster-aware inferential summaries. If you want a faster fit-only pass, set `options(tobit.clad_run_bootstrap = FALSE)` before running and later invoke `R/07_run_nonparametric_bootstrap_phase.R` to fill in the bootstrap-based inference. The bootstrap repetition count can always be overridden with `options(tobit.clad_bootstrap_reps = ...)`.
 
-For debugging and coherence testing, the repository-wide default is currently centralized in `R/00_config.R` and set to `1` via `get_default_clad_bootstrap_reps()`. Restore that value to `10L` for the usual inference run.
+The repository-wide bootstrap default is centralized in `R/00_config.R` and is currently set to `10` via `get_default_clad_bootstrap_reps()`. Change that single value there if you want a different default.
 
 ## Model Output Specifications 
 - Tables evaluate statistical distinction using both conventional thresholds in coefficient tables and a concise hypothesis summary table that reports only hypothesis-relevant predictors reaching at least $p < 0.10$.

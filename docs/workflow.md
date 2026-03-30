@@ -62,7 +62,7 @@ Each of the 4 hypotheses has its own isolated script that sets up its explicit b
 - Runs participant-level cluster bootstrap inference only for specifications whose full-sample non-parametric fit converged.
 - Regenerates the report after the bootstrap-enhanced robustness outputs are saved.
 - If too few participant-level bootstrap refits converge, the refreshed outputs are marked as sparse bootstrap inference.
-- The central bootstrap default currently lives in `R/00_config.R` and is set to `1` for debugging. Restore `get_default_clad_bootstrap_reps()` to `10L` for the usual inference run.
+- The central bootstrap default currently lives in `R/00_config.R` and is set to `10`. Change `get_default_clad_bootstrap_reps()` there if you want a different default.
 
 ### 8. Dynamic Reporting (`R/06_generate_report.R`)
 

@@ -55,6 +55,46 @@ get_binary_value_labels <- function(var_name) {
   )
 }
 
+get_plot_axis_label <- function(var_name) {
+  if (grepl("^case_[a-z]+_x_[a-z]+$", var_name)) {
+    return("Case-configuration contrast")
+  }
+
+  switch(
+    var_name,
+    role_observer = "Participant role",
+    participant_engineering = "Participant group",
+    sex_man = "Participant sex",
+    decision_accept = "Decision context",
+    negotiator_slot = "Negotiator slot",
+    case_configuration = "Victim x negotiator case configuration",
+    case_configuration_role = "Case configuration x role",
+    case_configuration_decision = "Case configuration x decision context",
+    case_configuration_context = "Case configuration x role x decision context",
+    label_term(var_name)
+  )
+}
+
+get_plot_label_wrap_width <- function(labels) {
+  labels <- as.character(labels)
+  labels <- labels[nzchar(labels)]
+  if (length(labels) == 0L) return(18L)
+
+  max_chars <- max(nchar(labels), na.rm = TRUE)
+  if (max_chars >= 40L) return(14L)
+  if (max_chars >= 30L) return(16L)
+  if (max_chars >= 22L) return(18L)
+  22L
+}
+
+wrap_plot_labels <- function(labels, width = NULL) {
+  labels <- as.character(labels)
+  if (is.null(width)) {
+    width <- get_plot_label_wrap_width(labels)
+  }
+  vapply(labels, wrap_title, character(1), width = width, USE.NAMES = FALSE)
+}
+
 format_discrete_value_label <- function(var_name, value) {
   value_chr <- as.character(value)
   value_map <- get_binary_value_labels(var_name)
@@ -522,7 +562,7 @@ draw_continuous_panel <- function(panel_df, visual_spec, panel_title, style) {
     ordered_df$predicted,
     type = "n",
     main = wrap_title(panel_title, width = 28),
-    xlab = label_term(visual_spec$x_var),
+    xlab = wrap_title(get_plot_axis_label(visual_spec$x_var), width = 26),
     ylab = "Predicted latent judgment",
     ylim = y_limits
   )
@@ -544,11 +584,16 @@ draw_categorical_panel <- function(panel_df, visual_spec, panel_title, style) {
     type = "n",
     xaxt = "n",
     main = wrap_title(panel_title, width = 28),
-    xlab = label_term(visual_spec$x_var),
+    xlab = wrap_title(get_plot_axis_label(visual_spec$x_var), width = 26),
     ylab = "Predicted latent judgment",
     ylim = y_limits
   )
-  graphics::axis(1, at = ordered_df$x_value, labels = ordered_df$x_label)
+  graphics::axis(
+    1,
+    at = ordered_df$x_value,
+    labels = wrap_plot_labels(ordered_df$x_label),
+    cex.axis = 0.90
+  )
   graphics::abline(h = 0, col = style$grid, lty = 3, lwd = 1)
   graphics::segments(ordered_df$x_value, ordered_df$conf_low, ordered_df$x_value, ordered_df$conf_high, col = style$primary, lwd = 2)
   graphics::points(ordered_df$x_value, ordered_df$predicted, pch = 19, cex = 1.2, col = style$primary)
@@ -569,7 +614,7 @@ draw_interaction_panel <- function(panel_df, visual_spec, panel_title, style) {
     type = "n",
     xaxt = if (identical(visual_spec$x_type, "continuous")) "s" else "n",
     main = wrap_title(panel_title, width = 28),
-    xlab = label_term(visual_spec$x_var),
+    xlab = wrap_title(get_plot_axis_label(visual_spec$x_var), width = 26),
     ylab = "Predicted latent judgment",
     ylim = y_limits
   )
@@ -578,7 +623,12 @@ draw_interaction_panel <- function(panel_df, visual_spec, panel_title, style) {
   if (!identical(visual_spec$x_type, "continuous")) {
     x_labels <- unique(panel_df[, c("x_value", "x_label")])
     x_labels <- x_labels[order(x_labels$x_value), , drop = FALSE]
-    graphics::axis(1, at = x_labels$x_value, labels = x_labels$x_label)
+    graphics::axis(
+      1,
+      at = x_labels$x_value,
+      labels = wrap_plot_labels(x_labels$x_label),
+      cex.axis = 0.90
+    )
   }
 
   for (idx in seq_along(moderator_labels)) {
@@ -592,12 +642,12 @@ draw_interaction_panel <- function(panel_df, visual_spec, panel_title, style) {
 
   graphics::legend(
     "topleft",
-    legend = moderator_labels,
+    legend = wrap_plot_labels(moderator_labels, width = 18L),
     col = palette_dark[seq_along(moderator_labels)],
     lwd = 3,
     bty = "n",
     cex = 0.85,
-    title = label_term(visual_spec$moderator)
+    title = wrap_title(get_plot_axis_label(visual_spec$moderator), width = 20)
   )
 }
 
@@ -606,8 +656,8 @@ write_significance_figure <- function(file_path, plot_payloads, figure_title) {
 
   style <- get_extended_plot_style()
   panel_count <- length(plot_payloads)
-  width <- if (panel_count > 1L) 10 else 6.5
-  height <- 4.5
+  width <- if (panel_count > 1L) 10.8 else 7.2
+  height <- 5.4
 
   open_accessible_png(file_path, width = width, height = height)
   old_par <- graphics::par(no.readonly = TRUE)
@@ -616,12 +666,13 @@ write_significance_figure <- function(file_path, plot_payloads, figure_title) {
     grDevices::dev.off()
   }, add = TRUE)
 
+  apply_accessible_theme()
   graphics::par(
     mfrow = c(1, panel_count),
-    mar = c(5, 5, 3.8, 1.5),
-    oma = c(0, 0, 2, 0)
+    mar = c(8.5, 5.2, 4.0, 1.5),
+    mgp = c(4.1, 0.95, 0),
+    oma = c(0, 0, 2.2, 0)
   )
-  apply_accessible_theme()
 
   for (payload in plot_payloads) {
     panel_title <- if (identical(payload$approach, "Tobit")) {

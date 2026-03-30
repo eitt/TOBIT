@@ -11,7 +11,7 @@ Only hypothesis-relevant predictors with p < 0.10 are shown below. Symbols follo
 | Hypothesis | Tobit significant predictors | Non-parametric significant predictors |
 | --- | --- | --- |
 | Higher empathy predicts lower moral-judgment scores for harmful decisions after conditioning on explicit victim x negotiator case configurations. | Empathy: Empathic concern*; Empathy: Perspective taking* | None |
-| Same-faculty and cross-faculty betrayal cases are evaluated through explicit victim x negotiator configurations rather than a single same_group_harm flag. | Case configuration: Humanities victim x Engineering negotiator+ | Bootstrap too sparse |
+| Same-faculty and cross-faculty betrayal cases are evaluated through explicit victim x negotiator configurations rather than a single same_group_harm flag. | Case configuration: Humanities victim x Engineering negotiator+ | None |
 | Relational judgments are interpreted through explicit victim x negotiator case configurations such as Hum_x_Ing, Hum_x_Control, Ing_x_Hum, Ing_x_Ing, and Ing_x_Control. | Case configuration: Humanities victim x Engineering negotiator+ | None |
 | The empathy effect may vary across explicit victim x negotiator pairings, so moderation is modeled through empathy interactions with case-configuration contrasts. | Case configuration: Engineering victim x Humanities negotiator x Empathy: Empathic concern**; Case configuration: Engineering victim x Humanities negotiator x Empathy: Personal distress*; Case configuration: Humanities victim x Engineering negotiator x Empathy composite (average)*; Case configuration: Engineering victim x Control label hidden negotiator x Empathy: Empathic concern+; Case configuration: Engineering victim x Humanities negotiator x Empathy composite (average)+ | None |
 
@@ -96,78 +96,136 @@ The following figures extend beyond the hypothesis-target terms and visualize ev
 
 ### Accepted-decision sample
 
-Case configuration: Engineering victim x Humanities negotiator x Empathy: Empathic concern is statistically significant in H3: Empathy x case-configuration moderation Model B (Tobit). The figure below shows that the predicted relationship falls most sharply for Empathy: Empathic concern when the condition is Engineering victim x Humanities negotiator.
+Case configuration: Engineering victim x Humanities negotiator x Empathy: Empathic concern is statistically significant in:
+- H3: Empathy x case-configuration moderation Model B (Tobit)
+The figure below shows that the predicted relationship falls most sharply for Empathy: Empathic concern when the condition is Engineering victim x Humanities negotiator.
 
 ![Interaction Plot for Case configuration: Engineering victim x Humanities negotiator x Empathy: Empathic concern in the Accepted-decision sample. Statistically significant support appears in H3: Empathy x case-configuration moderation Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_case_ing_x_hum_iri_ec.png)
 
-Observer role (ref = victim) is statistically significant in H2b: Explicit case-configuration contrasts Model A (Tobit), H1: Empathy under explicit case configuration Model A (Tobit), H3: Empathy x case-configuration moderation Model A (Tobit), H2b: Explicit case-configuration contrasts Model B (Tobit), H1: Empathy under explicit case configuration Model B (Tobit), and H3: Empathy x case-configuration moderation Model B (Tobit). The figure below shows that predicted latent judgment is higher for Observer role than for Victim role.
+Observer role (ref = victim) is statistically significant in:
+- H2b: Explicit case-configuration contrasts Model A (Tobit)
+- H1: Empathy under explicit case configuration Model A (Tobit)
+- H3: Empathy x case-configuration moderation Model A (Tobit)
+- H2b: Explicit case-configuration contrasts Model B (Tobit)
+- H1: Empathy under explicit case configuration Model B (Tobit)
+- H3: Empathy x case-configuration moderation Model B (Tobit)
+- H1: Empathy under explicit case configuration Model B (CLAD)
+- H2b: Explicit case-configuration contrasts Model B (CLAD)
+The figure below shows that the estimator panels indicate that predicted latent judgment is higher for Observer role than for Victim role.
 
-![Grouped Prediction Plot for Observer role (ref = victim) in the Accepted-decision sample. Statistically significant support appears in H2b: Explicit case-configuration contrasts Model A (Tobit), H1: Empathy under explicit case configuration Model A (Tobit), H3: Empathy x case-configuration moderation Model A (Tobit), H2b: Explicit case-configuration contrasts Model B (Tobit), H1: Empathy under explicit case configuration Model B (Tobit), and H3: Empathy x case-configuration moderation Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_role_observer.png)
+![Grouped Prediction Plot for Observer role (ref = victim) in the Accepted-decision sample. Statistically significant support appears in H2b: Explicit case-configuration contrasts Model A (Tobit), H1: Empathy under explicit case configuration Model A (Tobit), H3: Empathy x case-configuration moderation Model A (Tobit), H2b: Explicit case-configuration contrasts Model B (Tobit), H1: Empathy under explicit case configuration Model B (Tobit), H3: Empathy x case-configuration moderation Model B (Tobit), H1: Empathy under explicit case configuration Model B (CLAD), and H2b: Explicit case-configuration contrasts Model B (CLAD). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_role_observer.png)
 
-Case configuration: Engineering victim x Humanities negotiator x Empathy: Personal distress is statistically significant in H3: Empathy x case-configuration moderation Model B (Tobit). The figure below shows that the predicted relationship rises most sharply for Empathy: Personal distress when the condition is Engineering victim x Humanities negotiator.
+Case configuration: Engineering victim x Humanities negotiator x Empathy: Personal distress is statistically significant in:
+- H3: Empathy x case-configuration moderation Model B (Tobit)
+The figure below shows that the predicted relationship rises most sharply for Empathy: Personal distress when the condition is Engineering victim x Humanities negotiator.
 
 ![Interaction Plot for Case configuration: Engineering victim x Humanities negotiator x Empathy: Personal distress in the Accepted-decision sample. Statistically significant support appears in H3: Empathy x case-configuration moderation Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_case_ing_x_hum_iri_pd.png)
 
-Empathy: Empathic concern is statistically significant in H1: Empathy under explicit case configuration Model B (Tobit) and H2b: Explicit case-configuration contrasts Model B (Tobit). The figure below shows that across the observed range, higher Empathy: Empathic concern corresponds to lower predicted latent judgment.
+Age is statistically significant in:
+- H2b: Explicit case-configuration contrasts Model B (CLAD)
+- H1: Empathy under explicit case configuration Model B (CLAD)
+- H3: Empathy x case-configuration moderation Model A (Tobit)
+- H1: Empathy under explicit case configuration Model A (Tobit)
+- H2b: Explicit case-configuration contrasts Model A (Tobit)
+- H2b: Explicit case-configuration contrasts Model B (Tobit)
+- H1: Empathy under explicit case configuration Model B (Tobit)
+- H3: Empathy x case-configuration moderation Model B (Tobit)
+The figure below shows that the estimator panels indicate that across the observed range, higher Age corresponds to higher predicted latent judgment.
+
+![Effect Plot for Age in the Accepted-decision sample. Statistically significant support appears in H2b: Explicit case-configuration contrasts Model B (CLAD), H1: Empathy under explicit case configuration Model B (CLAD), H3: Empathy x case-configuration moderation Model A (Tobit), H1: Empathy under explicit case configuration Model A (Tobit), H2b: Explicit case-configuration contrasts Model A (Tobit), H2b: Explicit case-configuration contrasts Model B (Tobit), H1: Empathy under explicit case configuration Model B (Tobit), and H3: Empathy x case-configuration moderation Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_age.png)
+
+Empathy: Empathic concern is statistically significant in:
+- H1: Empathy under explicit case configuration Model B (Tobit)
+- H2b: Explicit case-configuration contrasts Model B (Tobit)
+The figure below shows that across the observed range, higher Empathy: Empathic concern corresponds to lower predicted latent judgment.
 
 ![Effect Plot for Empathy: Empathic concern in the Accepted-decision sample. Statistically significant support appears in H1: Empathy under explicit case configuration Model B (Tobit) and H2b: Explicit case-configuration contrasts Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_iri_ec.png)
 
-Age is statistically significant in H3: Empathy x case-configuration moderation Model A (Tobit), H1: Empathy under explicit case configuration Model A (Tobit), H2b: Explicit case-configuration contrasts Model A (Tobit), H2b: Explicit case-configuration contrasts Model B (Tobit), H1: Empathy under explicit case configuration Model B (Tobit), and H3: Empathy x case-configuration moderation Model B (Tobit). The figure below shows that across the observed range, higher Age corresponds to higher predicted latent judgment.
-
-![Effect Plot for Age in the Accepted-decision sample. Statistically significant support appears in H3: Empathy x case-configuration moderation Model A (Tobit), H1: Empathy under explicit case configuration Model A (Tobit), H2b: Explicit case-configuration contrasts Model A (Tobit), H2b: Explicit case-configuration contrasts Model B (Tobit), H1: Empathy under explicit case configuration Model B (Tobit), and H3: Empathy x case-configuration moderation Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_age.png)
-
-Empathy: Perspective taking is statistically significant in H2b: Explicit case-configuration contrasts Model B (Tobit) and H1: Empathy under explicit case configuration Model B (Tobit). The figure below shows that across the observed range, higher Empathy: Perspective taking corresponds to higher predicted latent judgment.
+Empathy: Perspective taking is statistically significant in:
+- H2b: Explicit case-configuration contrasts Model B (Tobit)
+- H1: Empathy under explicit case configuration Model B (Tobit)
+The figure below shows that across the observed range, higher Empathy: Perspective taking corresponds to higher predicted latent judgment.
 
 ![Effect Plot for Empathy: Perspective taking in the Accepted-decision sample. Statistically significant support appears in H2b: Explicit case-configuration contrasts Model B (Tobit) and H1: Empathy under explicit case configuration Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_iri_pt.png)
 
-Case configuration: Humanities victim x Engineering negotiator x Empathy composite (average) is statistically significant in H3: Empathy x case-configuration moderation Model A (Tobit). The figure below shows that the predicted relationship falls most sharply for Empathy composite (average) when the condition is Humanities victim x Engineering negotiator.
+Case configuration: Humanities victim x Engineering negotiator x Empathy composite (average) is statistically significant in:
+- H3: Empathy x case-configuration moderation Model A (Tobit)
+The figure below shows that the predicted relationship falls most sharply for Empathy composite (average) when the condition is Humanities victim x Engineering negotiator.
 
 ![Interaction Plot for Case configuration: Humanities victim x Engineering negotiator x Empathy composite (average) in the Accepted-decision sample. Statistically significant support appears in H3: Empathy x case-configuration moderation Model A (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_case_hum_x_ing_iri_total.png)
 
-Case configuration: Engineering victim x Control label hidden negotiator x Empathy: Empathic concern is statistically significant in H3: Empathy x case-configuration moderation Model B (Tobit). The figure below shows that the predicted relationship falls most sharply for Empathy: Empathic concern when the condition is Engineering victim x Control label hidden negotiator.
+Case configuration: Engineering victim x Control label hidden negotiator x Empathy: Empathic concern is statistically significant in:
+- H3: Empathy x case-configuration moderation Model B (Tobit)
+The figure below shows that the predicted relationship falls most sharply for Empathy: Empathic concern when the condition is Engineering victim x Control label hidden negotiator.
 
 ![Interaction Plot for Case configuration: Engineering victim x Control label hidden negotiator x Empathy: Empathic concern in the Accepted-decision sample. Statistically significant support appears in H3: Empathy x case-configuration moderation Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_case_ing_x_control_iri_ec.png)
 
-Case configuration: Humanities victim x Engineering negotiator is statistically significant in H1: Empathy under explicit case configuration Model A (Tobit), H2b: Explicit case-configuration contrasts Model A (Tobit), H1: Empathy under explicit case configuration Model B (Tobit), and H2b: Explicit case-configuration contrasts Model B (Tobit). The figure below shows that predicted latent judgment is lower for Humanities victim x Engineering negotiator than for All other case configurations.
+Case configuration: Humanities victim x Engineering negotiator is statistically significant in:
+- H1: Empathy under explicit case configuration Model A (Tobit)
+- H2b: Explicit case-configuration contrasts Model A (Tobit)
+- H1: Empathy under explicit case configuration Model B (Tobit)
+- H2b: Explicit case-configuration contrasts Model B (Tobit)
+The figure below shows that predicted latent judgment is lower for Humanities victim x Engineering negotiator than for All other case configurations.
 
 ![Grouped Prediction Plot for Case configuration: Humanities victim x Engineering negotiator in the Accepted-decision sample. Statistically significant support appears in H1: Empathy under explicit case configuration Model A (Tobit), H2b: Explicit case-configuration contrasts Model A (Tobit), H1: Empathy under explicit case configuration Model B (Tobit), and H2b: Explicit case-configuration contrasts Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_case_hum_x_ing.png)
 
-Case configuration: Engineering victim x Humanities negotiator x Empathy composite (average) is statistically significant in H3: Empathy x case-configuration moderation Model A (Tobit). The figure below shows that the predicted relationship falls most sharply for Empathy composite (average) when the condition is Engineering victim x Humanities negotiator.
+Case configuration: Engineering victim x Humanities negotiator x Empathy composite (average) is statistically significant in:
+- H3: Empathy x case-configuration moderation Model A (Tobit)
+The figure below shows that the predicted relationship falls most sharply for Empathy composite (average) when the condition is Engineering victim x Humanities negotiator.
 
 ![Interaction Plot for Case configuration: Engineering victim x Humanities negotiator x Empathy composite (average) in the Accepted-decision sample. Statistically significant support appears in H3: Empathy x case-configuration moderation Model A (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_case_ing_x_hum_iri_total.png)
 
-Case configuration: Engineering victim x Humanities negotiator is statistically significant in H3: Empathy x case-configuration moderation Model A (Tobit). The figure below shows that predicted latent judgment is higher for Engineering victim x Humanities negotiator than for All other case configurations.
+Case configuration: Engineering victim x Humanities negotiator is statistically significant in:
+- H3: Empathy x case-configuration moderation Model A (Tobit)
+The figure below shows that predicted latent judgment is higher for Engineering victim x Humanities negotiator than for All other case configurations.
 
 ![Grouped Prediction Plot for Case configuration: Engineering victim x Humanities negotiator in the Accepted-decision sample. Statistically significant support appears in H3: Empathy x case-configuration moderation Model A (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_accepted_decision_sample_case_ing_x_hum.png)
 
 ### Betrayal sample
 
-Observer role (ref = victim) is statistically significant in H2a: Relational betrayal contrasts Model A (Tobit) and H2a: Relational betrayal contrasts Model B (Tobit). The figure below shows that predicted latent judgment is higher for Observer role than for Victim role.
+Observer role (ref = victim) is statistically significant in:
+- H2a: Relational betrayal contrasts Model A (Tobit)
+- H2a: Relational betrayal contrasts Model B (Tobit)
+- H2a: Relational betrayal contrasts Model B (CLAD)
+- H2a: Relational betrayal contrasts Model A (CLAD)
+The figure below shows that the estimator panels indicate that predicted latent judgment is higher for Observer role than for Victim role.
 
-![Grouped Prediction Plot for Observer role (ref = victim) in the Betrayal sample. Statistically significant support appears in H2a: Relational betrayal contrasts Model A (Tobit) and H2a: Relational betrayal contrasts Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_betrayal_sample_role_observer.png)
+![Grouped Prediction Plot for Observer role (ref = victim) in the Betrayal sample. Statistically significant support appears in H2a: Relational betrayal contrasts Model A (Tobit), H2a: Relational betrayal contrasts Model B (Tobit), H2a: Relational betrayal contrasts Model B (CLAD), and H2a: Relational betrayal contrasts Model A (CLAD). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_betrayal_sample_role_observer.png)
 
-Empathy: Empathic concern is statistically significant in H2a: Relational betrayal contrasts Model B (Tobit). The figure below shows that across the observed range, higher Empathy: Empathic concern corresponds to lower predicted latent judgment.
+Age is statistically significant in:
+- H2a: Relational betrayal contrasts Model B (CLAD)
+- H2a: Relational betrayal contrasts Model A (CLAD)
+- H2a: Relational betrayal contrasts Model A (Tobit)
+- H2a: Relational betrayal contrasts Model B (Tobit)
+The figure below shows that the estimator panels indicate that across the observed range, higher Age corresponds to higher predicted latent judgment.
+
+![Effect Plot for Age in the Betrayal sample. Statistically significant support appears in H2a: Relational betrayal contrasts Model B (CLAD), H2a: Relational betrayal contrasts Model A (CLAD), H2a: Relational betrayal contrasts Model A (Tobit), and H2a: Relational betrayal contrasts Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_betrayal_sample_age.png)
+
+Empathy: Empathic concern is statistically significant in:
+- H2a: Relational betrayal contrasts Model B (Tobit)
+The figure below shows that across the observed range, higher Empathy: Empathic concern corresponds to lower predicted latent judgment.
 
 ![Effect Plot for Empathy: Empathic concern in the Betrayal sample. Statistically significant support appears in H2a: Relational betrayal contrasts Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_betrayal_sample_iri_ec.png)
 
-Age is statistically significant in H2a: Relational betrayal contrasts Model A (Tobit) and H2a: Relational betrayal contrasts Model B (Tobit). The figure below shows that across the observed range, higher Age corresponds to higher predicted latent judgment.
-
-![Effect Plot for Age in the Betrayal sample. Statistically significant support appears in H2a: Relational betrayal contrasts Model A (Tobit) and H2a: Relational betrayal contrasts Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_betrayal_sample_age.png)
-
-Case configuration: Humanities victim x Engineering negotiator is statistically significant in H2a: Relational betrayal contrasts Model A (Tobit) and H2a: Relational betrayal contrasts Model B (Tobit). The figure below shows that predicted latent judgment is lower for Humanities victim x Engineering negotiator than for All other case configurations.
+Case configuration: Humanities victim x Engineering negotiator is statistically significant in:
+- H2a: Relational betrayal contrasts Model A (Tobit)
+- H2a: Relational betrayal contrasts Model B (Tobit)
+The figure below shows that predicted latent judgment is lower for Humanities victim x Engineering negotiator than for All other case configurations.
 
 ![Grouped Prediction Plot for Case configuration: Humanities victim x Engineering negotiator in the Betrayal sample. Statistically significant support appears in H2a: Relational betrayal contrasts Model A (Tobit) and H2a: Relational betrayal contrasts Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_betrayal_sample_case_hum_x_ing.png)
 
-Empathy: Perspective taking is statistically significant in H2a: Relational betrayal contrasts Model B (Tobit). The figure below shows that across the observed range, higher Empathy: Perspective taking corresponds to higher predicted latent judgment.
+Empathy: Perspective taking is statistically significant in:
+- H2a: Relational betrayal contrasts Model B (Tobit)
+The figure below shows that across the observed range, higher Empathy: Perspective taking corresponds to higher predicted latent judgment.
 
 ![Effect Plot for Empathy: Perspective taking in the Betrayal sample. Statistically significant support appears in H2a: Relational betrayal contrasts Model B (Tobit). The panels show predicted latent judgments with 95% confidence intervals.](../figures/figure_sig_all_betrayal_sample_iri_pt.png)
 
 
 ## Hypothesis Conclusion Summary
 Each conclusion below is generated from the current coefficient outputs. Non-parametric statements are interpreted when participant-level cluster-bootstrap inference is available and are otherwise labeled explicitly.
-- H1. Original hypothesis: Higher empathy predicts lower moral-judgment scores for harmful decisions after conditioning on explicit victim x negotiator case configurations. Tobit conclusion: the evidence is mixed but offers partial support for the hypothesis. Model A does not support the hypothesis; Empathy composite (average) is negative but not statistically significant (p = 0.503). Model B supports the hypothesis through Empathy: Empathic concern with a negative association (p = 0.025). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.004) and Age with a positive association (p = 0.035). Non-parametric conclusion: no converged second-phase non-parametric model is available, so the robustness check is inconclusive for this hypothesis.
-- H2a. Original hypothesis: Same-faculty and cross-faculty betrayal cases are evaluated through explicit victim x negotiator configurations rather than a single same_group_harm flag. Tobit conclusion: the available models do not support the hypothesis. Model A does not support the hypothesis; none of the betrayal-sample case-configuration contrasts are statistically significant, and the closest signal is Case configuration: Humanities victim x Engineering negotiator with a negative association (p = 0.061). Model B does not support the hypothesis; none of the betrayal-sample case-configuration contrasts are statistically significant, and the closest signal is Case configuration: Humanities victim x Engineering negotiator with a negative association (p = 0.097). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.002) and Empathy: Empathic concern with a negative association (p = 0.016). Non-parametric conclusion: the full-sample non-parametric fit converged, but fewer than two participant-level bootstrap refits succeeded, so the robustness check is not interpreted inferentially for this hypothesis.
-- H2b. Original hypothesis: Relational judgments are interpreted through explicit victim x negotiator case configurations such as Hum_x_Ing, Hum_x_Control, Ing_x_Hum, Ing_x_Ing, and Ing_x_Control. Tobit conclusion: the available models do not support the hypothesis. Model A does not support the hypothesis; none of the accepted-sample case-configuration contrasts are statistically significant, and the closest signal is Case configuration: Humanities victim x Engineering negotiator with a negative association (p = 0.065). Model B does not support the hypothesis; none of the accepted-sample case-configuration contrasts are statistically significant, and the closest signal is Case configuration: Humanities victim x Engineering negotiator with a negative association (p = 0.095). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.004) and Empathy: Empathic concern with a negative association (p = 0.025). Non-parametric conclusion: no converged second-phase non-parametric model is available, so the robustness check is inconclusive for this hypothesis.
+- H1. Original hypothesis: Higher empathy predicts lower moral-judgment scores for harmful decisions after conditioning on explicit victim x negotiator case configurations. Tobit conclusion: the evidence is mixed but offers partial support for the hypothesis. Model A does not support the hypothesis; Empathy composite (average) is negative but not statistically significant (p = 0.503). Model B supports the hypothesis through Empathy: Empathic concern with a negative association (p = 0.025). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.004) and Age with a positive association (p = 0.035). Non-parametric conclusion: the available models do not support the hypothesis. Only non-parametric specifications with available cluster-bootstrap inference are interpreted here. Model A is not interpreted because the non-parametric optimization did not converge after 2000 iterations. Model B does not support the hypothesis; none of the empathy subscale main effects are statistically significant, and the closest signal is Empathy: Empathic concern with a negative association (p = 0.110). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.016) and Age with a positive association (p = 0.025).
+- H2a. Original hypothesis: Same-faculty and cross-faculty betrayal cases are evaluated through explicit victim x negotiator configurations rather than a single same_group_harm flag. Tobit conclusion: the available models do not support the hypothesis. Model A does not support the hypothesis; none of the betrayal-sample case-configuration contrasts are statistically significant, and the closest signal is Case configuration: Humanities victim x Engineering negotiator with a negative association (p = 0.061). Model B does not support the hypothesis; none of the betrayal-sample case-configuration contrasts are statistically significant, and the closest signal is Case configuration: Humanities victim x Engineering negotiator with a negative association (p = 0.097). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.002) and Empathy: Empathic concern with a negative association (p = 0.016). Non-parametric conclusion: the available models do not support the hypothesis. Model A does not support the hypothesis; none of the betrayal-sample case-configuration contrasts are statistically significant, and the closest signal is Case configuration: Humanities victim x Engineering negotiator with a negative association (p = 0.458). Model B does not support the hypothesis; none of the betrayal-sample case-configuration contrasts are statistically significant, and the closest signal is Case configuration: Humanities victim x Engineering negotiator with a negative association (p = 0.499). Additional statistically significant signals include Age with a positive association (p = 0.003) and Observer role (ref = victim) with a positive association (p = 0.007).
+- H2b. Original hypothesis: Relational judgments are interpreted through explicit victim x negotiator case configurations such as Hum_x_Ing, Hum_x_Control, Ing_x_Hum, Ing_x_Ing, and Ing_x_Control. Tobit conclusion: the available models do not support the hypothesis. Model A does not support the hypothesis; none of the accepted-sample case-configuration contrasts are statistically significant, and the closest signal is Case configuration: Humanities victim x Engineering negotiator with a negative association (p = 0.065). Model B does not support the hypothesis; none of the accepted-sample case-configuration contrasts are statistically significant, and the closest signal is Case configuration: Humanities victim x Engineering negotiator with a negative association (p = 0.095). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.004) and Empathy: Empathic concern with a negative association (p = 0.025). Non-parametric conclusion: the available models do not support the hypothesis. Only non-parametric specifications with available cluster-bootstrap inference are interpreted here. Model A is not interpreted because the non-parametric optimization did not converge after 2000 iterations. Model B does not support the hypothesis; none of the accepted-sample case-configuration contrasts are statistically significant, and the closest signal is Case configuration: Humanities victim x Engineering negotiator with a negative association (p = 0.595). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.016) and Age with a positive association (p = 0.025).
 - H3. Original hypothesis: The empathy effect may vary across explicit victim x negotiator pairings, so moderation is modeled through empathy interactions with case-configuration contrasts. Tobit conclusion: the available models support the hypothesis. Model A supports the hypothesis through Case configuration: Humanities victim x Engineering negotiator x Empathy composite (average) with a negative association (p = 0.049). Model B supports the hypothesis through Case configuration: Engineering victim x Humanities negotiator x Empathy: Empathic concern with a negative association (p < 0.001) and Case configuration: Engineering victim x Humanities negotiator x Empathy: Personal distress with a positive association (p = 0.015). Additional statistically significant signals include Observer role (ref = victim) with a positive association (p = 0.004) and Age with a positive association (p = 0.032). Non-parametric conclusion: no converged second-phase non-parametric model is available, so the robustness check is inconclusive for this hypothesis.
 
 ## PDF Comprehensive Report Generated
