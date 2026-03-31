@@ -22,7 +22,7 @@ get_dataset_narration <- function(dataset_mode = "BOTH") {
     "with standardized negotiation scenarios where a negotiator's decision resulted in varying degrees of payoff for ",
     "themselves, their own group, and a victim group. Under ",
     get_case_configuration_option_label(),
-    ", each judgment is treated as relational and linked both to a descriptive victim x negotiator scenario shorthand and to hypothesis-specific predictors for judged negotiator status, decision outcome, and additional relational controls."
+    ", each judgment is treated as relational and linked both to a descriptive victim x negotiator scenario shorthand and to hypothesis-specific predictors for negotiator-side structure, observer-side victim alignment when applicable, and additional relational controls."
   )
 }
 
@@ -33,9 +33,19 @@ get_math_foundations <- function() {
     "strictly bounded within a known interval. In this context, negotiator-specific moral judgments ($y_{isjr}$) are observed on a scale from -9 to 9. ",
     "The Tobit model assumes the existence of a latent, unobserved preference index ($y^*_{isjr}$) that follows a linear relationship. ",
     get_case_configuration_option_text(latex = TRUE),
-    " H1 retains accepted-sample victim x judged-negotiator case contrasts, while H2 and H3 use judged-negotiator status, decision outcome, their interaction, and additional relational controls:",
+    " H1 retains accepted-sample victim x judged-negotiator case contrasts. H2 now uses subset-specific relational-structure blocks, and H3 retains the judged-status, decision, and empathy-interaction design:",
     "",
-    "$$y^*_{isjr} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\beta}_2' G_{isjr} + \\beta_3 A_{is} + \\boldsymbol{\\beta}_4' (G_{isjr} \\times A_{is}) + \\boldsymbol{\\beta}_5' C_{isjr} + \\epsilon_{isjr}, \\quad \\epsilon_{isjr} \\sim N(0, \\sigma^2)$$",
+    "Victim-subset H2:",
+    "",
+    "$$y^*_{isj,Victim} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\gamma}' \\mathbf{S}^{(V)}_{isj} + \\boldsymbol{\\delta}' \\mathbf{Z}_i + \\epsilon_{isj}$$",
+    "",
+    "Bystander-subset H2:",
+    "",
+    "$$y^*_{isj,Obs} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\gamma}' \\mathbf{S}^{(O)}_{isj} + \\eta V_{is} + \\boldsymbol{\\theta}' (\\mathbf{S}^{(O)}_{isj} \\times V_{is}) + \\boldsymbol{\\delta}' \\mathbf{Z}_i + \\epsilon_{isj}$$",
+    "",
+    "H3:",
+    "",
+    "$$y^*_{isjr} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\beta}_2' G_{isjr} + \\beta_3 A_{is} + \\boldsymbol{\\beta}_4' (G_{isjr} \\times A_{is}) + \\boldsymbol{\\beta}_5' (\\text{Empathy}_i \\times G_{isjr}) + \\boldsymbol{\\beta}_6' C_{isjr} + \\epsilon_{isjr}, \\quad \\epsilon_{isjr} \\sim N(0, \\sigma^2)$$",
     "",
     "The actual observed judgment $y_{isjr}$ relates to this latent variable via the censoring transformation:",
     "",
@@ -87,6 +97,8 @@ get_symbols_dictionary <- function() {
       "$Q_{0.5}(y^*_{isjr} \\mid \\mathbf{x}_{isjr})$",
       "$\\text{IRI}_i$",
       "$\\text{CaseConfig}_{isjr}$",
+      "$\\mathbf{S}_{isj}$",
+      "$V_{is}$",
       "$G_{isjr}$",
       "$A_{is}$",
       "$C_{isjr}$",
@@ -100,9 +112,11 @@ get_symbols_dictionary <- function() {
       "Conditional median of the latent bounded outcome given the predictors.",
       "Empathy score (Average composite of the Interpersonal Reactivity Index).",
       "Judgment-level relational shorthand retained only for backward compatibility with older descriptive artifacts.",
-      "Judged negotiator relational status (ingroup, outgroup, or control) defined relative to the role-relevant reference actor.",
-      "Decision indicator distinguishing Accept from Reject.",
-      "Additional relational controls, including counterpart negotiator status, observer-side victim alignment, role, and demographic controls.",
+      "Negotiator-side structure block encoding the judged and counterpart negotiators jointly within a judgment row.",
+      "Observer-side player-victim outgroup indicator used only in the bystander H2 specification.",
+      "Judged negotiator relational status (ingroup, outgroup, or control) defined relative to the role-relevant reference actor for H3.",
+      "Decision indicator distinguishing Accept from Reject for H3.",
+      "Additional controls, including participant demographics, slot effects, and the remaining relational terms not absorbed by the main H2/H3 blocks.",
       "Intraclass Correlation: ratio of between-cluster variance to total variance."
     ),
     stringsAsFactors = FALSE

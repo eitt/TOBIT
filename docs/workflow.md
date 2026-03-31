@@ -49,8 +49,11 @@ Before the analytical steps begin, `run_pipeline.R` clears the existing generate
   - `counterpart_outgroup`
   - `counterpart_control`
   - `observer_victim_outgroup`
-- These variables encode the judged negotiator's ingroup/outgroup/control status, the counterpart negotiator's corresponding status, and, for observer rows, whether the victim is ingroup or outgroup relative to the participant.
-- Splits the long data into `judgments_analysis.csv` (full sample), `judgments_accept_only.csv` (accepted-decision subset used by H1), and `judgments_betrayal_only.csv` (full judgment subset excluding scenarios with any control-labeled negotiator, used by H2a).
+  - `h2_negotiator_structure`
+  - `player_victim_alignment`
+  - `player_victim_outgroup`
+- These variables encode the judged negotiator's ingroup/outgroup/control status, the counterpart negotiator's corresponding status, and, for observer rows, whether the victim is ingroup or outgroup relative to the participant. `h2_negotiator_structure` makes the judged-plus-counterpart configuration explicit for H2.
+- Splits the long data into `judgments_analysis.csv` (full sample), `judgments_victim.csv` (victim subset), `judgments_bystander.csv` (observer subset), and `judgments_accept_only.csv` (accepted-decision subset used by H1).
 
 ### 5. Descriptive Statistics (`R/05_descriptive_statistics.R`)
 - Implements grouped summaries using strict missing-value safety functions (`safe_mean`, `safe_sd`).
@@ -58,11 +61,10 @@ Before the analytical steps begin, `run_pipeline.R` clears the existing generate
 - Generates `empathy_summary.csv`, `participant_summary.csv`, `judgement_summary.csv`, and the remaining descriptive summary tables.
 
 ### 6. Run Hypothesis-Specific Models (`R/hypotheses/*`)
-Each of the 4 hypotheses has its own isolated script that sets up its explicit bounded-outcome formula, estimates a clustered Tobit model using interval boundaries (-9 and 9), then fits a non-parametric robustness companion as interval-censored median regression. The non-parametric branch first fits the full sample once and, if that fit converges, immediately launches participant-level cluster bootstrap inference by resampling ids with replacement while retaining all repeated observations from each sampled participant. Repeated observations from the same participant are therefore handled inferentially in both branches, with `id` serving only as the clustering unit. If too few bootstrap refits converge, the workflow carries that forward as a sparse-bootstrap status rather than presenting the non-parametric branch as fully inferential.
+Each of the 3 hypothesis families has its own isolated script that sets up its explicit bounded-outcome formula, estimates a clustered Tobit model using interval boundaries (-9 and 9), then fits a non-parametric robustness companion as interval-censored median regression. The non-parametric branch first fits the full sample once and, if that fit converges, immediately launches participant-level cluster bootstrap inference by resampling ids with replacement while retaining all repeated observations from each sampled participant. Repeated observations from the same participant are therefore handled inferentially in both branches, with `id` serving only as the clustering unit. If too few bootstrap refits converge, the workflow carries that forward as a sparse-bootstrap status rather than presenting the non-parametric branch as fully inferential.
 
 - `H1_test.R`: Uses empathy plus accepted-sample judged-negotiator, counterpart, and observer-side victim relational controls to estimate the empathy effect under Option 2.
-- `H2a_test.R`: Uses judged-negotiator outgroup status, `decision_accept`, and their interaction in the non-control sample, while controlling for counterpart status and observer-side victim alignment.
-- `H2b_test.R`: Uses judged-negotiator ingroup/outgroup/control status, `decision_accept`, and their interaction in the full judgment sample, with the same relational controls retained.
+- `H2_test.R`: Uses `h2_negotiator_structure` in both subsets. In the victim subset, H2 tests the judged-plus-counterpart structure directly. In the bystander subset, it additionally includes `player_victim_outgroup` and the interaction between `player_victim_outgroup` and the negotiator-side structure block.
 - `H3_test.R`: Uses empathy x judged-negotiator-status interactions while retaining decision outcome, judged-status x decision terms, counterpart status, and observer-side victim alignment.
 
 ### 7. Export Tables and Figures (`Outputs directory`)

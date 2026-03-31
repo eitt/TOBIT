@@ -27,6 +27,14 @@ sanitize_identifier <- function(x) {
 }
 
 get_binary_value_labels <- function(var_name) {
+  if (grepl("^h2_negstruct_", var_name)) {
+    structure_label <- label_h2_negotiator_structure_term(var_name)
+    return(c(
+      "0" = "Reference structure: judged ingroup, counterpart ingroup",
+      "1" = sub("^Negotiator-side structure: ", "", structure_label)
+    ))
+  }
+
   if (grepl("^case_[a-z]+_x_[a-z]+$", var_name)) {
     case_label <- gsub("^case_", "", var_name)
     case_label <- gsub("^hum", "Hum", case_label)
@@ -64,6 +72,7 @@ get_binary_value_labels <- function(var_name) {
     counterpart_outgroup = c("0" = "Counterpart negotiator ingroup", "1" = "Counterpart negotiator outgroup"),
     counterpart_control = c("0" = "Counterpart negotiator ingroup", "1" = "Counterpart negotiator control label hidden"),
     observer_victim_outgroup = c("0" = "Victim ingroup or victim-role row", "1" = "Observer-side victim outgroup"),
+    player_victim_outgroup = c("0" = "Player and victim ingroup-aligned", "1" = "Player and victim outgroup-aligned"),
     role_observer = c("0" = "Victim role", "1" = "Observer role"),
     participant_engineering = c("0" = "Humanities participant", "1" = "Engineering participant"),
     sex_man = c("0" = "Woman", "1" = "Man"),
@@ -73,6 +82,10 @@ get_binary_value_labels <- function(var_name) {
 }
 
 get_plot_axis_label <- function(var_name) {
+  if (grepl("^h2_negstruct_", var_name)) {
+    return("Negotiator-side structure contrast")
+  }
+
   if (grepl("^case_[a-z]+_x_[a-z]+$", var_name)) {
     return("Case-configuration contrast")
   }
@@ -83,6 +96,7 @@ get_plot_axis_label <- function(var_name) {
     participant_engineering = "Participant group",
     sex_man = "Participant sex",
     decision_accept = "Decision outcome",
+    player_victim_outgroup = "Player-victim alignment",
     negotiator_slot = "Negotiator slot",
     analytic_case_configuration = "Role-dependent judgment configuration",
     analytic_case_configuration_decision = "Judgment configuration x decision context",

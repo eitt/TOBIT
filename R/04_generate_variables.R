@@ -43,6 +43,8 @@ for (row_id in seq_len(nrow(participants))) {
       NA_character_
     }
     
+    # Each vignette contributes two judgment-level rows because the participant
+    # evaluates both negotiators separately within the same scenario.
     for (slot in 1:2) {
       neg_faculty <- as.integer(row[[sprintf("faculty_neg_%d_s%d", slot, stage)]])
       counterpart_slot <- ifelse(slot == 1L, 2L, 1L)
@@ -127,6 +129,7 @@ for (row_id in seq_len(nrow(participants))) {
 judgments_all <- do.call(rbind, long_rows)
 judgments_all <- add_case_configuration_columns(judgments_all)
 judgments_all <- add_analytic_case_configuration_columns(judgments_all)
+judgments_all <- add_h2_relational_structure_columns(judgments_all)
 
 # Filter for relevant analytical datasets
 judgments_analysis <- judgments_all[judgments_all$analysis_include == TRUE, , drop = FALSE]

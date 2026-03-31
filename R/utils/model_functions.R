@@ -81,6 +81,7 @@ label_term <- function(term) {
     "counterpart_outgroup" = "Counterpart negotiator outgroup (ref = ingroup)",
     "counterpart_control" = "Counterpart negotiator control label hidden (ref = ingroup)",
     "observer_victim_outgroup" = "Observer-side victim outgroup (ref = ingroup victim)",
+    "player_victim_outgroup" = "Player-victim outgroup (ref = ingroup victim)",
     "iri_total:perp_outgroup" = "Empathy x outgroup perpetrator",
     "iri_total:perp_control" = "Empathy x control label hidden",
     "decision_accept:judged_outgroup" = "Accepted harmful deal x judged negotiator outgroup",
@@ -131,6 +132,10 @@ label_term <- function(term) {
   case_label <- label_case_configuration_term(term_key)
   if (!identical(case_label, term_key)) {
     return(case_label)
+  }
+  h2_structure_label <- label_h2_negotiator_structure_term(term_key)
+  if (!identical(h2_structure_label, term_key)) {
+    return(h2_structure_label)
   }
   if (grepl(":", term_key, fixed = TRUE)) {
     term_parts <- strsplit(term_key, ":", fixed = TRUE)[[1]]

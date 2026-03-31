@@ -6,7 +6,7 @@ The primary dependent variable, `judgement`, is arbitrarily bounded strictly bet
 ## Option 2: Judgment-Level Relational Modeling
 The repository now prioritizes **Option 2** when the substantive question is relational. Instead of centering the analysis on descriptive victim x negotiator case labels, the executable models use judgment-level relational predictors for the judged negotiator, the counterpart negotiator, and, in observer rows, the victim.
 
-For H1, the design matrix conditions on judged-negotiator, counterpart, and observer-side victim relational controls. For H2 and H3, it additionally includes `decision_accept` and the judged-status x decision interaction.
+For H1, the design matrix conditions on judged-negotiator, counterpart, and observer-side victim relational controls. For H2, the victim subset uses the joint judged-plus-counterpart structure, and the bystander subset adds `player_victim_outgroup` plus its interaction with that negotiator-side structure. H3 retains `decision_accept` and the judged-status x decision interaction.
 
 ## Why the Non-Parametric Robustness Model Has Been Added
 Because the Tobit likelihood relies on a Gaussian latent-error assumption, the project also estimates a distribution-robust censored median specification. In practice, this is implemented as interval-censored median quantile regression (`p = 0.5`) so the censoring structure is respected while the estimator becomes less sensitive to non-normal latent disturbances and heavy-tailed behavior.
@@ -28,13 +28,29 @@ Both branches share the same endpoint preparation inside `R/utils/model_function
 - Generates `upper_endpoint`
 This handles data prep uniformly before model convergence.
 
-Under Option 2, the design matrix for the relational hypotheses H2 and H3 typically has the form
+Under Option 2, the H2 victim-subset design matrix has the form
 
 $$
-y^*_{isjr} = \beta_0 + \beta_1 \text{Empathy}_i + \boldsymbol{\beta}_2' G_{isjr} + \beta_3 A_{is} + \boldsymbol{\beta}_4' (G_{isjr} \times A_{is}) + \boldsymbol{\beta}_5' C_{isjr} + \epsilon_{isjr}
+y^*_{isj,Victim} = \beta_0 + \beta_1 \text{Empathy}_i + \boldsymbol{\gamma}' \mathbf{S}^{(V)}_{isj} + \boldsymbol{\delta}' \mathbf{Z}_i + \epsilon_{isj}
 $$
 
-where `G` denotes judged-negotiator relational status, `A` denotes the Accept/Reject decision indicator, and `C` denotes the additional relational controls. H1 remains the accepted-sample empathy specification with judged-negotiator, counterpart, and observer-side victim relational controls.
+where `S^(V)` denotes the negotiator-side structure dummies built from the judged negotiator plus the counterpart negotiator, with `J_In__C_In` as the reference configuration.
+
+For the H2 bystander subset, the design matrix becomes
+
+$$
+y^*_{isj,Obs} = \beta_0 + \beta_1 \text{Empathy}_i + \boldsymbol{\gamma}' \mathbf{S}^{(O)}_{isj} + \eta V_{is} + \boldsymbol{\theta}' (\mathbf{S}^{(O)}_{isj} \times V_{is}) + \boldsymbol{\delta}' \mathbf{Z}_i + \epsilon_{isj}
+$$
+
+where `V` denotes `player_victim_outgroup`, the ingroup/outgroup relation between the observing player and the victim.
+
+H3 remains the decision-conditioned judged-status model:
+
+$$
+y^*_{isjr} = \beta_0 + \beta_1 \text{Empathy}_i + \boldsymbol{\beta}_2' G_{isjr} + \beta_3 A_{is} + \boldsymbol{\beta}_4' (G_{isjr} \times A_{is}) + \boldsymbol{\beta}_5' (\text{Empathy}_i \times G_{isjr}) + \boldsymbol{\beta}_6' C_{isjr} + \epsilon_{isjr}
+$$
+
+H1 remains the accepted-sample empathy specification with judged-negotiator, counterpart, and observer-side victim relational controls.
 
 ## Standard Errors 
 The Tobit branch natively adjusts parameter variance around clustered participant IDs (`robust = TRUE`). This corrects potential issues seen in repeated-measure evaluations stemming from one rater generating multiple subsequent evaluations.

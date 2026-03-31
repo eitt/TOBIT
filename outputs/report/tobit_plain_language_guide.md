@@ -1,7 +1,7 @@
 # Guia sencilla para leer el informe TOBIT
 
 Base analizada: **Bucaramanga**
-Generado el: **2026-03-30 20:25:44**
+Generado el: **2026-03-30 21:13:11**
 
 Hola Diego, he creado este documento para orientar de manera un poco mas sencilla la lectura del informe.
 
@@ -43,7 +43,7 @@ Estas variables no miden una cantidad continua. Lo que hacen es comparar grupos,
 
 ### 1.3 La separacion en Subconjuntos (Victima y Observador)
 
-A diferencia de versiones anteriores, el analisis ya no se divide segun si la gente acepto o traiciono. Ahora **todos los modelos** se corren dos veces: una vez exclusivamente para el subconjunto donde el participante actuo como **Victima**, y otra vez para el subconjunto donde actuo como **Observador (Bystander)**. En ambos subconjuntos, la decision (aceptar o rechazar el trato danino) se incluye siempre como un predictor.
+A diferencia de versiones anteriores, el analisis ya no se divide segun si la gente acepto o traiciono. Ahora **todos los modelos** se corren dos veces: una vez exclusivamente para el subconjunto donde el participante actuo como **Victima**, y otra vez para el subconjunto donde actuo como **Observador (Bystander)**. H1 y H3 retienen la decision como predictor; H2 se centra en la estructura relacional del juicio por negociador y, en Observador, en la relacion jugador-victima.
 
 ### 1.4 Interpretacion de Interacciones
 
@@ -108,16 +108,19 @@ judged_control = 1 si el negociador juzgado esta en control, 0 si no
 counterpart_outgroup = 1 si la contraparte es outgroup, 0 si no
 counterpart_control = 1 si la contraparte esta en control, 0 si no
 observer_victim_outgroup = 1 si en filas de observador la victima es outgroup, 0 si no
+h2_negotiator_structure = estructura conjunta del negociador juzgado y la contraparte dentro del mismo juicio
+player_victim_outgroup = 1 si en Observador el jugador y la victima no comparten facultad, 0 si la comparten
 ```
 
-Esto permite nombrar cada escena de una forma mas clara y, en H2 y H3, modelar de forma directa el estatus del negociador juzgado y su cruce con la decision.
+Esto permite nombrar cada escena de una forma mas clara y, en H2, modelar la estructura conjunta juzgado-contraparte y su cruce con jugador-victima en Observador.
 
 ### 3.5 Subconjuntos analiticos
 
 ```text
 judgments_analysis = filas en formato largo con analysis_include = TRUE
-judgments_accept = filas de judgments_analysis donde decision_accept = 1
-judgments_betrayal = filas de judgments_analysis donde ningun negociador del escenario esta en control
+judgments_victim = filas de judgments_analysis donde role = victim
+judgments_bystander = filas de judgments_analysis donde role = observer
+judgments_accept = filas usadas por H1 cuando decision_accept = 1
 ```
 
 ## 4. Hipotesis explicadas de manera sencilla
@@ -143,47 +146,28 @@ Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + judged_outgroup + judged_control +
 
 En H1, los controles relacionales que entran son `judged_outgroup`, `judged_control`, `counterpart_outgroup`, `counterpart_control`, `observer_victim_outgroup`. En ambos subconjuntos, el Modelo B conserva las cuatro subescalas de empatia (`iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`), mientras que ambos modelos retienen `decision_accept`, `sex_man`, `age` y `economic_status`. `observer_victim_outgroup` solo varia cuando aplica y `role_observer` queda fijo dentro de cada subconjunto.
 
-### H2a: estatus relacional del negociador x decision sin escenarios control
+### H2: estructura relacional del juicio por negociador
 
-Pregunta simple: cuando quitamos los escenarios con negociadores control, cambia el juicio segun si el negociador juzgado es ingroup u outgroup y segun si acepto o rechazo el trato danino?
+Pregunta simple: cambia el juicio moral cuando cambia la estructura conjunta del negociador juzgado y de la contraparte, y en Observador ademas cuando cambia la relacion entre jugador y victima?
 
-- Muestra usada: Depende del subconjunto (Victima u Observador).
+- Muestra usada: Se estima por separado en Victima y Observador. Cada participante juzga dos veces por escenario, una vez por cada negociador, asi que H2 siempre trabaja al nivel juicio-por-negociador.
 
 Ecuacion sencilla:
 
 ```text
-judgement = estatus del negociador juzgado + decision + estatus x decision + empatia + controles relacionales
+Victima: judgement = estructura conjunta {juzgado, contraparte} + empatia + controles; Observador: judgement = estructura conjunta {juzgado, contraparte} + jugador-victima + estructura x jugador-victima + empatia + controles
 ```
 
 Version mas pegada al codigo:
 
 ```text
-Modelo A: judged_outgroup + decision_accept + judged_outgroup:decision_accept + iri_total + counterpart_outgroup + observer_victim_outgroup + role_observer + controles
-Modelo B: judged_outgroup + decision_accept + judged_outgroup:decision_accept + iri_fs + iri_ec + iri_pt + iri_pd + counterpart_outgroup + observer_victim_outgroup + role_observer + controles
+Victima, Modelo A: all h2_negstruct_* dummies + iri_total + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
+Victima, Modelo B: all h2_negstruct_* dummies + iri_fs + iri_ec + iri_pt + iri_pd + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
+Observador, Modelo A: all h2_negstruct_* dummies + player_victim_outgroup + player_victim_outgroup:h2_negstruct_* + iri_total + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
+Observador, Modelo B: all h2_negstruct_* dummies + player_victim_outgroup + player_victim_outgroup:h2_negstruct_* + iri_fs + iri_ec + iri_pt + iri_pd + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
 ```
 
-En H2a, `ingroup` es la referencia para el negociador juzgado y el termino central es la interaccion entre estatus relacional y decision.
-
-### H2b: estatus relacional del negociador x decision con control incluido
-
-Pregunta simple: cambia el juicio segun si el negociador juzgado es ingroup, outgroup o control y segun si acepto o rechazo el trato danino?
-
-- Muestra usada: Depende del subconjunto (Victima u Observador).
-
-Ecuacion sencilla:
-
-```text
-judgement = estatus del negociador juzgado + decision + estatus x decision + empatia + controles relacionales
-```
-
-Version mas pegada al codigo:
-
-```text
-Modelo A: judged_outgroup + judged_control + decision_accept + interacciones con decision + iri_total + controles relacionales
-Modelo B: judged_outgroup + judged_control + decision_accept + interacciones con decision + iri_fs + iri_ec + iri_pt + iri_pd + controles relacionales
-```
-
-En H2b, `ingroup` es la referencia para el negociador juzgado y la hipotesis central esta en los terminos de estatus relacional y su interaccion con `decision_accept`.
+La referencia de H2 es `J_In__C_In`, es decir, negociador juzgado ingroup y contraparte ingroup. En Observador, `player_victim_outgroup` compara victima outgroup contra victima ingroup, y las interacciones prueban si el efecto de la estructura negociador-contraparte cambia segun esa relacion jugador-victima.
 
 ### H3: interaccion entre empatia y estatus del negociador juzgado
 
@@ -213,7 +197,8 @@ Esta parte sirve para que los coeficientes se lean con mas tranquilidad.
 
 - En H1, tanto en Victima como en Observador, el Modelo A usa `iri_total` y el Modelo B usa `iri_fs`, `iri_ec`, `iri_pt` e `iri_pd`; ambos retienen `judged_outgroup`, `judged_control`, `counterpart_outgroup`, `counterpart_control`, `decision_accept`, `sex_man`, `age` y `economic_status`.
 - En H1, los controles centrales ya no dependen de etiquetas `Hum_x_...`; usan el estatus relacional del negociador juzgado, de la contraparte y de la victima cuando aplica, junto con `participant_engineering` y `factor(negotiator_slot)`.
-- En H2 y H3, los contrastes centrales usan el estatus del negociador juzgado (`judged_outgroup`, `judged_control`), la decision (`decision_accept`) y sus interacciones.
+- En H2, el subconjunto Victima usa la estructura conjunta `h2_negotiator_structure`; el subconjunto Observador usa esa misma estructura, `player_victim_outgroup`, y sus interacciones.
+- En H3, los contrastes centrales siguen usando el estatus del negociador juzgado (`judged_outgroup`, `judged_control`), la decision (`decision_accept`) y sus interacciones.
 - `role_observer = 1` significa observador y `0` significa victima.
 - `participant_engineering = 1` significa que el participante es de Ingenieria y `0` que es de Humanidades.
 - `sex_man = 1` significa hombre y `0` mujer.
@@ -223,9 +208,9 @@ Esta parte sirve para que los coeficientes se lean con mas tranquilidad.
 
 ### Como leer un coeficiente de caso
 
-Si el coeficiente de `judged_outgroup` es negativo, eso quiere decir que el negociador juzgado recibe un juicio mas negativo cuando es outgroup que cuando es ingroup, manteniendo lo demas constante.
+Si el coeficiente de una dummy `h2_negstruct_*` es negativo, eso quiere decir que esa estructura juzgado-contraparte recibe un juicio mas negativo que la estructura de referencia `J_In__C_In`, manteniendo lo demas constante.
 
-Si una interaccion como `decision_accept:judged_outgroup` es negativa, eso quiere decir que la diferencia entre aceptar y rechazar se vuelve mas severa cuando el negociador juzgado es outgroup.
+Si una interaccion como `player_victim_outgroup:h2_negstruct_*` es negativa, eso quiere decir que esa estructura negociador-contraparte se vuelve todavia mas severa cuando, en Observador, el jugador y la victima son de grupos distintos.
 
 Si una interaccion como `iri_total:judged_outgroup` es negativa, eso quiere decir que la pendiente de empatia es mas negativa cuando el negociador juzgado es outgroup que cuando es ingroup.
 
@@ -247,8 +232,7 @@ Esta guia se apoya especialmente en estos archivos del proyecto:
 - `R/03_transform_data.R`
 - `R/04_generate_variables.R`
 - `R/hypotheses/H1_test.R`
-- `R/hypotheses/H2a_test.R`
-- `R/hypotheses/H2b_test.R`
+- `R/hypotheses/H2_test.R`
 - `R/hypotheses/H3_test.R`
 
 ## 8. Cierre

@@ -3,5 +3,5 @@
 "Victim","H2","None"
 "Victim","H3","Personal distress x judged negotiator outgroup*; Empathic concern x judged negotiator outgroup*; Empathy x judged negotiator outgroup*; Empathy x judged negotiator control label hidden+"
 "Bystander","H1","Empathy: Perspective taking*; Empathy: Fantasy scale*"
-"Bystander","H2","None"
+"Bystander","H2","Negotiator-side structure: judged negotiator ingroup, counterpart negotiator outgroup (ref = judged negotiator ingroup, counterpart negotiator ingroup) x Player-victim outgroup (ref = ingroup victim)*; Negotiator-side structure: judged negotiator outgroup, counterpart negotiator ingroup (ref = judged negotiator ingroup, counterpart negotiator ingroup)+"
 "Bystander","H3","Empathy x judged negotiator control label hidden**; Personal distress x judged negotiator outgroup*"

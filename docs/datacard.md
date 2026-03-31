@@ -334,8 +334,14 @@ After `R/04_generate_variables.R` reshapes the data to the negotiator-level long
   Dummy equal to `1` when the counterpart negotiator is in the control / unlabeled condition.
 - `observer_victim_outgroup`
   Dummy equal to `1` only for observer-role rows where the victim is outgroup relative to the participant.
+- `h2_negotiator_structure`
+  Joint H2 predictor encoding the judged negotiator and the counterpart negotiator within the same judgment row (reference `J_In__C_In`).
+- `player_victim_alignment`
+  Observer-side victim relation to the player recoded explicitly for H2 (`In` or `Out`).
+- `player_victim_outgroup`
+  Dummy equal to `1` only for observer-role rows where the player and victim are outgroup relative to each other.
 
-For H1 and descriptive summaries, the compact `case_configuration` shorthand remains useful. For H2 and H3, the executable models now use the decomposed judged-negotiator relational predictors, `decision_accept`, the judged-status x decision interaction, and the additional relational controls above. Legacy isolated indicators such as `perp_outgroup`, `victim_outgroup`, and `same_group_harm` remain available for backward comparison only.
+For H1 and descriptive summaries, the compact `case_configuration` shorthand remains useful. For H2, the executable models now use the explicit `h2_negotiator_structure` block and, in observer rows, `player_victim_outgroup` plus its interaction with that structure. H3 continues to use judged-negotiator status, `decision_accept`, the judged-status x decision interaction, and the additional relational controls above. Legacy isolated indicators such as `perp_outgroup`, `victim_outgroup`, and `same_group_harm` remain available for backward comparison only.
 
 ---
 
@@ -346,14 +352,11 @@ The executable hypotheses in `docs/hypotheses.md` map onto the processed long-fo
 - **H1 (`R/hypotheses/H1_test.R`)**
   Uses `data/processed/judgments_accept_only.csv`. The core modeled terms are `iri_total` in Model A or `iri_fs`, `iri_ec`, `iri_pt`, and `iri_pd` in Model B, plus the relational controls `judged_outgroup`, `judged_control`, `counterpart_outgroup`, `counterpart_control`, `observer_victim_outgroup`, and `role_observer`.
 
-- **H2a (`R/hypotheses/H2a_test.R`)**
-  Uses `data/processed/judgments_betrayal_only.csv`. This subset excludes any scenario with a control-labeled negotiator. The core modeled terms are `judged_outgroup`, `decision_accept`, `judged_outgroup:decision_accept`, plus empathy controls and the relational controls `counterpart_outgroup`, `observer_victim_outgroup`, and `role_observer`.
-
-- **H2b (`R/hypotheses/H2b_test.R`)**
-  Uses `data/processed/judgments_analysis.csv`. The core modeled terms are `judged_outgroup`, `judged_control`, `decision_accept`, the judged-status x decision interactions, plus empathy controls and the relational controls `counterpart_outgroup`, `counterpart_control`, `observer_victim_outgroup`, and `role_observer`.
+- **H2 (`R/hypotheses/H2_test.R`)**
+  Uses `data/processed/judgments_victim.csv` and `data/processed/judgments_bystander.csv`. In the victim subset, the core modeled terms are the `h2_negstruct_*` dummies derived from the judged-plus-counterpart structure. In the bystander subset, the core modeled terms are the same `h2_negstruct_*` dummies, `player_victim_outgroup`, and the `player_victim_outgroup:h2_negstruct_*` interactions. Both H2 models retain empathy controls and the participant controls `participant_engineering`, `sex_man`, `age`, `economic_status`, and `factor(negotiator_slot)`.
 
 - **H3 (`R/hypotheses/H3_test.R`)**
-  Uses `data/processed/judgments_analysis.csv`. The core modeled terms are empathy x judged-status interactions (`iri_total` in Model A; empathy-subscale terms in Model B), while also retaining judged status, `decision_accept`, judged-status x decision interactions, and the same relational controls as H2b.
+  Uses `data/processed/judgments_analysis.csv`. The core modeled terms are empathy x judged-status interactions (`iri_total` in Model A; empathy-subscale terms in Model B), while also retaining judged status, `decision_accept`, judged-status x decision interactions, counterpart status, and observer-side victim alignment.
 
 This mapping matters because the dynamic report, significance summary tables, and generated figures all read these same processed subsets and term definitions when deciding which coefficients are hypothesis-relevant.
 

@@ -9,9 +9,32 @@ inline_code_list_text <- function(x) {
   paste(sprintf("`%s`", x), collapse = ", ")
 }
 
+resolve_subset_component <- function(component, subset_role = NULL) {
+  if (is.null(subset_role) || is.null(component) || !is.list(component)) {
+    return(component)
+  }
+  if (!is.null(names(component)) && subset_role %in% names(component)) {
+    return(component[[subset_role]])
+  }
+  component
+}
+
+get_hypothesis_primary_terms <- function(spec, model_suffix, subset_role = NULL) {
+  component <- spec$primary_terms[[model_suffix]]
+  resolve_subset_component(component, subset_role = subset_role)
+}
+
+get_hypothesis_model_terms <- function(spec, model_suffix, subset_role = NULL) {
+  component <- spec$model_terms[[model_suffix]]
+  resolve_subset_component(component, subset_role = subset_role)
+}
+
+get_hypothesis_formula_rhs <- function(spec, model_suffix, subset_role = NULL) {
+  component <- spec$formula_rhs[[model_suffix]]
+  resolve_subset_component(component, subset_role = subset_role)
+}
+
 get_hypothesis_specs <- function(paths = get_project_paths()) {
-  accepted_case_terms <- get_case_configuration_term_names(reference = "Hum_x_Hum", include_control = TRUE)
-  betrayal_case_terms <- get_case_configuration_term_names(reference = "Hum_x_Hum", include_control = FALSE)
   h1_relational_terms <- c(
     "judged_outgroup",
     "judged_control",
@@ -27,19 +50,18 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
   judged_scale_interactions_full <- as.vector(
     outer(c("iri_fs", "iri_ec", "iri_pt", "iri_pd"), judged_terms_full, paste, sep = ":")
   )
-  accepted_total_interactions <- get_case_configuration_interaction_terms(
-    "iri_total",
-    reference = "Hum_x_Hum",
-    include_control = TRUE
-  )
-  accepted_scale_interactions <- get_case_configuration_interaction_terms(
-    c("iri_fs", "iri_ec", "iri_pt", "iri_pd"),
-    reference = "Hum_x_Hum",
-    include_control = TRUE
-  )
+  h2_structure_terms <- get_h2_negotiator_structure_term_names(reference = "J_In__C_In", include_control = TRUE)
+  h2_bystander_interactions <- paste("player_victim_outgroup", h2_structure_terms, sep = ":")
   control_terms <- c(
     "decision_accept",
     "role_observer",
+    "participant_engineering",
+    "sex_man",
+    "age",
+    "economic_status",
+    "factor(negotiator_slot)"
+  )
+  subset_participant_control_terms <- c(
     "participant_engineering",
     "sex_man",
     "age",
@@ -77,16 +99,17 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
     "factor(negotiator_slot)"
   )
   control_rhs <- paste(control_terms, collapse = " + ")
+  subset_participant_control_rhs <- paste(subset_participant_control_terms, collapse = " + ")
   analytic_control_rhs <- paste(analytic_control_terms, collapse = " + ")
-  accepted_case_rhs <- paste(accepted_case_terms, collapse = " + ")
-  betrayal_case_rhs <- paste(betrayal_case_terms, collapse = " + ")
-  accepted_total_interactions_rhs <- paste(accepted_total_interactions, collapse = " + ")
-  accepted_scale_interactions_rhs <- paste(accepted_scale_interactions, collapse = " + ")
   h1_relational_rhs <- paste(h1_relational_terms, collapse = " + ")
   judged_rhs_full <- paste(c(judged_terms_full, judged_decision_terms_full, "iri_total", judged_control_terms_full), collapse = " + ")
   judged_rhs_full_scales <- paste(c(judged_terms_full, judged_decision_terms_full, "iri_fs", "iri_ec", "iri_pt", "iri_pd", judged_control_terms_full), collapse = " + ")
   judged_rhs_no_control <- paste(c(judged_terms_no_control, judged_decision_terms_no_control, "iri_total", judged_control_terms_no_control), collapse = " + ")
   judged_rhs_no_control_scales <- paste(c(judged_terms_no_control, judged_decision_terms_no_control, "iri_fs", "iri_ec", "iri_pt", "iri_pd", judged_control_terms_no_control), collapse = " + ")
+  h2_victim_rhs_total <- paste(c("iri_total", h2_structure_terms, subset_participant_control_terms), collapse = " + ")
+  h2_victim_rhs_scales <- paste(c("iri_fs", "iri_ec", "iri_pt", "iri_pd", h2_structure_terms, subset_participant_control_terms), collapse = " + ")
+  h2_bystander_rhs_total <- paste(c("iri_total", h2_structure_terms, "player_victim_outgroup", h2_bystander_interactions, subset_participant_control_terms), collapse = " + ")
+  h2_bystander_rhs_scales <- paste(c("iri_fs", "iri_ec", "iri_pt", "iri_pd", h2_structure_terms, "player_victim_outgroup", h2_bystander_interactions, subset_participant_control_terms), collapse = " + ")
   judged_empathy_rhs_full <- paste(
     c(
       "iri_total",
@@ -179,115 +202,98 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
       )
     ),
     list(
-      id = "H2a",
+      id = "H2",
       family_id = "H2",
-      family_short_label = "H2: Judged-status x decision contrasts",
-      family_focus_label = "Judged-status x decision contrasts",
+      family_short_label = "H2: Negotiator-side relational structure",
+      family_focus_label = "Negotiator-side relational structure",
       family_statement = paste(
-        "Moral-judgment severity will differ significantly as a function of relational",
-        "group membership, decision outcome, and their interaction."
+        "Moral-judgment severity will differ as a function of the judgment-level",
+        "ingroup/outgroup/control structure of the judged and counterpart negotiators,",
+        "with an additional player-victim alignment interaction in the bystander subset."
       ),
-      short_label = "H2a: Judged-status x decision contrasts without control scenarios",
-      focus_label = "Judged-status x decision contrasts without control scenarios",
-      script_path = "R/hypotheses/H2a_test.R",
+      short_label = "H2: Negotiator-side relational structure",
+      focus_label = "Negotiator-side relational structure",
+      script_path = "R/hypotheses/H2_test.R",
       data_path = "Subset dependent (Victim or Bystander)",
       sample_key = "subset",
       sample_label = "Full role-specific target sample",
       expected_direction = "either",
       statement = paste(
-        "Moral-judgment severity should vary with the judged negotiator's",
-        "ingroup-versus-outgroup status, and that relational effect should depend",
-        "on whether the harmful deal was accepted or rejected."
+        "Moral-judgment severity should vary with the judgment-level ingroup/outgroup/control",
+        "structure of the judged and counterpart negotiators. In the bystander subset,",
+        "that negotiator-side structure should further depend on whether the player and the victim",
+        "share faculty or not."
       ),
       dependent_variable = "judgement (-9 to 9)",
       primary_terms = list(
-        A = c(judged_terms_no_control, judged_decision_terms_no_control),
-        B = c(judged_terms_no_control, judged_decision_terms_no_control)
-      ),
-      case_terms = c(judged_terms_no_control, judged_decision_terms_no_control),
-      model_terms = list(
         A = list(
-          terms = c(judged_terms_no_control, judged_decision_terms_no_control),
-          description = "the judged-negotiator relational-status terms and their decision interaction in the non-control sample"
+          Victim = h2_structure_terms,
+          Bystander = c(h2_structure_terms, "player_victim_outgroup", h2_bystander_interactions)
         ),
         B = list(
-          terms = c(judged_terms_no_control, judged_decision_terms_no_control),
-          description = "the judged-negotiator relational-status terms and their decision interaction in the non-control sample"
+          Victim = h2_structure_terms,
+          Bystander = c(h2_structure_terms, "player_victim_outgroup", h2_bystander_interactions)
+        )
+      ),
+      case_terms = h2_structure_terms,
+      model_terms = list(
+        A = list(
+          Victim = list(
+            terms = h2_structure_terms,
+            description = "the negotiator-side ingroup/outgroup/control structure dummies in the victim subset"
+          ),
+          Bystander = list(
+            terms = c(h2_structure_terms, "player_victim_outgroup", h2_bystander_interactions),
+            description = "the negotiator-side structure, player-victim outgroup term, and their interaction in the bystander subset"
+          )
+        ),
+        B = list(
+          Victim = list(
+            terms = h2_structure_terms,
+            description = "the negotiator-side ingroup/outgroup/control structure dummies in the victim subset"
+          ),
+          Bystander = list(
+            terms = c(h2_structure_terms, "player_victim_outgroup", h2_bystander_interactions),
+            description = "the negotiator-side structure, player-victim outgroup term, and their interaction in the bystander subset"
+          )
         )
       ),
       formula_rhs = list(
-        A = judged_rhs_no_control,
-        B = judged_rhs_no_control_scales
-      ),
-      exclude_terms = c(judged_terms_no_control, judged_decision_terms_no_control),
-      plain_title = "H2a: estatus relacional del negociador x decision sin escenarios control",
-      plain_question = paste(
-        "cuando quitamos los escenarios con negociadores control, cambia el",
-        "juicio segun si el negociador juzgado es ingroup u outgroup y segun",
-        "si acepto o rechazo el trato danino?"
-      ),
-      plain_sample = "Depende del subconjunto (Victima u Observador).",
-      plain_equation = "judgement = estatus del negociador juzgado + decision + estatus x decision + empatia + controles relacionales",
-      plain_code_equations = c(
-        "Modelo A: judged_outgroup + decision_accept + judged_outgroup:decision_accept + iri_total + counterpart_outgroup + observer_victim_outgroup + role_observer + controles",
-        "Modelo B: judged_outgroup + decision_accept + judged_outgroup:decision_accept + iri_fs + iri_ec + iri_pt + iri_pd + counterpart_outgroup + observer_victim_outgroup + role_observer + controles"
-      ),
-      plain_term_note = "En H2a, `ingroup` es la referencia para el negociador juzgado y el termino central es la interaccion entre estatus relacional y decision."
-    ),
-    list(
-      id = "H2b",
-      family_id = "H2",
-      family_short_label = "H2: Judged-status x decision contrasts",
-      family_focus_label = "Judged-status x decision contrasts",
-      family_statement = paste(
-        "Moral-judgment severity will differ significantly as a function of relational",
-        "group membership, decision outcome, and their interaction."
-      ),
-      short_label = "H2b: Judged-status x decision contrasts with control included",
-      focus_label = "Judged-status x decision contrasts with control included",
-      script_path = "R/hypotheses/H2b_test.R",
-      data_path = "Subset dependent (Victim or Bystander)",
-      sample_key = "subset",
-      sample_label = "Full role-specific target sample",
-      expected_direction = "either",
-      statement = paste(
-        "Moral-judgment severity should vary with the judged negotiator's",
-        "ingroup-versus-outgroup-versus-control status, and that relational",
-        "effect should depend on whether the harmful deal was accepted or rejected."
-      ),
-      dependent_variable = "judgement (-9 to 9)",
-      primary_terms = list(
-        A = c(judged_terms_full, judged_decision_terms_full),
-        B = c(judged_terms_full, judged_decision_terms_full)
-      ),
-      case_terms = c(judged_terms_full, judged_decision_terms_full),
-      model_terms = list(
         A = list(
-          terms = c(judged_terms_full, judged_decision_terms_full),
-          description = "the judged-negotiator relational-status terms and their decision interaction in the full sample"
+          Victim = h2_victim_rhs_total,
+          Bystander = h2_bystander_rhs_total
         ),
         B = list(
-          terms = c(judged_terms_full, judged_decision_terms_full),
-          description = "the judged-negotiator relational-status terms and their decision interaction in the full sample"
+          Victim = h2_victim_rhs_scales,
+          Bystander = h2_bystander_rhs_scales
         )
       ),
-      formula_rhs = list(
-        A = judged_rhs_full,
-        B = judged_rhs_full_scales
-      ),
-      exclude_terms = c(judged_terms_full, judged_decision_terms_full),
-      plain_title = "H2b: estatus relacional del negociador x decision con control incluido",
+      exclude_terms = c(h2_structure_terms, "player_victim_outgroup", h2_bystander_interactions),
+      plain_title = "H2: estructura relacional del juicio por negociador",
       plain_question = paste(
-        "cambia el juicio segun si el negociador juzgado es ingroup, outgroup o",
-        "control y segun si acepto o rechazo el trato danino?"
+        "cambia el juicio moral cuando cambia la estructura conjunta del negociador juzgado",
+        "y de la contraparte, y en Observador ademas cuando cambia la relacion entre jugador y victima?"
       ),
-      plain_sample = "Depende del subconjunto (Victima u Observador).",
-      plain_equation = "judgement = estatus del negociador juzgado + decision + estatus x decision + empatia + controles relacionales",
+      plain_sample = paste(
+        "Se estima por separado en Victima y Observador. Cada participante juzga dos veces por escenario,",
+        "una vez por cada negociador, asi que H2 siempre trabaja al nivel juicio-por-negociador."
+      ),
+      plain_equation = paste(
+        "Victima: judgement = estructura conjunta {juzgado, contraparte} + empatia + controles;",
+        "Observador: judgement = estructura conjunta {juzgado, contraparte} + jugador-victima +",
+        "estructura x jugador-victima + empatia + controles"
+      ),
       plain_code_equations = c(
-        "Modelo A: judged_outgroup + judged_control + decision_accept + interacciones con decision + iri_total + controles relacionales",
-        "Modelo B: judged_outgroup + judged_control + decision_accept + interacciones con decision + iri_fs + iri_ec + iri_pt + iri_pd + controles relacionales"
+        "Victima, Modelo A: all h2_negstruct_* dummies + iri_total + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)",
+        "Victima, Modelo B: all h2_negstruct_* dummies + iri_fs + iri_ec + iri_pt + iri_pd + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)",
+        "Observador, Modelo A: all h2_negstruct_* dummies + player_victim_outgroup + player_victim_outgroup:h2_negstruct_* + iri_total + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)",
+        "Observador, Modelo B: all h2_negstruct_* dummies + player_victim_outgroup + player_victim_outgroup:h2_negstruct_* + iri_fs + iri_ec + iri_pt + iri_pd + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)"
       ),
-      plain_term_note = "En H2b, `ingroup` es la referencia para el negociador juzgado y la hipotesis central esta en los terminos de estatus relacional y su interaccion con `decision_accept`."
+      plain_term_note = paste(
+        "La referencia de H2 es `J_In__C_In`, es decir, negociador juzgado ingroup y contraparte ingroup.",
+        "En Observador, `player_victim_outgroup` compara victima outgroup contra victima ingroup,",
+        "y las interacciones prueban si el efecto de la estructura negociador-contraparte cambia segun esa relacion jugador-victima."
+      )
     ),
     list(
       id = "H3",

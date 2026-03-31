@@ -81,6 +81,7 @@ get_term_definition <- function(term) {
     "counterpart_outgroup" = "whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)",
     "counterpart_control" = "whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition",
     "observer_victim_outgroup" = "whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant",
+    "player_victim_outgroup" = "whether, in observer-role judgments, the player and victim belonged to different faculties",
     "perp_outgroup" = "whether the perpetrator belonged to a faculty different from the participant (Outgroup)",
     "perp_control" = "whether the perpetrator's organizational alignment was explicitly hidden (Control label)",
     "victim_outgroup" = "whether the victim was affiliated with a different faculty than the participant",
@@ -112,6 +113,10 @@ get_term_definition <- function(term) {
   analytic_case_term <- describe_analytic_case_term(term_key)
   if (!is.null(analytic_case_term)) {
     return(analytic_case_term)
+  }
+  h2_structure_term <- label_h2_negotiator_structure_term(term_key)
+  if (!identical(h2_structure_term, term_key)) {
+    return(paste("the H2 negotiator-side structure contrast comparing", sub("^Negotiator-side structure: ", "", h2_structure_term)))
   }
   if (grepl(":", term_key, fixed = TRUE)) {
     term_parts <- strsplit(term_key, ":", fixed = TRUE)[[1]]

@@ -60,8 +60,7 @@ for (script in pipeline_scripts) {
 # Run Hypothesis Tests
 hypothesis_scripts <- c(
   "R/hypotheses/H1_test.R",
-  "R/hypotheses/H2a_test.R",
-  "R/hypotheses/H2b_test.R",
+  "R/hypotheses/H2_test.R",
   "R/hypotheses/H3_test.R"
 )
 

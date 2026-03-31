@@ -136,7 +136,7 @@ read_fit_stats <- function(output_prefix) {
 write_model_fit_summary <- function() {
   fit_files <- list.files(
     paths$models_dir,
-    pattern = "^(H1|H2a|H2b|H3)_(A|B)_(Victim|Bystander)(_CLAD)?_fit_stats\\.csv$",
+    pattern = "^(H1|H2|H3)_(A|B)_(Victim|Bystander)(_CLAD)?_fit_stats\\.csv$",
     full.names = TRUE
   )
   if (length(fit_files) == 0L) return(NULL)
@@ -427,8 +427,18 @@ summarize_estimator_hypothesis_for_subset <- function(spec, approach, subset_rol
     B = read_model_bundle(spec$id, "B", approach, subset_role)
   )
   assessments <- list(
-    A = assess_model_terms(bundles$A, spec$model_terms$A, spec$expected_direction, alpha),
-    B = assess_model_terms(bundles$B, spec$model_terms$B, spec$expected_direction, alpha)
+    A = assess_model_terms(
+      bundles$A,
+      get_hypothesis_model_terms(spec, "A", subset_role),
+      spec$expected_direction,
+      alpha
+    ),
+    B = assess_model_terms(
+      bundles$B,
+      get_hypothesis_model_terms(spec, "B", subset_role),
+      spec$expected_direction,
+      alpha
+    )
   )
 
   available_flags <- vapply(bundles, function(bundle) isTRUE(bundle$available), logical(1))
@@ -537,7 +547,6 @@ collect_hypothesis_signal_details <- function(spec, alpha = 0.10) {
     subset_role = c("Victim", "Bystander"),
     stringsAsFactors = FALSE
   )
-  target_terms <- unlist(lapply(spec$model_terms, `[[`, "terms"), use.names = FALSE)
   signal_rows <- lapply(seq_len(nrow(bundle_grid)), function(idx) {
     approach <- bundle_grid$approach[idx]
     model_suffix <- bundle_grid$model_suffix[idx]
@@ -546,6 +555,8 @@ collect_hypothesis_signal_details <- function(spec, alpha = 0.10) {
     if (!isTRUE(bundle$available) || is.null(bundle$coef_df) || nrow(bundle$coef_df) == 0L) {
       return(NULL)
     }
+    term_info <- get_hypothesis_model_terms(spec, model_suffix, subset_role)
+    target_terms <- term_info$terms
     rows <- select_hypothesis_rows(bundle$coef_df, target_terms)
     if (is.null(rows) || nrow(rows) == 0L) return(NULL)
     rows$canonical_term <- vapply(rows$term, canonicalize_term_name, character(1))
@@ -1640,7 +1651,7 @@ latex_lines <- c(
   to_latex_table(get_symbols_dictionary(), "Symbols and Variable Dictionary.", "tab:symbols", escape_math = FALSE),
   escape_latex(paste(
     get_case_configuration_option_label(),
-    "retains a victim x judged-negotiator shorthand for descriptive summaries, while H2 and H3 decompose relational structure into judged-negotiator status, decision outcome, judged-status x decision interactions, and additional relational controls for the counterpart negotiator and, in observer rows, victim alignment."
+    "retains a victim x judged-negotiator shorthand for descriptive summaries, while the executable hypotheses use explicit negotiator-level structure terms. H2 now uses the judged-plus-counterpart structure directly, and in observer rows it adds the player-victim alignment term and its interaction with that structure."
   )),
   "",
   "\\subsection{Interpretation of Interaction Terms}",
@@ -1762,19 +1773,14 @@ latex_lines <- c(
   "\\subsubsection{Model B: Separated Empathy Constructs}",
   build_model_section("H1", "B", "H1 Model B: Separated Constructs Regression Coefficients."),
   "",
-  "\\subsection{H2a: Judged-Status x Decision Contrasts Without Control}",
-  "This section tests whether moral judgment differs when the judged negotiator is ingroup versus outgroup and whether that contrast changes across Accept versus Reject decisions after excluding any scenario with a control-labeled negotiator.",
+  "\\subsection{H2: Negotiator-Side Relational Structure}",
+  "This section estimates H2 separately in the victim and bystander subsets. The dependent variable remains negotiator-specific judgment severity, so each participant contributes two judgment rows per scenario, one for each negotiator. In the victim subset, H2 uses the joint judged-plus-counterpart negotiator structure relative to the victim-player, with judged ingroup and counterpart ingroup as the reference structure. In the bystander subset, the same negotiator-side structure is defined relative to the observing player's faculty, and the model additionally includes the player-victim outgroup term and its interaction with the negotiator-side structure dummies.",
+  "Victim-subset equation: $y^*_{isj,Victim} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\gamma}' \\mathbf{S}^{(V)}_{isj} + \\boldsymbol{\\delta}' \\mathbf{Z}_i + \\epsilon_{isj}$, where $\\mathbf{S}^{(V)}_{isj}$ indexes the judged-plus-counterpart structure dummies and $\\mathbf{Z}_i$ collects participant controls.",
+  "Bystander-subset equation: $y^*_{isj,Obs} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\gamma}' \\mathbf{S}^{(O)}_{isj} + \\eta V_{is} + \\boldsymbol{\\theta}' (\\mathbf{S}^{(O)}_{isj} \\times V_{is}) + \\boldsymbol{\\delta}' \\mathbf{Z}_i + \\epsilon_{isj}$, where $V_{is}$ is the player-victim outgroup indicator.",
   "\\subsubsection{Model A: Composite Empathy Control}",
-  build_model_section("H2a", "A", "H2a Model A: Composite Empathy Regression Coefficients."),
+  build_model_section("H2", "A", "H2 Model A: Composite Empathy Regression Coefficients."),
   "\\subsubsection{Model B: Separated Construct Controls}",
-  build_model_section("H2a", "B", "H2a Model B: Separated Constructs Regression Coefficients."),
-  "",
-  "\\subsection{H2b: Judged-Status x Decision Contrasts With Control}",
-  "This section examines judged-negotiator ingroup, outgroup, and control status directly, while retaining decision outcome, judged-status x decision interactions, counterpart status, and observer-side victim alignment in the full judgment sample.",
-  "\\subsubsection{Model A: Composite Empathy Control}",
-  build_model_section("H2b", "A", "H2b Model A: Composite Empathy Regression Coefficients."),
-  "\\subsubsection{Model B: Separated Construct Controls}",
-  build_model_section("H2b", "B", "H2b Model B: Separated Constructs Regression Coefficients."),
+  build_model_section("H2", "B", "H2 Model B: Separated Constructs Regression Coefficients."),
   "",
   "\\subsection{H3: Empathy x Judged-Status Moderation}",
   "This section tests whether empathy slopes differ across judged-negotiator status categories after retaining decision outcome, judged-status x decision terms, counterpart status, and observer-side victim alignment.",

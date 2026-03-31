@@ -26,11 +26,9 @@ get_case_configuration_option_text <- function(latex = FALSE) {
   paste(
     "Option 2 replaces isolated ingroup/outgroup indicators with explicit",
     "judgment-level relational variables built from the paired-group structure",
-    "of each judgment. The analytic hypothesis models",
-    "decompose that structure into the judged negotiator's relational status,",
-    "decision outcome (Accept/Reject), their interaction, and additional",
-    "relational controls for the counterpart negotiator and, in observer rows,",
-    "victim alignment."
+    "of each judgment. The analytic hypothesis models decompose that structure",
+    "into judged-negotiator status, counterpart-negotiator status, observer-side",
+    "victim alignment when applicable, and hypothesis-specific interaction blocks."
   )
 }
 
@@ -351,6 +349,129 @@ label_analytic_case_configuration_term <- function(term) {
     return(paste("Judgment configuration:", label_analytic_case_configuration(matched_level)))
   }
   term
+}
+
+get_h2_negotiator_structure_levels <- function(include_control = TRUE) {
+  negotiator_levels <- get_relative_group_levels(include_control = include_control)
+  as.vector(
+    outer(
+      negotiator_levels,
+      negotiator_levels,
+      function(judged, counterpart) paste0("J_", judged, "__C_", counterpart)
+    )
+  )
+}
+
+build_h2_negotiator_structure <- function(judged_group, counterpart_group) {
+  target_length <- max(length(judged_group), length(counterpart_group))
+  judged_group <- rep_len(as.character(judged_group), target_length)
+  counterpart_group <- rep_len(as.character(counterpart_group), target_length)
+
+  vapply(
+    seq_len(target_length),
+    function(idx) {
+      judged_i <- judged_group[idx]
+      counterpart_i <- counterpart_group[idx]
+      if (is.na(judged_i) || is.na(counterpart_i)) {
+        return(NA_character_)
+      }
+      paste0("J_", judged_i, "__C_", counterpart_i)
+    },
+    character(1)
+  )
+}
+
+h2_negotiator_structure_dummy_name <- function(structure_label) {
+  paste0("h2_negstruct_", gsub("[^A-Za-z0-9]+", "_", tolower(structure_label)))
+}
+
+get_h2_negotiator_structure_dummy_names <- function(
+    reference = "J_In__C_In",
+    include_control = TRUE) {
+  levels <- get_h2_negotiator_structure_levels(include_control = include_control)
+  dummy_map <- stats::setNames(
+    vapply(levels, h2_negotiator_structure_dummy_name, character(1)),
+    levels
+  )
+  if (!(reference %in% names(dummy_map))) {
+    stop(sprintf("Unknown H2 negotiator-structure reference level '%s'.", reference), call. = FALSE)
+  }
+  dummy_map[names(dummy_map) != reference]
+}
+
+get_h2_negotiator_structure_term_names <- function(
+    reference = "J_In__C_In",
+    include_control = TRUE) {
+  unname(get_h2_negotiator_structure_dummy_names(
+    reference = reference,
+    include_control = include_control
+  ))
+}
+
+label_h2_negotiator_structure <- function(structure_label) {
+  parts <- strsplit(structure_label, "__", fixed = TRUE)[[1]]
+  if (length(parts) != 2L) {
+    return(structure_label)
+  }
+
+  judged_group <- sub("^J_", "", parts[1])
+  counterpart_group <- sub("^C_", "", parts[2])
+  sprintf(
+    "judged negotiator %s, counterpart negotiator %s",
+    label_relative_group(judged_group),
+    label_relative_group(counterpart_group)
+  )
+}
+
+label_h2_negotiator_structure_term <- function(term) {
+  dummy_map <- get_h2_negotiator_structure_dummy_names(include_control = TRUE)
+  matched_level <- names(dummy_map)[match(term, unname(dummy_map))]
+  if (length(matched_level) == 1L && !is.na(matched_level)) {
+    return(paste(
+      "Negotiator-side structure:",
+      sprintf(
+        "%s (ref = judged negotiator ingroup, counterpart negotiator ingroup)",
+        label_h2_negotiator_structure(matched_level)
+      )
+    ))
+  }
+  term
+}
+
+add_h2_relational_structure_columns <- function(
+    df,
+    judged_col = "group_negotiator_judged",
+    counterpart_col = "group_negotiator_counterpart",
+    victim_col = "group_victim",
+    role_col = "role") {
+  required_cols <- c(judged_col, counterpart_col, victim_col, role_col)
+  missing_cols <- required_cols[!(required_cols %in% names(df))]
+  if (length(missing_cols) > 0L) {
+    stop(
+      sprintf("Columns required for H2 relational structure are missing: %s", paste(missing_cols, collapse = ", ")),
+      call. = FALSE
+    )
+  }
+
+  role_label <- normalize_role_label(df[[role_col]])
+  df$h2_negotiator_structure <- build_h2_negotiator_structure(df[[judged_col]], df[[counterpart_col]])
+  df$player_victim_alignment <- ifelse(
+    role_label == "Observer",
+    ifelse(df[[victim_col]] == "Out", "Out", ifelse(df[[victim_col]] == "In", "In", NA_character_)),
+    NA_character_
+  )
+  df$player_victim_outgroup <- ifelse(
+    role_label == "Observer" & df$player_victim_alignment == "Out",
+    1L,
+    ifelse(role_label == "Observer" & df$player_victim_alignment == "In", 0L, NA_integer_)
+  )
+
+  dummy_map <- get_h2_negotiator_structure_dummy_names(include_control = TRUE)
+  for (structure_label in names(dummy_map)) {
+    df[[dummy_map[[structure_label]]]] <- as.integer(df$h2_negotiator_structure == structure_label)
+  }
+
+  df
 }
 
 add_analytic_case_configuration_columns <- function(
