@@ -10,8 +10,11 @@
 # counterpart_outgroup/counterpart_control, decision_accept, and
 # observer_victim_outgroup when applicable
 # Additional controls: participant_engineering, sex_man, age,
-# economic_status, role_observer, and factor(negotiator_slot)
+# economic_status, and factor(negotiator_slot)
 # Sample: Full role-specific samples (Victim and Bystander)
+# Subset-specific formulas: observer-side victim alignment is retained only in
+# the bystander subset so structurally fixed predictors are not carried into the
+# victim-only models.
 # Specification: Interval-censored clustered Tobit model plus
 # cluster-bootstrap non-parametric robustness check
 
@@ -29,18 +32,42 @@ judgments_bystander <- read.csv(paths$processed_bystander, stringsAsFactors = FA
 # ---- Victim Subset ----
 message("--- Running H1 on Victim Subset ---")
 # Model A: Total Empathy
-run_estimation_suite(judgments_victim, spec$formula_rhs$A, "H1_A_Victim", "H1_A_Victim_Total", paths$models_dir)
+run_estimation_suite(
+  judgments_victim,
+  get_hypothesis_formula_rhs(spec, "A", "Victim"),
+  "H1_A_Victim",
+  "H1_A_Victim_Total",
+  paths$models_dir
+)
 
 # Model B: Empathy Subscales
-run_estimation_suite(judgments_victim, spec$formula_rhs$B, "H1_B_Victim", "H1_B_Victim_Constructs", paths$models_dir)
+run_estimation_suite(
+  judgments_victim,
+  get_hypothesis_formula_rhs(spec, "B", "Victim"),
+  "H1_B_Victim",
+  "H1_B_Victim_Constructs",
+  paths$models_dir
+)
 
 
 # ---- Bystander Subset ----
 message("--- Running H1 on Bystander Subset ---")
 # Model A: Total Empathy
-run_estimation_suite(judgments_bystander, spec$formula_rhs$A, "H1_A_Bystander", "H1_A_Bystander_Total", paths$models_dir)
+run_estimation_suite(
+  judgments_bystander,
+  get_hypothesis_formula_rhs(spec, "A", "Bystander"),
+  "H1_A_Bystander",
+  "H1_A_Bystander_Total",
+  paths$models_dir
+)
 
 # Model B: Empathy Subscales
-run_estimation_suite(judgments_bystander, spec$formula_rhs$B, "H1_B_Bystander", "H1_B_Bystander_Constructs", paths$models_dir)
+run_estimation_suite(
+  judgments_bystander,
+  get_hypothesis_formula_rhs(spec, "B", "Bystander"),
+  "H1_B_Bystander",
+  "H1_B_Bystander_Constructs",
+  paths$models_dir
+)
 
 message("H1 test completed for both subsets. Outputs saved to models/.")

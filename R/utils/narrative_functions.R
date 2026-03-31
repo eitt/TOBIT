@@ -33,7 +33,7 @@ get_math_foundations <- function() {
     "strictly bounded within a known interval. In this context, negotiator-specific moral judgments ($y_{isjr}$) are observed on a scale from -9 to 9. ",
     "The Tobit model assumes the existence of a latent, unobserved preference index ($y^*_{isjr}$) that follows a linear relationship. ",
     get_case_configuration_option_text(latex = TRUE),
-    " H1 retains accepted-sample victim x judged-negotiator case contrasts. H2 now uses subset-specific relational-structure blocks, and H3 retains the judged-status, decision, and empathy-interaction design:",
+    " H1, H2, and H3 are all estimated separately in the victim and bystander subsets. H1 and H3 use subset-specific formulas so observer-only victim-alignment predictors are retained only where they vary, while H2 uses explicit subset-specific relational-structure blocks:",
     "",
     "Victim-subset H2:",
     "",

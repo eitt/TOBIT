@@ -70,6 +70,8 @@ The preprocessing pipeline creates these H2-relevant variables in `R/04_generate
   Observer-side victim relation to the player (`In` or `Out`).
 - `player_victim_outgroup`
   Binary version of the player-victim relation for the bystander H2 interaction.
+- `faculty_player_obs`
+  Alias for the observing player's faculty in observer rows, kept explicit so the bystander-side H2 coding is easy to audit.
 
 The reference structure for `h2_negotiator_structure` is:
 
@@ -82,6 +84,32 @@ meaning judged negotiator ingroup and counterpart negotiator ingroup.
 - Script: `R/hypotheses/H1_test.R`
 - Dependent variable: `judgement`
 - Main idea: empathy predicts judgment severity after conditioning on judged-negotiator status, counterpart status, decision outcome, and observer-side victim alignment when applicable.
+- Estimation: separate models for the `Victim` and `Bystander` subsets with subset-specific formulas
+
+H1 always retains the sociodemographic controls:
+
+- `sex_man`
+- `age`
+- `economic_status`
+
+Victim-subset H1 keeps:
+
+- `judged_outgroup`
+- `judged_control`
+- `counterpart_outgroup`
+- `counterpart_control`
+- `decision_accept`
+- `participant_engineering`
+- `sex_man`
+- `age`
+- `economic_status`
+- `factor(negotiator_slot)`
+
+Bystander-subset H1 keeps the same block plus:
+
+- `observer_victim_outgroup`
+
+This means H1 no longer carries observer-only predictors into victim-only models.
 
 ## H2
 
@@ -156,6 +184,7 @@ It is now a relational-structure hypothesis:
 - Script: `R/hypotheses/H3_test.R`
 - Dependent variable: `judgement`
 - Main idea: empathy slopes vary across judged-negotiator status after retaining the judged-status, decision, judged-status-by-decision, and relational-control block
+- Estimation: separate models for the `Victim` and `Bystander` subsets with subset-specific formulas
 
 H3 still uses:
 
@@ -165,6 +194,13 @@ H3 still uses:
 - `decision_accept:judged_outgroup`
 - `decision_accept:judged_control`
 - empathy-by-judged-status interactions
+
+In addition:
+
+- both subsets retain `counterpart_outgroup`, `counterpart_control`, `participant_engineering`, `sex_man`, `age`, `economic_status`, and `factor(negotiator_slot)`
+- only the bystander subset retains `observer_victim_outgroup`
+
+So, as with H1, H3 avoids carrying observer-only predictors into victim-only estimation.
 
 ## Dynamic Report and Summary Tables
 
@@ -177,3 +213,19 @@ For the updated H2 definition, the summary tables and figures can now surface:
 - `player_victim_outgroup:h2_negstruct_*` interactions
 
 This keeps the H2 tables, figures, and narrative aligned with the actual subset-specific formulas used by the pipeline.
+
+## Compact Labels in Tables and Figures
+
+The dynamic report shortens predictor labels inside regression tables and figures so H2 and H3 remain readable. The main conventions are:
+
+- `JN` = judged negotiator
+- `CN` = counterpart negotiator
+- `V` = victim-side player-victim relation in observer models
+- `Vic` = victim subset
+- `Obs` = bystander / observer subset
+- `In`, `Out`, `Ctl` = ingroup, outgroup, control label hidden
+- `Acc`, `Rej` = accepted or rejected harmful deal
+- `FS`, `EC`, `PT`, `PD` = the four IRI subscales
+- `SES` = economic status
+
+The auto report includes a predictor glossary table and repeats the abbreviation note immediately below each regression table.

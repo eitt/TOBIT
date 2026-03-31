@@ -35,13 +35,14 @@ get_hypothesis_formula_rhs <- function(spec, model_suffix, subset_role = NULL) {
 }
 
 get_hypothesis_specs <- function(paths = get_project_paths()) {
-  h1_relational_terms <- c(
+  h1_victim_relational_terms <- c(
     "judged_outgroup",
     "judged_control",
     "counterpart_outgroup",
-    "counterpart_control",
-    "observer_victim_outgroup"
+    "counterpart_control"
   )
+  h1_bystander_relational_terms <- c(h1_victim_relational_terms, "observer_victim_outgroup")
+  h1_relational_terms <- unique(c(h1_victim_relational_terms, h1_bystander_relational_terms))
   judged_terms_full <- c("judged_outgroup", "judged_control")
   judged_terms_no_control <- c("judged_outgroup")
   judged_decision_terms_full <- paste("decision_accept", judged_terms_full, sep = ":")
@@ -52,15 +53,6 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
   )
   h2_structure_terms <- get_h2_negotiator_structure_term_names(reference = "J_In__C_In", include_control = TRUE)
   h2_bystander_interactions <- paste("player_victim_outgroup", h2_structure_terms, sep = ":")
-  control_terms <- c(
-    "decision_accept",
-    "role_observer",
-    "participant_engineering",
-    "sex_man",
-    "age",
-    "economic_status",
-    "factor(negotiator_slot)"
-  )
   subset_participant_control_terms <- c(
     "participant_engineering",
     "sex_man",
@@ -75,52 +67,45 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
     "economic_status",
     "factor(negotiator_slot)"
   )
-  judged_control_terms_full <- c(
+  h1_victim_rhs_total <- paste(c("iri_total", h1_victim_relational_terms, "decision_accept", subset_participant_control_terms), collapse = " + ")
+  h1_victim_rhs_scales <- paste(c("iri_fs", "iri_ec", "iri_pt", "iri_pd", h1_victim_relational_terms, "decision_accept", subset_participant_control_terms), collapse = " + ")
+  h1_bystander_rhs_total <- paste(c("iri_total", h1_bystander_relational_terms, "decision_accept", subset_participant_control_terms), collapse = " + ")
+  h1_bystander_rhs_scales <- paste(c("iri_fs", "iri_ec", "iri_pt", "iri_pd", h1_bystander_relational_terms, "decision_accept", subset_participant_control_terms), collapse = " + ")
+  judged_control_terms_victim <- c(
+    "decision_accept",
+    "counterpart_outgroup",
+    "counterpart_control",
+    subset_participant_control_terms
+  )
+  judged_control_terms_bystander <- c(
     "decision_accept",
     "counterpart_outgroup",
     "counterpart_control",
     "observer_victim_outgroup",
-    "role_observer",
     "participant_engineering",
     "sex_man",
     "age",
     "economic_status",
     "factor(negotiator_slot)"
   )
-  judged_control_terms_no_control <- c(
-    "decision_accept",
-    "counterpart_outgroup",
-    "observer_victim_outgroup",
-    "role_observer",
-    "participant_engineering",
-    "sex_man",
-    "age",
-    "economic_status",
-    "factor(negotiator_slot)"
-  )
-  control_rhs <- paste(control_terms, collapse = " + ")
   subset_participant_control_rhs <- paste(subset_participant_control_terms, collapse = " + ")
   analytic_control_rhs <- paste(analytic_control_terms, collapse = " + ")
   h1_relational_rhs <- paste(h1_relational_terms, collapse = " + ")
-  judged_rhs_full <- paste(c(judged_terms_full, judged_decision_terms_full, "iri_total", judged_control_terms_full), collapse = " + ")
-  judged_rhs_full_scales <- paste(c(judged_terms_full, judged_decision_terms_full, "iri_fs", "iri_ec", "iri_pt", "iri_pd", judged_control_terms_full), collapse = " + ")
-  judged_rhs_no_control <- paste(c(judged_terms_no_control, judged_decision_terms_no_control, "iri_total", judged_control_terms_no_control), collapse = " + ")
-  judged_rhs_no_control_scales <- paste(c(judged_terms_no_control, judged_decision_terms_no_control, "iri_fs", "iri_ec", "iri_pt", "iri_pd", judged_control_terms_no_control), collapse = " + ")
   h2_victim_rhs_total <- paste(c("iri_total", h2_structure_terms, subset_participant_control_terms), collapse = " + ")
   h2_victim_rhs_scales <- paste(c("iri_fs", "iri_ec", "iri_pt", "iri_pd", h2_structure_terms, subset_participant_control_terms), collapse = " + ")
   h2_bystander_rhs_total <- paste(c("iri_total", h2_structure_terms, "player_victim_outgroup", h2_bystander_interactions, subset_participant_control_terms), collapse = " + ")
   h2_bystander_rhs_scales <- paste(c("iri_fs", "iri_ec", "iri_pt", "iri_pd", h2_structure_terms, "player_victim_outgroup", h2_bystander_interactions, subset_participant_control_terms), collapse = " + ")
-  judged_empathy_rhs_full <- paste(
+  judged_empathy_rhs_victim_total <- paste(
     c(
       "iri_total",
       judged_terms_full,
       judged_decision_terms_full,
       judged_total_interactions_full,
-      judged_control_terms_full
+      judged_control_terms_victim
     ),
     collapse = " + "
   )
-  judged_empathy_rhs_full_scales <- paste(
+  judged_empathy_rhs_victim_scales <- paste(
     c(
       "iri_fs",
       "iri_ec",
@@ -129,7 +114,30 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
       judged_terms_full,
       judged_decision_terms_full,
       judged_scale_interactions_full,
-      judged_control_terms_full
+      judged_control_terms_victim
+    ),
+    collapse = " + "
+  )
+  judged_empathy_rhs_bystander_total <- paste(
+    c(
+      "iri_total",
+      judged_terms_full,
+      judged_decision_terms_full,
+      judged_total_interactions_full,
+      judged_control_terms_bystander
+    ),
+    collapse = " + "
+  )
+  judged_empathy_rhs_bystander_scales <- paste(
+    c(
+      "iri_fs",
+      "iri_ec",
+      "iri_pt",
+      "iri_pd",
+      judged_terms_full,
+      judged_decision_terms_full,
+      judged_scale_interactions_full,
+      judged_control_terms_bystander
     ),
     collapse = " + "
   )
@@ -166,16 +174,22 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
       model_terms = list(
         A = list(
           terms = c("iri_total"),
-          description = "the composite empathy term, while retaining judged and counterpart status, decision outcome, and participant controls"
+          description = "the composite empathy term, while retaining subset-specific relational controls, decision outcome, and participant controls"
         ),
         B = list(
           terms = c("iri_fs", "iri_ec", "iri_pt", "iri_pd"),
-          description = "the four empathy subscale main effects, while retaining judged and counterpart status, decision outcome, and participant controls"
+          description = "the four empathy subscale main effects, while retaining subset-specific relational controls, decision outcome, and participant controls"
         )
       ),
       formula_rhs = list(
-        A = paste("iri_total +", h1_relational_rhs, "+", control_rhs),
-        B = paste("iri_fs + iri_ec + iri_pt + iri_pd +", h1_relational_rhs, "+", control_rhs)
+        A = list(
+          Victim = h1_victim_rhs_total,
+          Bystander = h1_bystander_rhs_total
+        ),
+        B = list(
+          Victim = h1_victim_rhs_scales,
+          Bystander = h1_bystander_rhs_scales
+        )
       ),
       exclude_terms = c("iri_total", "iri_fs", "iri_ec", "iri_pt", "iri_pd", h1_relational_terms),
       plain_title = "H1: empatia y juicio moral controlando por relaciones del caso",
@@ -184,21 +198,24 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
         "de la contraparte, la decision y la victima cuando aplica, la empatia del participante",
         "se relaciona con el juicio moral en Victima y Observador?"
       ),
-      plain_sample = "Se estima por separado en Victima y Observador con la misma estructura de predictores.",
+      plain_sample = "Se estima por separado en Victima y Observador con formulas especificas por subconjunto para no retener predictores estructuralmente fijos.",
       plain_equation = paste(
-        "judgement = iri_total o {iri_fs + iri_ec + iri_pt + iri_pd} + judged_outgroup + judged_control +",
-        "counterpart_outgroup + counterpart_control + observer_victim_outgroup + decision_accept +",
-        "participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)"
+        "Victima: judgement = empatia + estatus del negociador juzgado + estatus de la contraparte +",
+        "decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot);",
+        "Observador: judgement = empatia + estatus del negociador juzgado + estatus de la contraparte +",
+        "observer_victim_outgroup + decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)"
       ),
       plain_code_equations = c(
-        "Modelo A: iri_total + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + observer_victim_outgroup + role_observer + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)",
-        "Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + observer_victim_outgroup + role_observer + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)"
+        "Victima, Modelo A: iri_total + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)",
+        "Victima, Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)",
+        "Observador, Modelo A: iri_total + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + observer_victim_outgroup + decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)",
+        "Observador, Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + observer_victim_outgroup + decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)"
       ),
       plain_term_note = paste(
         sprintf("En H1, los controles relacionales que entran son %s.", inline_code_list_text(h1_relational_terms)),
         "En ambos subconjuntos, el Modelo B conserva las cuatro subescalas de empatia (`iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`),",
         "mientras que ambos modelos retienen `decision_accept`, `sex_man`, `age` y `economic_status`.",
-        "`observer_victim_outgroup` solo varia cuando aplica y `role_observer` queda fijo dentro de cada subconjunto."
+        "`observer_victim_outgroup` entra solo en Observador porque en Victima no es un predictor definible dentro del subconjunto."
       )
     ),
     list(
@@ -333,8 +350,14 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
         )
       ),
       formula_rhs = list(
-        A = judged_empathy_rhs_full,
-        B = judged_empathy_rhs_full_scales
+        A = list(
+          Victim = judged_empathy_rhs_victim_total,
+          Bystander = judged_empathy_rhs_bystander_total
+        ),
+        B = list(
+          Victim = judged_empathy_rhs_victim_scales,
+          Bystander = judged_empathy_rhs_bystander_scales
+        )
       ),
       exclude_terms = c(judged_total_interactions_full, judged_scale_interactions_full),
       plain_title = "H3: interaccion entre empatia y estatus del negociador juzgado",
@@ -342,13 +365,18 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
         "la relacion entre empatia y juicio cambia dependiendo del tipo de",
         "estatus relacional del negociador juzgado?"
       ),
-      plain_sample = "Depende del subconjunto (Victima u Observador).",
+      plain_sample = "Se estima por separado en Victima y Observador con formulas especificas por subconjunto.",
       plain_equation = "judgement = empatia + estatus del negociador + decision + estatus x decision + empatia x estatus + controles relacionales",
       plain_code_equations = c(
-        "Modelo A: iri_total + judged_outgroup + judged_control + decision_accept + interacciones con decision + iri_total:judged_outgroup + iri_total:judged_control + controles relacionales",
-        "Modelo B: subescalas de empatia + judged_outgroup + judged_control + decision_accept + interacciones con decision + interacciones entre subescalas y estatus del negociador + controles relacionales"
+        "Victima, Modelo A: iri_total + judged_outgroup + judged_control + decision_accept + decision_accept:judged_outgroup + decision_accept:judged_control + iri_total:judged_outgroup + iri_total:judged_control + counterpart_outgroup + counterpart_control + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)",
+        "Victima, Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + judged_outgroup + judged_control + decision_accept + decision_accept:judged_outgroup + decision_accept:judged_control + interacciones entre subescalas y estatus del negociador + counterpart_outgroup + counterpart_control + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)",
+        "Observador, Modelo A: iri_total + judged_outgroup + judged_control + decision_accept + decision_accept:judged_outgroup + decision_accept:judged_control + iri_total:judged_outgroup + iri_total:judged_control + counterpart_outgroup + counterpart_control + observer_victim_outgroup + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)",
+        "Observador, Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + judged_outgroup + judged_control + decision_accept + decision_accept:judged_outgroup + decision_accept:judged_control + interacciones entre subescalas y estatus del negociador + counterpart_outgroup + counterpart_control + observer_victim_outgroup + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)"
       ),
-      plain_term_note = "En H3, `ingroup` es la referencia para el negociador juzgado y las interacciones principales comparan como cambia la pendiente de empatia en outgroup y control."
+      plain_term_note = paste(
+        "En H3, `ingroup` es la referencia para el negociador juzgado y las interacciones principales comparan como cambia la pendiente de empatia en outgroup y control.",
+        "La formula de Observador agrega `observer_victim_outgroup`; la de Victima no lo hace para evitar predictores estructuralmente fijos."
+      )
     )
   )
 }

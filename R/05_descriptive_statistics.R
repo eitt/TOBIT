@@ -76,6 +76,8 @@ figure_severity_panels_file <- get_standard_figure_filename("severity_panels")
 figure_bivariate_scatters_file <- get_standard_figure_filename("bivariate_scatters")
 figure_victim_case_panels_file <- get_standard_figure_filename("victim_case_panels")
 figure_bystander_case_panels_file <- get_standard_figure_filename("bystander_case_panels")
+figure_accepted_case_panels_file <- get_standard_figure_filename("accepted_case_panels")
+figure_rejected_case_panels_file <- get_standard_figure_filename("rejected_case_panels")
 
 draw_distribution_panel_figure <- function(
     file_path,
@@ -236,6 +238,38 @@ draw_distribution_panel_figure(
   }),
   panel_titles = case_panel_titles,
   figure_title = "Bystander subset: judgment distributions across the six explicit victim x negotiator case configurations",
+  layout = c(2, 3),
+  width = 12,
+  height = 8
+)
+
+# Plot: Six-panel severity histograms when the harmful deal is accepted
+draw_distribution_panel_figure(
+  file.path(paths$figures_dir, figure_accepted_case_panels_file),
+  panel_values = lapply(case_configuration_levels, function(case_val) {
+    judgments_analysis$judgement[
+      judgments_analysis$case_configuration == case_val &
+        judgments_analysis$decision_accept == 1
+    ]
+  }),
+  panel_titles = case_panel_titles,
+  figure_title = "Agreement judgments across the six explicit victim x negotiator case configurations",
+  layout = c(2, 3),
+  width = 12,
+  height = 8
+)
+
+# Plot: Six-panel severity histograms when the harmful deal is rejected
+draw_distribution_panel_figure(
+  file.path(paths$figures_dir, figure_rejected_case_panels_file),
+  panel_values = lapply(case_configuration_levels, function(case_val) {
+    judgments_analysis$judgement[
+      judgments_analysis$case_configuration == case_val &
+        judgments_analysis$decision_accept == 0
+    ]
+  }),
+  panel_titles = case_panel_titles,
+  figure_title = "Disagreement judgments across the six explicit victim x negotiator case configurations",
   layout = c(2, 3),
   width = 12,
   height = 8

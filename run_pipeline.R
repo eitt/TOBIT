@@ -8,7 +8,7 @@ message("--- Checking Environmental Requirements ---")
 
 # --- User Configuration ---
 # Choose which dataset to analyze: "FLORIDA", "BUC", or "BOTH"
-dataset_mode <- "BUC"
+dataset_mode <- "BOTH"
 
 # Ensure project structure & dependencies
 source("R/00_config.R")
@@ -79,6 +79,7 @@ message("==========================================")
 
 source("R/06_generate_report.R")
 source("R/08_generate_plain_language_report.R")
+source("R/09_generate_behavioral_economics_report.R")
 
 message("\n==========================================")
 message("Pipeline Finished Successfully!")

@@ -78,12 +78,14 @@ get_standard_figure_filename <- function(figure_key) {
     bivariate_scatters = build_titled_figure_filename("figure_05", "Bivariate scatters IRI scales vs mean judgment"),
     victim_case_panels = build_titled_figure_filename("figure_06", "Victim subset judgment distributions across six case configurations"),
     bystander_case_panels = build_titled_figure_filename("figure_07", "Bystander subset judgment distributions across six case configurations"),
+    accepted_case_panels = build_titled_figure_filename("figure_08", "Agreement judgment distributions across six case configurations"),
+    rejected_case_panels = build_titled_figure_filename("figure_09", "Disagreement judgment distributions across six case configurations"),
     stop(sprintf("Unknown standard figure key '%s'.", figure_key), call. = FALSE)
   )
 }
 
 get_judgment_axis_limits <- function() {
-  c(-10, 10)
+  get_judgment_observed_bounds()
 }
 
 get_judgment_observed_bounds <- function() {

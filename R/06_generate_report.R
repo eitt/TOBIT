@@ -20,10 +20,15 @@ figure_radar_file <- get_standard_figure_filename("radar")
 figure_severity_panels_file <- get_standard_figure_filename("severity_panels")
 figure_victim_case_panels_file <- get_standard_figure_filename("victim_case_panels")
 figure_bystander_case_panels_file <- get_standard_figure_filename("bystander_case_panels")
+figure_accepted_case_panels_file <- get_standard_figure_filename("accepted_case_panels")
+figure_rejected_case_panels_file <- get_standard_figure_filename("rejected_case_panels")
 figure_bivariate_scatters_file <- get_standard_figure_filename("bivariate_scatters")
 case_examples_latex <- paste(get_case_configuration_example_labels(latex = TRUE), collapse = ", ")
 configured_clad_bootstrap_reps <- resolve_clad_bootstrap_reps()
 report_hypothesis_specs <- get_hypothesis_family_specs(paths = paths)
+report_h1_spec <- get_hypothesis_spec("H1", paths = paths)
+report_h2_spec <- get_hypothesis_spec("H2", paths = paths)
+report_h3_spec <- get_hypothesis_spec("H3", paths = paths)
 report_pipeline_mode <- toupper(trimws(as.character(
   getOption("tobit.pipeline_mode", get_default_pipeline_mode())
 )))
@@ -510,11 +515,13 @@ empty_signal_details_df <- function() {
     hypothesis_family_label = character(0),
     data_path = character(0),
     approach = character(0),
+    subset_role = character(0),
     model_suffix = character(0),
     output_prefix = character(0),
     term = character(0),
     canonical_term = character(0),
     label = character(0),
+    label_short = character(0),
     estimate = numeric(0),
     p_value = numeric(0),
     symbol = character(0),
@@ -578,6 +585,7 @@ collect_hypothesis_signal_details <- function(spec, alpha = 0.10) {
       term = rows$term,
       canonical_term = rows$canonical_term,
       label = rows$label,
+      label_short = if ("label_short" %in% names(rows)) rows$label_short else rows$label,
       estimate = rows$estimate,
       p_value = rows$p_value,
       symbol = vapply(rows$p_value, significance_symbol, character(1)),
@@ -639,6 +647,7 @@ collect_all_significant_predictor_details <- function(alpha = 0.10) {
       term = rows$term,
       canonical_term = rows$canonical_term,
       label = rows$label,
+      label_short = if ("label_short" %in% names(rows)) rows$label_short else rows$label,
       estimate = rows$estimate,
       p_value = rows$p_value,
       symbol = vapply(rows$p_value, significance_symbol, character(1)),
@@ -693,13 +702,14 @@ collect_hypothesis_signals <- function(spec, approach, alpha = 0.10, signal_deta
     ,
     drop = FALSE
   ]
-  signal_df <- signal_df[order(signal_df$p_value, signal_df$label), , drop = FALSE]
+  label_col <- if ("label_short" %in% names(signal_df)) "label_short" else "label"
+  signal_df <- signal_df[order(signal_df$p_value, signal_df[[label_col]]), , drop = FALSE]
   if (nrow(signal_df) == 0L) {
     return("None")
   }
 
   signal_df <- signal_df[!duplicated(signal_df$canonical_term), , drop = FALSE]
-  formatted_terms <- paste0(signal_df$label, signal_df$symbol)
+  formatted_terms <- paste0(signal_df[[label_col]], signal_df$symbol)
   paste(formatted_terms, collapse = "; ")
 }
 
@@ -746,13 +756,14 @@ collect_hypothesis_family_signals <- function(family_spec, approach, alpha = 0.1
   if (!is.null(subset_role)) {
     signal_df <- signal_df[signal_df$subset_role %in% subset_role, , drop = FALSE]
   }
-  signal_df <- signal_df[order(signal_df$p_value, signal_df$label), , drop = FALSE]
+  label_col <- if ("label_short" %in% names(signal_df)) "label_short" else "label"
+  signal_df <- signal_df[order(signal_df$p_value, signal_df[[label_col]]), , drop = FALSE]
   if (nrow(signal_df) == 0L) {
     return("None")
   }
 
   signal_df <- signal_df[!duplicated(signal_df$canonical_term), , drop = FALSE]
-  formatted_terms <- paste0(signal_df$label, signal_df$symbol)
+  formatted_terms <- paste0(signal_df[[label_col]], signal_df$symbol)
   paste(formatted_terms, collapse = "; ")
 }
 
@@ -850,6 +861,154 @@ to_latex_wrapped_hypothesis_summary <- function(df, caption, label) {
     "\\bottomrule",
     "\\end{tabular}",
     "\\end{table}"
+  )
+}
+
+get_abbreviation_note_text <- function() {
+  paste0(
+    "Abbrev.: ",
+    get_predictor_abbreviation_note(),
+    "."
+  )
+}
+
+build_latex_note_block <- function(text) {
+  c(
+    "\\begin{flushleft}",
+    paste0("\\footnotesize\\textit{Note.} ", escape_latex(text)),
+    "\\end{flushleft}"
+  )
+}
+
+build_markdown_note_line <- function(text) {
+  paste0("_Note._ ", text)
+}
+
+build_predictor_glossary_df <- function() {
+  data.frame(
+    `Code / pattern` = c(
+      "iri_total",
+      "iri_fs, iri_ec, iri_pt, iri_pd",
+      "judged_outgroup, judged_control",
+      "counterpart_outgroup, counterpart_control",
+      "decision_accept",
+      "observer_victim_outgroup",
+      "h2_negstruct_*",
+      "player_victim_outgroup",
+      "player_victim_outgroup:h2_negstruct_*",
+      "decision_accept:judged_*",
+      "iri_*:judged_*",
+      "participant_engineering",
+      "sex_man",
+      "age",
+      "economic_status",
+      "factor(negotiator_slot)"
+    ),
+    Compact = c(
+      "Emp",
+      "FS, EC, PT, PD",
+      "JN Out, JN Ctl",
+      "CN Out, CN Ctl",
+      "Acc",
+      "V Out (Obs)",
+      "JN ..., CN ...",
+      "V Out",
+      "V Out x JN ..., CN ...",
+      "Acc x JN ...",
+      "Emp / FS / EC / PT / PD x JN ...",
+      "Eng part.",
+      "Man",
+      "Age",
+      "SES",
+      "Slot 2"
+    ),
+    Meaning = c(
+      "Composite empathy predictor used in Model A.",
+      "IRI subscales used in Model B: fantasy, empathic concern, perspective taking, and personal distress.",
+      "Judged-negotiator contrasts relative to judged ingroup.",
+      "Counterpart-negotiator contrasts relative to counterpart ingroup.",
+      "Accepted harmful deal relative to rejected harmful deal.",
+      "Observer-only victim outgroup contrast; excluded from victim-only formulas.",
+      "H2 joint judged/counterpart structure dummies with reference JN In, CN In.",
+      "Observer-side player-victim outgroup contrast with player-victim ingroup as the reference.",
+      "Bystander-only H2 interaction: whether the negotiator-side structure changes when player and victim are outgroup-aligned.",
+      "H3 decision-by-judged-status interaction block.",
+      "H3 empathy-by-judged-status interaction block.",
+      "Participant faculty contrast.",
+      "Sex contrast with woman as the reference.",
+      "Participant age in original units.",
+      "Economic status in original units.",
+      "Negotiator slot contrast with slot 1 as the reference."
+    ),
+    `Used in` = c(
+      "H1/H2/H3 Model A",
+      "H1/H2/H3 Model B",
+      "H1/H3",
+      "H1/H3",
+      "H1/H3",
+      "H1/H3 Bystander only",
+      "H2 Victim and Bystander",
+      "H2 Bystander only",
+      "H2 Bystander only",
+      "H3",
+      "H3",
+      "H1/H2/H3",
+      "H1/H2/H3",
+      "H1/H2/H3",
+      "H1/H2/H3",
+      "H1/H2/H3"
+    ),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+}
+
+build_latex_predictor_glossary_list <- function() {
+  glossary_df <- build_predictor_glossary_df()
+  c(
+    "\\begin{itemize}",
+    vapply(seq_len(nrow(glossary_df)), function(idx) {
+      paste0(
+        "  \\item \\texttt{",
+        escape_latex(glossary_df$`Code / pattern`[idx]),
+        "} [",
+        escape_latex(glossary_df$Compact[idx]),
+        "]: ",
+        escape_latex(glossary_df$Meaning[idx]),
+        " Used in ",
+        escape_latex(glossary_df$`Used in`[idx]),
+        "."
+      )
+    }, character(1)),
+    "\\end{itemize}"
+  )
+}
+
+build_markdown_predictor_glossary_list <- function() {
+  glossary_df <- build_predictor_glossary_df()
+  vapply(seq_len(nrow(glossary_df)), function(idx) {
+    sprintf(
+      "- `%s` [%s]: %s Used in %s.",
+      glossary_df$`Code / pattern`[idx],
+      glossary_df$Compact[idx],
+      glossary_df$Meaning[idx],
+      glossary_df$`Used in`[idx]
+    )
+  }, character(1))
+}
+
+build_subset_formula_lines <- function(spec, model_suffix) {
+  victim_rhs <- get_hypothesis_formula_rhs(spec, model_suffix, "Victim")
+  bystander_rhs <- get_hypothesis_formula_rhs(spec, model_suffix, "Bystander")
+
+  c(
+    paste0("\\textit{Model ", model_suffix, " subset-specific formulas.}"),
+    "\\begin{quote}",
+    paste0("\\small ", escape_latex(sprintf("Victim: judgement ~ %s", victim_rhs))),
+    "",
+    paste0("\\small ", escape_latex(sprintf("Bystander: judgement ~ %s", bystander_rhs))),
+    "\\end{quote}",
+    ""
   )
 }
 
@@ -978,10 +1137,11 @@ build_significance_figure_artifacts <- function(signal_details) {
       "dynamic effect plot"
     )
     caption <- sprintf(
-      "%s for %s in %s. The panels show predicted judgments on the observed -9 to 9 scale with 95%% confidence intervals.",
+      "%s for %s in %s. The panels show predicted judgments on the observed -9 to 9 scale with 95%% confidence intervals. %s",
       tools::toTitleCase(figure_type),
       label_term(canonical_term),
-      family_short_label
+      family_short_label,
+      get_abbreviation_note_text()
     )
 
     artifacts[[idx]] <- list(
@@ -992,6 +1152,7 @@ build_significance_figure_artifacts <- function(signal_details) {
       operational_short_label = spec$short_label,
       canonical_term = canonical_term,
       label = label_term(canonical_term),
+      label_short = label_term_compact(canonical_term),
       figure_file = figure_file,
       figure_path = figure_path,
       latex_label = latex_label,
@@ -1004,18 +1165,20 @@ build_significance_figure_artifacts <- function(signal_details) {
 
     catalog_row <- list(
       Hypothesis = family_id,
-      Predictor = label_term(canonical_term),
+      Predictor = label_term_compact(canonical_term),
       Figure = figure_file,
       FigureType = figure_type,
       `Tobit support` = if (any(support_rows$approach == "Tobit")) {
-        paste0(support_rows$label[support_rows$approach == "Tobit"], support_rows$symbol[support_rows$approach == "Tobit"], collapse = "; ")
+        label_values <- if ("label_short" %in% names(support_rows)) support_rows$label_short else support_rows$label
+        paste0(label_values[support_rows$approach == "Tobit"], support_rows$symbol[support_rows$approach == "Tobit"], collapse = "; ")
       } else {
         "None"
       }
     )
     if (report_includes_nonparametric()) {
       catalog_row$`Non-parametric support` <- if (any(support_rows$approach == "CLAD")) {
-        paste0(support_rows$label[support_rows$approach == "CLAD"], support_rows$symbol[support_rows$approach == "CLAD"], collapse = "; ")
+        label_values <- if ("label_short" %in% names(support_rows)) support_rows$label_short else support_rows$label
+        paste0(label_values[support_rows$approach == "CLAD"], support_rows$symbol[support_rows$approach == "CLAD"], collapse = "; ")
       } else {
         "None"
       }
@@ -1211,10 +1374,11 @@ build_all_significant_predictor_figure_artifacts <- function(signal_details) {
       "dynamic effect plot"
     )
     caption <- sprintf(
-      "%s for %s in the %s. The panels show predicted judgments on the observed -9 to 9 scale with 95%% confidence intervals.",
+      "%s for %s in the %s. The panels show predicted judgments on the observed -9 to 9 scale with 95%% confidence intervals. %s",
       tools::toTitleCase(figure_type),
       label_term(canonical_term),
-      sample_label
+      sample_label,
+      get_abbreviation_note_text()
     )
 
     artifacts[[idx]] <- list(
@@ -1222,6 +1386,7 @@ build_all_significant_predictor_figure_artifacts <- function(signal_details) {
       sample_key = sanitize_identifier(sample_label),
       canonical_term = canonical_term,
       label = label_term(canonical_term),
+      label_short = label_term_compact(canonical_term),
       figure_file = figure_file,
       figure_path = figure_path,
       latex_label = latex_label,
@@ -1237,7 +1402,7 @@ build_all_significant_predictor_figure_artifacts <- function(signal_details) {
 
     catalog_row <- list(
       Sample = sample_label,
-      Predictor = label_term(canonical_term),
+      Predictor = label_term_compact(canonical_term),
       Figure = figure_file,
       FigureType = figure_type,
       `Tobit support` = format_support_model_rows(support_rows_all, approach = "Tobit")
@@ -1478,6 +1643,7 @@ build_latex_hypothesis_significance_tables <- function(summary_tables) {
         },
         sprintf("tab:hypothesis_summary_%s", tolower(subset_role))
       ),
+      build_latex_note_block(get_abbreviation_note_text()),
       ""
     )
   }), use.names = FALSE)
@@ -1495,6 +1661,7 @@ build_markdown_hypothesis_significance_tables <- function(summary_tables) {
     c(
       paste0("### ", subset_role, " subset"),
       to_markdown_table(subset_df),
+      build_markdown_note_line(get_abbreviation_note_text()),
       ""
     )
   }), use.names = FALSE)
@@ -1529,8 +1696,9 @@ build_estimator_block <- function(output_prefix, estimator_name, table_caption, 
   if (!("p_symbol" %in% names(coef_df))) {
     coef_df$p_symbol <- significance_symbol(coef_df$p_value)
   }
-  table_df <- coef_df[, c("label", "estimate", "std_error", "p_value_display", "p_symbol"), drop = FALSE]
-  names(table_df) <- c("Predictor", "Estimate", "Std. Error", "p-value", "Signif.")
+  label_col <- if ("label_short" %in% names(coef_df)) "label_short" else "label"
+  table_df <- coef_df[, c(label_col, "estimate", "std_error", "p_value_display"), drop = FALSE]
+  names(table_df) <- c("Predictor", "Estimate", "Std. Error", "p-value")
 
   table_latex <- to_latex_table(
     table_df,
@@ -1579,6 +1747,7 @@ build_estimator_block <- function(output_prefix, estimator_name, table_caption, 
     paste0("\\paragraph{", estimator_name, "}"),
     "",
     table_latex,
+    build_latex_note_block(get_abbreviation_note_text()),
     note_lines,
     "",
     "Interpretation:",
@@ -1654,6 +1823,10 @@ latex_lines <- c(
     "retains a victim x judged-negotiator shorthand for descriptive summaries, while the executable hypotheses use explicit negotiator-level structure terms. H2 now uses the judged-plus-counterpart structure directly, and in observer rows it adds the player-victim alignment term and its interaction with that structure."
   )),
   "",
+  "\\subsection{Predictor Glossary and Abbreviations}",
+  "The regression tables and dynamic figures use compact predictor labels to stay readable. The bullet list below maps those compact labels back to their full meaning and subset-specific interpretation.",
+  build_latex_predictor_glossary_list(),
+  "",
   "\\subsection{Interpretation of Interaction Terms}",
   "The models herein employ several predefined predictors. It is important to note how interaction terms are interpreted in the context of this behavioral experiment:",
   "\\begin{enumerate}",
@@ -1690,10 +1863,12 @@ latex_lines <- c(
   "\\section{Descriptive Statistics}",
   "The empathy profile of the sample is visualized in Figure \\ref{fig:radar}, showing the average scores across the four IRI latent variables.",
   latex_include_graphic(file.path("../figures", figure_radar_file), "IRI Latent Variable Averages (Radar Plot profile).", "fig:radar"),
-  "Figure \\ref{fig:severity_panels} summarizes the overall judgment distribution across judged-negotiator status, and Figures \\ref{fig:victim_case_panels} and \\ref{fig:bystander_case_panels} replicate that severity-panel logic across the six explicit victim x negotiator case configurations within the victim and bystander subsets.",
-  latex_include_graphic(file.path("../figures", figure_severity_panels_file), "Judgment distributions by judged-negotiator status, using a fixed judgment scale from -10 to 10.", "fig:severity_panels"),
-  latex_include_graphic(file.path("../figures", figure_victim_case_panels_file), "Victim-subset severity panels across the six explicit victim x negotiator case configurations, using a fixed judgment scale from -10 to 10.", "fig:victim_case_panels"),
-  latex_include_graphic(file.path("../figures", figure_bystander_case_panels_file), "Bystander-subset severity panels across the six explicit victim x negotiator case configurations, using a fixed judgment scale from -10 to 10.", "fig:bystander_case_panels"),
+  "Figure \\ref{fig:severity_panels} summarizes the overall judgment distribution across judged-negotiator status. Figures \\ref{fig:victim_case_panels} and \\ref{fig:bystander_case_panels} replicate that severity-panel logic across the six explicit victim x negotiator case configurations within the victim and bystander subsets, and Figures \\ref{fig:accepted_case_panels} and \\ref{fig:rejected_case_panels} add the same six-panel histograms for accepted versus rejected harmful deals.",
+  latex_include_graphic(file.path("../figures", figure_severity_panels_file), "Judgment distributions by judged-negotiator status, using a fixed judgment scale from -9 to 9.", "fig:severity_panels"),
+  latex_include_graphic(file.path("../figures", figure_victim_case_panels_file), "Victim-subset severity panels across the six explicit victim x negotiator case configurations, using a fixed judgment scale from -9 to 9.", "fig:victim_case_panels"),
+  latex_include_graphic(file.path("../figures", figure_bystander_case_panels_file), "Bystander-subset severity panels across the six explicit victim x negotiator case configurations, using a fixed judgment scale from -9 to 9.", "fig:bystander_case_panels"),
+  latex_include_graphic(file.path("../figures", figure_accepted_case_panels_file), "Agreement severity panels across the six explicit victim x negotiator case configurations, using a fixed judgment scale from -9 to 9.", "fig:accepted_case_panels"),
+  latex_include_graphic(file.path("../figures", figure_rejected_case_panels_file), "Disagreement severity panels across the six explicit victim x negotiator case configurations, using a fixed judgment scale from -9 to 9.", "fig:rejected_case_panels"),
   "The descriptive branch no longer centers the main report on victim x negotiator case-label tables; the hypothesis tests below work directly with negotiator-level relational predictors.",
   "",
   "\\section{Bi-variate Statistics}",
@@ -1763,14 +1938,16 @@ latex_lines <- c(
   if (report_includes_nonparametric()) {
     "Detailed coefficient tables for each Tobit model, coupled with non-parametric robustness outputs, natural language interpretive narratives, and estimator-specific diagnostics, are provided below. In the default pipeline, converged non-parametric fits immediately attempt participant-level cluster-bootstrap inference; the report labels deferred and sparse-bootstrap cases explicitly when full inference is not available."
   } else {
-    "Detailed coefficient tables for each Tobit model, including predictor estimates, standard errors, p-values, significance symbols, and estimator diagnostics for the victim and bystander subsets, are provided below."
+    "Detailed coefficient tables for each Tobit model, including predictor estimates, standard errors, p-values with conventional significance symbols, and estimator diagnostics for the victim and bystander subsets, are provided below."
   },
   "",
   "\\subsection{H1: Empathy Effect}",
-  "This section evaluates H1 separately in the victim and bystander subsets. Model A uses the overall empathy composite. Model B replaces that composite with the four IRI subscales: fantasy, empathic concern, perspective taking, and personal distress. Both models also retain judged-negotiator status, counterpart status, decision outcome, observer-side victim alignment when applicable, and participant controls for sex, age, and economic status.",
+  "This section evaluates H1 separately in the victim and bystander subsets. Model A uses the overall empathy composite. Model B replaces that composite with the four IRI subscales: fantasy, empathic concern, perspective taking, and personal distress. Both formulas retain judged-negotiator status, counterpart status, decision outcome, and participant controls for sex, age, and economic status, but only the bystander subset includes the observer-side victim-alignment predictor because it is not meaningful inside the victim-only subset.",
   "\\subsubsection{Model A: Composite Empathy}",
+  build_subset_formula_lines(report_h1_spec, "A"),
   build_model_section("H1", "A", "H1 Model A: Composite Empathy Regression Coefficients."),
   "\\subsubsection{Model B: Separated Empathy Constructs}",
+  build_subset_formula_lines(report_h1_spec, "B"),
   build_model_section("H1", "B", "H1 Model B: Separated Constructs Regression Coefficients."),
   "",
   "\\subsection{H2: Negotiator-Side Relational Structure}",
@@ -1778,15 +1955,19 @@ latex_lines <- c(
   "Victim-subset equation: $y^*_{isj,Victim} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\gamma}' \\mathbf{S}^{(V)}_{isj} + \\boldsymbol{\\delta}' \\mathbf{Z}_i + \\epsilon_{isj}$, where $\\mathbf{S}^{(V)}_{isj}$ indexes the judged-plus-counterpart structure dummies and $\\mathbf{Z}_i$ collects participant controls.",
   "Bystander-subset equation: $y^*_{isj,Obs} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\gamma}' \\mathbf{S}^{(O)}_{isj} + \\eta V_{is} + \\boldsymbol{\\theta}' (\\mathbf{S}^{(O)}_{isj} \\times V_{is}) + \\boldsymbol{\\delta}' \\mathbf{Z}_i + \\epsilon_{isj}$, where $V_{is}$ is the player-victim outgroup indicator.",
   "\\subsubsection{Model A: Composite Empathy Control}",
+  build_subset_formula_lines(report_h2_spec, "A"),
   build_model_section("H2", "A", "H2 Model A: Composite Empathy Regression Coefficients."),
   "\\subsubsection{Model B: Separated Construct Controls}",
+  build_subset_formula_lines(report_h2_spec, "B"),
   build_model_section("H2", "B", "H2 Model B: Separated Constructs Regression Coefficients."),
   "",
   "\\subsection{H3: Empathy x Judged-Status Moderation}",
-  "This section tests whether empathy slopes differ across judged-negotiator status categories after retaining decision outcome, judged-status x decision terms, counterpart status, and observer-side victim alignment.",
+  "This section tests whether empathy slopes differ across judged-negotiator status categories after retaining decision outcome, judged-status x decision terms, counterpart status, and observer-side victim alignment when that predictor is meaningful. As in H1, the victim and bystander subsets use different formulas only where observer-only predictors would otherwise be structurally fixed.",
   "\\subsubsection{Model A: Composite Empathy Interaction}",
+  build_subset_formula_lines(report_h3_spec, "A"),
   build_model_section("H3", "A", "H3 Model A: Composite Empathy Regression Coefficients."),
   "\\subsubsection{Model B: Separated Constructs Interaction}",
+  build_subset_formula_lines(report_h3_spec, "B"),
   build_model_section("H3", "B", "H3 Model B: Separated Constructs Regression Coefficients."),
   "",
   "\\section{Discussion and Limitations}",
@@ -1811,6 +1992,10 @@ md_lines <- c(
   paste(
     "All hypothesis sections are now interpreted through negotiator-level relational predictors rather than descriptive case labels."
   ),
+  "",
+  "## Predictor Glossary and Abbreviations",
+  "The regression tables and dynamic figures use compact predictor labels to keep long H2 and H3 rows readable. The bullet list below maps those compact labels back to the full meanings used in the manuscript.",
+  build_markdown_predictor_glossary_list(),
   "",
   "## Interpretation of Interaction Terms",
   "The models herein employ several predefined predictors. It is important to note how interaction terms are interpreted in the context of this behavioral experiment:",

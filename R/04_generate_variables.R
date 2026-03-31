@@ -79,6 +79,7 @@ for (row_id in seq_len(nrow(participants))) {
         sex = as.integer(row$sex),
         sex_man = as.integer(row$sex == 2),
         participant_faculty = participant_faculty,
+        faculty_player_obs = if (identical(role, "observer")) participant_faculty else NA_integer_,
         participant_engineering = as.integer(participant_faculty == 2),
         treatment = as.integer(row$treatment),
         analysis_include = as.logical(row$analysis_include),

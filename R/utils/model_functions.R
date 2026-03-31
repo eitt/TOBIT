@@ -63,6 +63,94 @@ label_case_configuration_term <- function(term) {
   term
 }
 
+compact_relative_group_label <- function(group_code) {
+  switch(
+    group_code,
+    In = "In",
+    Out = "Out",
+    Cont = "Ctl",
+    group_code
+  )
+}
+
+compact_h2_negotiator_structure_label <- function(structure_label) {
+  parts <- strsplit(structure_label, "__", fixed = TRUE)[[1]]
+  if (length(parts) != 2L) return(structure_label)
+
+  judged_group <- sub("^J_", "", parts[1])
+  counterpart_group <- sub("^C_", "", parts[2])
+  sprintf(
+    "JN %s, CN %s",
+    compact_relative_group_label(judged_group),
+    compact_relative_group_label(counterpart_group)
+  )
+}
+
+compact_h2_negotiator_structure_term <- function(term) {
+  dummy_map <- get_h2_negotiator_structure_dummy_names(include_control = TRUE)
+  matched_level <- names(dummy_map)[match(term, unname(dummy_map))]
+  if (length(matched_level) == 1L && !is.na(matched_level)) {
+    return(compact_h2_negotiator_structure_label(matched_level))
+  }
+  term
+}
+
+get_predictor_abbreviation_dictionary <- function() {
+  data.frame(
+    Abbrev = c(
+      "Emp",
+      "FS",
+      "EC",
+      "PT",
+      "PD",
+      "JN",
+      "CN",
+      "V",
+      "Vic",
+      "Obs",
+      "In",
+      "Out",
+      "Ctl",
+      "Acc",
+      "Rej",
+      "SES"
+    ),
+    Meaning = c(
+      "Empathy composite",
+      "Fantasy subscale",
+      "Empathic concern subscale",
+      "Perspective taking subscale",
+      "Personal distress subscale",
+      "Judged negotiator",
+      "Counterpart negotiator",
+      "Victim-side player-victim relation in observer models",
+      "Victim-role subset",
+      "Observer / bystander subset",
+      "Ingroup",
+      "Outgroup",
+      "Control label hidden",
+      "Accepted harmful deal",
+      "Rejected harmful deal",
+      "Economic status"
+    ),
+    stringsAsFactors = FALSE
+  )
+}
+
+get_predictor_abbreviation_note <- function() {
+  paste(
+    "Emp = empathy composite;",
+    "FS / EC / PT / PD = IRI subscales;",
+    "JN = judged negotiator;",
+    "CN = counterpart negotiator;",
+    "V = victim-side player-victim relation in observer models;",
+    "Vic / Obs = victim / observer subset;",
+    "In / Out / Ctl = ingroup / outgroup / control label hidden;",
+    "Acc / Rej = accepted / rejected harmful deal;",
+    "SES = economic status"
+  )
+}
+
 #' Translates coefficient names to readable titles
 label_term <- function(term) {
   direct_map <- c(
@@ -147,6 +235,70 @@ label_term <- function(term) {
   if (grepl("^factor\\(negotiator_slot\\)", term)) {
     return(paste0("Negotiator ", sub("^factor\\(negotiator_slot\\)", "", term), " (ref = negotiator 1)"))
   }
+  term
+}
+
+label_term_compact <- function(term) {
+  direct_map <- c(
+    "(Intercept)" = "Intercept",
+    "iri_total" = "Emp",
+    "iri_fs" = "FS",
+    "iri_ec" = "EC",
+    "iri_pt" = "PT",
+    "iri_pd" = "PD",
+    "Log(scale)" = "Log(scale)",
+    "perp_outgroup" = "Neg Out",
+    "perp_control" = "Neg Ctl",
+    "victim_outgroup" = "V Out",
+    "judged_outgroup" = "JN Out",
+    "judged_control" = "JN Ctl",
+    "counterpart_outgroup" = "CN Out",
+    "counterpart_control" = "CN Ctl",
+    "observer_victim_outgroup" = "V Out (Obs)",
+    "player_victim_outgroup" = "V Out",
+    "role_observer" = "Obs",
+    "participant_engineering" = "Eng part.",
+    "sex_man" = "Man",
+    "age" = "Age",
+    "economic_status" = "SES",
+    "same_group_harm" = "Same-faculty harm",
+    "decision_accept" = "Acc",
+    "counterpart_decision_accept" = "CN Acc",
+    "group_negotiator_judged" = "JN align.",
+    "group_negotiator_counterpart" = "CN align.",
+    "group_victim" = "V align.",
+    "analytic_case_configuration" = "Case cfg.",
+    "analytic_case_configuration_decision" = "Case cfg. x Acc/Rej",
+    "analytic_case_configuration_context" = "Case cfg. x context",
+    "scenario_has_control" = "Has Ctl",
+    "case_configuration" = "Victim x negotiator cfg.",
+    "case_configuration_role" = "Case cfg. x role",
+    "case_configuration_decision" = "Case cfg. x Acc/Rej",
+    "case_configuration_context" = "Case cfg. x context"
+  )
+
+  term_key <- canonicalize_term_name(term)
+  if (term_key %in% names(direct_map)) {
+    return(unname(direct_map[[term_key]]))
+  }
+
+  h2_structure_label <- compact_h2_negotiator_structure_term(term_key)
+  if (!identical(h2_structure_label, term_key)) {
+    return(h2_structure_label)
+  }
+
+  if (grepl(":", term_key, fixed = TRUE)) {
+    term_parts <- strsplit(term_key, ":", fixed = TRUE)[[1]]
+    return(paste(vapply(term_parts, label_term_compact, character(1)), collapse = " x "))
+  }
+
+  if (grepl("^factor\\(stage\\)", term)) {
+    return(paste0("Stage ", sub("^factor\\(stage\\)", "", term)))
+  }
+  if (grepl("^factor\\(negotiator_slot\\)", term)) {
+    return(paste0("Slot ", sub("^factor\\(negotiator_slot\\)", "", term)))
+  }
+
   term
 }
 
@@ -517,6 +669,7 @@ extract_tobit_model_table <- function(model_fit) {
   model_df$conf_low <- model_df$estimate - 1.96 * model_df$std_error
   model_df$conf_high <- model_df$estimate + 1.96 * model_df$std_error
   model_df$label <- vapply(model_df$term, label_term, character(1))
+  model_df$label_short <- vapply(model_df$term, label_term_compact, character(1))
   model_df$approach <- "Tobit"
   model_df$inference <- "Cluster-robust standard errors by participant id"
   add_p_value_display_columns(model_df)
@@ -564,6 +717,7 @@ extract_clad_model_table <- function(model_fit) {
   model_df$conf_low <- model_df$estimate - 1.96 * model_df$std_error
   model_df$conf_high <- model_df$estimate + 1.96 * model_df$std_error
   model_df$label <- vapply(model_df$term, label_term, character(1))
+  model_df$label_short <- vapply(model_df$term, label_term_compact, character(1))
   model_df$approach <- "CLAD"
   model_df$inference <- "ctqr asymptotic covariance"
   add_p_value_display_columns(model_df)

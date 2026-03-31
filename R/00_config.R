@@ -149,7 +149,7 @@ apply_pipeline_runtime_options <- function(
 get_project_paths <- function(project_root = ".", dataset_mode = NULL) {
   # Priority: 1. Argument, 2. Global Option, 3. Default "BOTH"
   if (is.null(dataset_mode)) {
-    dataset_mode <- getOption("tobit.dataset_mode", default = "BOTH")
+    dataset_mode <- getOption("tobit.dataset_mode", default = "FLORIDA")
   }
 
   root <- normalizePath(project_root, winslash = "/", mustWork = TRUE)

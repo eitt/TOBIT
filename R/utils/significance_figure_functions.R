@@ -28,10 +28,10 @@ sanitize_identifier <- function(x) {
 
 get_binary_value_labels <- function(var_name) {
   if (grepl("^h2_negstruct_", var_name)) {
-    structure_label <- label_h2_negotiator_structure_term(var_name)
+    structure_label <- compact_h2_negotiator_structure_term(var_name)
     return(c(
-      "0" = "Reference structure: judged ingroup, counterpart ingroup",
-      "1" = sub("^Negotiator-side structure: ", "", structure_label)
+      "0" = "Ref: JN In, CN In",
+      "1" = structure_label
     ))
   }
 
@@ -66,24 +66,24 @@ get_binary_value_labels <- function(var_name) {
     perp_control = c("0" = "Named perpetrator", "1" = "Control label hidden"),
     same_group_harm = c("0" = "Cross-faculty harm", "1" = "Same-faculty harm"),
     victim_outgroup = c("0" = "Victim ingroup", "1" = "Victim outgroup"),
-    decision_accept = c("0" = "Reject harmful deal", "1" = "Accept harmful deal"),
-    judged_outgroup = c("0" = "Judged negotiator ingroup", "1" = "Judged negotiator outgroup"),
-    judged_control = c("0" = "Judged negotiator ingroup", "1" = "Judged negotiator control label hidden"),
-    counterpart_outgroup = c("0" = "Counterpart negotiator ingroup", "1" = "Counterpart negotiator outgroup"),
-    counterpart_control = c("0" = "Counterpart negotiator ingroup", "1" = "Counterpart negotiator control label hidden"),
-    observer_victim_outgroup = c("0" = "Victim ingroup or victim-role row", "1" = "Observer-side victim outgroup"),
-    player_victim_outgroup = c("0" = "Player and victim ingroup-aligned", "1" = "Player and victim outgroup-aligned"),
-    role_observer = c("0" = "Victim role", "1" = "Observer role"),
-    participant_engineering = c("0" = "Humanities participant", "1" = "Engineering participant"),
+    decision_accept = c("0" = "Rej", "1" = "Acc"),
+    judged_outgroup = c("0" = "JN In", "1" = "JN Out"),
+    judged_control = c("0" = "JN In", "1" = "JN Ctl"),
+    counterpart_outgroup = c("0" = "CN In", "1" = "CN Out"),
+    counterpart_control = c("0" = "CN In", "1" = "CN Ctl"),
+    observer_victim_outgroup = c("0" = "V In", "1" = "V Out"),
+    player_victim_outgroup = c("0" = "V In", "1" = "V Out"),
+    role_observer = c("0" = "Vic", "1" = "Obs"),
+    participant_engineering = c("0" = "Hum part.", "1" = "Eng part."),
     sex_man = c("0" = "Woman", "1" = "Man"),
-    negotiator_slot = c("1" = "Negotiator 1", "2" = "Negotiator 2"),
+    negotiator_slot = c("1" = "Slot 1", "2" = "Slot 2"),
     NULL
   )
 }
 
 get_plot_axis_label <- function(var_name) {
   if (grepl("^h2_negstruct_", var_name)) {
-    return("Negotiator-side structure contrast")
+    return("JN / CN structure")
   }
 
   if (grepl("^case_[a-z]+_x_[a-z]+$", var_name)) {
@@ -92,12 +92,13 @@ get_plot_axis_label <- function(var_name) {
 
   switch(
     var_name,
-    role_observer = "Participant role",
-    participant_engineering = "Participant group",
-    sex_man = "Participant sex",
-    decision_accept = "Decision outcome",
-    player_victim_outgroup = "Player-victim alignment",
-    negotiator_slot = "Negotiator slot",
+    role_observer = "Role",
+    participant_engineering = "Participant faculty",
+    sex_man = "Sex",
+    decision_accept = "Acc / Rej",
+    player_victim_outgroup = "V",
+    observer_victim_outgroup = "V",
+    negotiator_slot = "Slot",
     analytic_case_configuration = "Role-dependent judgment configuration",
     analytic_case_configuration_decision = "Judgment configuration x decision context",
     analytic_case_configuration_context = "Judgment configuration x decision context",
@@ -105,7 +106,7 @@ get_plot_axis_label <- function(var_name) {
     case_configuration_role = "Case configuration x role",
     case_configuration_decision = "Case configuration x decision context",
     case_configuration_context = "Case configuration x role x decision context",
-    label_term(var_name)
+    label_term_compact(var_name)
   )
 }
 
@@ -690,6 +691,43 @@ draw_confidence_band <- function(x, low, high, color) {
   graphics::lines(x, high, col = grDevices::adjustcolor(color, alpha.f = 0.75), lty = 2, lwd = 1.4)
 }
 
+build_interaction_legend_payload <- function(plot_payloads, style) {
+  interaction_idx <- which(vapply(plot_payloads, function(payload) identical(payload$visual_spec$kind, "interaction"), logical(1)))
+  if (length(interaction_idx) == 0L) return(NULL)
+
+  payload <- plot_payloads[[interaction_idx[1]]]
+  moderator_labels <- unique(payload$plot_df$moderator_label)
+  moderator_labels <- moderator_labels[!is.na(moderator_labels)]
+  if (length(moderator_labels) == 0L) return(NULL)
+
+  palette_dark <- c(style$primary, style$secondary, style$accent)
+  list(
+    title = get_plot_axis_label(payload$visual_spec$moderator),
+    labels = moderator_labels,
+    colors = palette_dark[seq_along(moderator_labels)]
+  )
+}
+
+draw_interaction_legend_panel <- function(legend_payload) {
+  if (is.null(legend_payload)) return(invisible(NULL))
+
+  graphics::par(mar = c(0.2, 0.5, 0.2, 0.5), xpd = NA)
+  graphics::plot.new()
+  graphics::legend(
+    "center",
+    legend = wrap_plot_labels(legend_payload$labels, width = 16L),
+    col = legend_payload$colors,
+    lwd = 3,
+    pch = 19,
+    pt.cex = 1.0,
+    bty = "n",
+    cex = 0.90,
+    ncol = 1,
+    title = wrap_title(legend_payload$title, width = 18)
+  )
+  invisible(NULL)
+}
+
 draw_continuous_panel <- function(panel_df, visual_spec, panel_title, style) {
   ordered_df <- panel_df[order(panel_df$x_value), , drop = FALSE]
   ordered_df <- ordered_df[!is.na(ordered_df$predicted), , drop = FALSE]
@@ -807,15 +845,7 @@ draw_interaction_panel <- function(panel_df, visual_spec, panel_title, style) {
     graphics::lines(group_df$x_value, group_df$predicted, col = color, lwd = 3)
   }
 
-  graphics::legend(
-    if (identical(visual_spec$x_type, "continuous")) "bottomleft" else "topleft",
-    legend = wrap_plot_labels(moderator_labels, width = 18L),
-    col = palette_dark[seq_along(moderator_labels)],
-    lwd = 3,
-    bty = "n",
-    cex = 0.82,
-    title = wrap_title(get_plot_axis_label(visual_spec$moderator), width = 20)
-  )
+  invisible(NULL)
 }
 
 write_significance_figure <- function(file_path, plot_payloads, figure_title) {
@@ -823,25 +853,33 @@ write_significance_figure <- function(file_path, plot_payloads, figure_title) {
 
   style <- get_extended_plot_style()
   panel_count <- length(plot_payloads)
-  width <- if (panel_count > 1L) 10.8 else 7.2
-  height <- 5.4
+  legend_payload <- build_interaction_legend_payload(plot_payloads, style)
+  has_legend <- !is.null(legend_payload)
+  width <- if (panel_count > 1L) 12.6 else 8.8
+  height <- if (has_legend) 7.4 else 6.2
 
   open_accessible_png(file_path, width = width, height = height)
   old_par <- graphics::par(no.readonly = TRUE)
   on.exit({
+    graphics::layout(1)
     graphics::par(old_par)
     grDevices::dev.off()
   }, add = TRUE)
 
   apply_accessible_theme()
-  graphics::par(
-    mfrow = c(1, panel_count),
-    mar = c(8.2, 5.0, 3.2, 1.4),
-    mgp = c(4.9, 0.9, 0),
-    oma = c(0, 0, 0.8, 0)
-  )
+  if (has_legend) {
+    graphics::layout(
+      rbind(seq_len(panel_count), rep(panel_count + 1L, panel_count)),
+      heights = c(4.8, 1.6)
+    )
+  }
 
   for (payload in plot_payloads) {
+    graphics::par(
+      mar = c(8.8, 5.0, 3.0, 1.2),
+      mgp = c(5.4, 0.9, 0),
+      oma = c(0, 0, 0, 0)
+    )
     panel_title <- if (identical(payload$approach, "Tobit")) {
       "Tobit"
     } else {
@@ -855,6 +893,10 @@ write_significance_figure <- function(file_path, plot_payloads, figure_title) {
     } else {
       draw_interaction_panel(payload$plot_df, payload$visual_spec, panel_title, style)
     }
+  }
+
+  if (has_legend) {
+    draw_interaction_legend_panel(legend_payload)
   }
 
   invisible(TRUE)
