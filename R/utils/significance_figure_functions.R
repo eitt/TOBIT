@@ -101,10 +101,21 @@ get_plot_label_wrap_width <- function(labels) {
   if (length(labels) == 0L) return(18L)
 
   max_chars <- max(nchar(labels), na.rm = TRUE)
-  if (max_chars >= 40L) return(14L)
-  if (max_chars >= 30L) return(16L)
-  if (max_chars >= 22L) return(18L)
-  22L
+  if (max_chars >= 40L) return(12L)
+  if (max_chars >= 30L) return(14L)
+  if (max_chars >= 22L) return(16L)
+  20L
+}
+
+wrap_plot_label <- function(label, width) {
+  label <- as.character(label)
+  label <- gsub(" \\(ref = ", "\n(ref = ", label, fixed = TRUE)
+  segments <- strsplit(label, "\n", fixed = TRUE)[[1]]
+  wrapped_segments <- unlist(lapply(segments, function(segment) {
+    wrapped <- strwrap(segment, width = width)
+    if (length(wrapped) == 0L) "" else wrapped
+  }), use.names = FALSE)
+  paste(wrapped_segments, collapse = "\n")
 }
 
 wrap_plot_labels <- function(labels, width = NULL) {
@@ -112,7 +123,7 @@ wrap_plot_labels <- function(labels, width = NULL) {
   if (is.null(width)) {
     width <- get_plot_label_wrap_width(labels)
   }
-  vapply(labels, wrap_title, character(1), width = width, USE.NAMES = FALSE)
+  vapply(labels, wrap_plot_label, character(1), width = width, USE.NAMES = FALSE)
 }
 
 format_discrete_value_label <- function(var_name, value) {
@@ -305,6 +316,49 @@ build_moderator_grid <- function(data, moderator, moderator_type) {
   list(values = moderator_values, labels = moderator_labels)
 }
 
+get_prediction_bounds <- function() {
+  get_judgment_observed_bounds()
+}
+
+compute_censored_gaussian_expectation <- function(mu, sigma, lower = get_prediction_bounds()[1], upper = get_prediction_bounds()[2]) {
+  sigma <- as.numeric(sigma[1])
+  if (!is.finite(sigma) || sigma <= 0) {
+    return(clamp_judgment_scale(mu, lower = lower, upper = upper))
+  }
+
+  z_lower <- (lower - mu) / sigma
+  z_upper <- (upper - mu) / sigma
+
+  lower_mass <- stats::pnorm(z_lower)
+  middle_mass <- stats::pnorm(z_upper) - stats::pnorm(z_lower)
+  upper_mass <- 1 - stats::pnorm(z_upper)
+
+  expected_value <- lower * lower_mass +
+    mu * middle_mass +
+    sigma * (stats::dnorm(z_lower) - stats::dnorm(z_upper)) +
+    upper * upper_mass
+
+  clamp_judgment_scale(expected_value, lower = lower, upper = upper)
+}
+
+get_tobit_vcov_matrix <- function(model_fit) {
+  vcov_matrix <- model_fit[["var"]]
+  if (is.null(vcov_matrix)) return(NULL)
+  vcov_matrix <- as.matrix(vcov_matrix)
+
+  if (is.null(dimnames(vcov_matrix))) {
+    coefficient_names <- names(model_fit[["coefficients"]])
+    if (!is.null(coefficient_names) && length(coefficient_names) + 1L == nrow(vcov_matrix)) {
+      full_names <- c(coefficient_names, "Log(scale)")
+      dimnames(vcov_matrix) <- list(full_names, full_names)
+    } else if (!is.null(coefficient_names) && length(coefficient_names) == nrow(vcov_matrix)) {
+      dimnames(vcov_matrix) <- list(coefficient_names, coefficient_names)
+    }
+  }
+
+  vcov_matrix
+}
+
 get_prediction_terms <- function(model_fit) {
   terms_object <- if (inherits(model_fit, "clustered_ctqr_bootstrap")) {
     stats::terms(model_fit[["base_fit"]])
@@ -400,7 +454,13 @@ compute_prediction_summary <- function(model_fit, newdata) {
   }
 
   coefficients <- get_prediction_coefficients(model_fit)
-  predicted <- as.numeric(design_matrix %*% coefficients)
+  valid_coefs <- !is.na(coefficients)
+  if (!all(valid_coefs)) {
+    coefficients <- coefficients[valid_coefs]
+    design_matrix <- design_matrix[, names(coefficients), drop = FALSE]
+  }
+  linear_predictor <- as.numeric(design_matrix %*% coefficients)
+  prediction_bounds <- get_prediction_bounds()
 
   if (inherits(model_fit, "clustered_ctqr_bootstrap")) {
     bootstrap_matrix <- model_fit[["bootstrap_coefficients"]]
@@ -414,39 +474,58 @@ compute_prediction_summary <- function(model_fit, newdata) {
     if (!is.null(bootstrap_matrix) && nrow(bootstrap_matrix) > 1L) {
       bootstrap_matrix <- bootstrap_matrix[, names(coefficients), drop = FALSE]
       bootstrap_predictions <- design_matrix %*% t(bootstrap_matrix)
-      prediction_se <- apply(
+      bootstrap_predictions <- clamp_judgment_scale(bootstrap_predictions, lower = prediction_bounds[1], upper = prediction_bounds[2])
+      predicted <- clamp_judgment_scale(linear_predictor, lower = prediction_bounds[1], upper = prediction_bounds[2])
+      conf_low <- apply(
         bootstrap_predictions,
         1,
         function(x) {
           finite_x <- x[is.finite(x)]
           if (length(finite_x) < 2L) return(NA_real_)
-          stats::sd(finite_x)
+          stats::quantile(finite_x, probs = alpha / 2, na.rm = TRUE, names = FALSE)
         }
       )
-      z_multiplier <- stats::qnorm(1 - alpha / 2)
-      conf_low <- predicted - z_multiplier * prediction_se
-      conf_high <- predicted + z_multiplier * prediction_se
-      return(data.frame(predicted = predicted, conf_low = conf_low, conf_high = conf_high))
+      conf_high <- apply(
+        bootstrap_predictions,
+        1,
+        function(x) {
+          finite_x <- x[is.finite(x)]
+          if (length(finite_x) < 2L) return(NA_real_)
+          stats::quantile(finite_x, probs = 1 - alpha / 2, na.rm = TRUE, names = FALSE)
+        }
+      )
+      return(data.frame(predicted = predicted, conf_low = conf_low, conf_high = conf_high, stringsAsFactors = FALSE))
     }
 
-    return(data.frame(predicted = predicted, conf_low = NA_real_, conf_high = NA_real_))
+    predicted <- clamp_judgment_scale(linear_predictor, lower = prediction_bounds[1], upper = prediction_bounds[2])
+    return(data.frame(predicted = predicted, conf_low = NA_real_, conf_high = NA_real_, stringsAsFactors = FALSE))
   }
 
-  vcov_matrix <- tryCatch(stats::vcov(model_fit), error = function(e) NULL)
+  vcov_matrix <- get_tobit_vcov_matrix(model_fit)
+  sigma <- as.numeric(model_fit[["scale"]][1])
+  predicted <- compute_censored_gaussian_expectation(
+    linear_predictor,
+    sigma = sigma,
+    lower = prediction_bounds[1],
+    upper = prediction_bounds[2]
+  )
+
   if (is.null(vcov_matrix)) {
-    return(data.frame(predicted = predicted, conf_low = NA_real_, conf_high = NA_real_))
+    return(data.frame(predicted = predicted, conf_low = NA_real_, conf_high = NA_real_, stringsAsFactors = FALSE))
   }
 
-  vcov_matrix <- as.matrix(vcov_matrix)
   coefficient_names <- names(coefficients)
   vcov_matrix <- vcov_matrix[coefficient_names, coefficient_names, drop = FALSE]
   standard_error <- sqrt(pmax(rowSums((design_matrix %*% vcov_matrix) * design_matrix), 0))
   z_multiplier <- stats::qnorm(0.975)
+  linear_low <- linear_predictor - z_multiplier * standard_error
+  linear_high <- linear_predictor + z_multiplier * standard_error
 
   data.frame(
     predicted = predicted,
-    conf_low = predicted - z_multiplier * standard_error,
-    conf_high = predicted + z_multiplier * standard_error
+    conf_low = compute_censored_gaussian_expectation(linear_low, sigma = sigma, lower = prediction_bounds[1], upper = prediction_bounds[2]),
+    conf_high = compute_censored_gaussian_expectation(linear_high, sigma = sigma, lower = prediction_bounds[1], upper = prediction_bounds[2]),
+    stringsAsFactors = FALSE
   )
 }
 
@@ -526,13 +605,15 @@ build_significance_plot_data <- function(model_fit, data, term) {
 }
 
 describe_prediction_pattern <- function(plot_df, visual_spec) {
+  plot_df <- plot_df[!is.na(plot_df$predicted), , drop = FALSE]
   if (nrow(plot_df) == 0L) return("No prediction pattern could be summarized.")
 
   if (identical(visual_spec$kind, "continuous_main")) {
     ordered_df <- plot_df[order(plot_df$x_value), , drop = FALSE]
+    if (nrow(ordered_df) < 2L) return(sprintf("the plot summarizes predicted judgment for %s", label_term(visual_spec$x_var)))
     direction <- if (tail(ordered_df$predicted, 1) >= ordered_df$predicted[1]) "higher" else "lower"
     return(sprintf(
-      "across the observed range, higher %s corresponds to %s predicted latent judgment",
+      "across the observed range, higher %s corresponds to %s predicted judgment",
       label_term(visual_spec$x_var),
       direction
     ))
@@ -541,13 +622,13 @@ describe_prediction_pattern <- function(plot_df, visual_spec) {
   if (identical(visual_spec$kind, "categorical_main")) {
     ordered_df <- plot_df[order(plot_df$x_value), , drop = FALSE]
     if (nrow(ordered_df) < 2L) {
-      return(sprintf("the plot summarizes predicted latent judgment for %s", label_term(visual_spec$x_var)))
+      return(sprintf("the plot summarizes predicted judgment for %s", label_term(visual_spec$x_var)))
     }
     high_row <- ordered_df[nrow(ordered_df), , drop = FALSE]
     low_row <- ordered_df[1, , drop = FALSE]
     comparison <- if (high_row$predicted[1] >= low_row$predicted[1]) "higher" else "lower"
     return(sprintf(
-      "predicted latent judgment is %s for %s than for %s",
+      "predicted judgment is %s for %s than for %s",
       comparison,
       high_row$x_label[1],
       low_row$x_label[1]
@@ -559,10 +640,13 @@ describe_prediction_pattern <- function(plot_df, visual_spec) {
     interaction_groups,
     function(group_df) {
       ordered_group <- group_df[order(group_df$x_value), , drop = FALSE]
+      if (nrow(ordered_group) < 2L) return(0)
       tail(ordered_group$predicted, 1) - ordered_group$predicted[1]
     },
     numeric(1)
   )
+
+  if (length(group_slopes) == 0L || max(abs(group_slopes)) == 0) return("the interaction modifies the baseline prediction pattern")
 
   steepest_group <- names(group_slopes)[which.max(abs(group_slopes))]
   steepest_slope <- unname(group_slopes[steepest_group])
@@ -585,17 +669,24 @@ draw_confidence_band <- function(x, low, high, color) {
   graphics::polygon(
     c(x, rev(x)),
     c(low, rev(high)),
-    col = grDevices::adjustcolor(color, alpha.f = 0.25),
+    col = grDevices::adjustcolor(color, alpha.f = 0.20),
     border = NA
   )
+  graphics::lines(x, low, col = grDevices::adjustcolor(color, alpha.f = 0.75), lty = 2, lwd = 1.4)
+  graphics::lines(x, high, col = grDevices::adjustcolor(color, alpha.f = 0.75), lty = 2, lwd = 1.4)
 }
 
 draw_continuous_panel <- function(panel_df, visual_spec, panel_title, style) {
   ordered_df <- panel_df[order(panel_df$x_value), , drop = FALSE]
-  y_limits <- range(c(ordered_df$conf_low, ordered_df$conf_high, ordered_df$predicted), finite = TRUE)
-  if (!all(is.finite(y_limits))) {
-    y_limits <- range(ordered_df$predicted, finite = TRUE)
+  ordered_df <- ordered_df[!is.na(ordered_df$predicted), , drop = FALSE]
+  if (nrow(ordered_df) == 0L) {
+    graphics::plot.new()
+    graphics::title(main = wrap_title(panel_title, width = 28))
+    graphics::text(0.5, 0.5, "No finite predictions available")
+    return(invisible(NULL))
   }
+  y_limits <- get_judgment_observed_bounds()
+  y_ticks <- get_judgment_axis_ticks()
 
   graphics::plot(
     ordered_df$x_value,
@@ -603,9 +694,11 @@ draw_continuous_panel <- function(panel_df, visual_spec, panel_title, style) {
     type = "n",
     main = wrap_title(panel_title, width = 28),
     xlab = wrap_title(get_plot_axis_label(visual_spec$x_var), width = 26),
-    ylab = "Predicted latent judgment",
-    ylim = y_limits
+    ylab = "Predicted judgment",
+    ylim = y_limits,
+    yaxt = "n"
   )
+  graphics::axis(2, at = y_ticks, labels = y_ticks)
   graphics::abline(h = 0, col = style$grid, lty = 3, lwd = 1)
   draw_confidence_band(ordered_df$x_value, ordered_df$conf_low, ordered_df$conf_high, style$primary)
   graphics::lines(ordered_df$x_value, ordered_df$predicted, col = style$primary, lwd = 3)
@@ -613,10 +706,15 @@ draw_continuous_panel <- function(panel_df, visual_spec, panel_title, style) {
 
 draw_categorical_panel <- function(panel_df, visual_spec, panel_title, style) {
   ordered_df <- panel_df[order(panel_df$x_value), , drop = FALSE]
-  y_limits <- range(c(ordered_df$conf_low, ordered_df$conf_high, ordered_df$predicted), finite = TRUE)
-  if (!all(is.finite(y_limits))) {
-    y_limits <- range(ordered_df$predicted, finite = TRUE)
+  ordered_df <- ordered_df[!is.na(ordered_df$predicted), , drop = FALSE]
+  if (nrow(ordered_df) == 0L) {
+    graphics::plot.new()
+    graphics::title(main = wrap_title(panel_title, width = 28))
+    graphics::text(0.5, 0.5, "No finite predictions available")
+    return(invisible(NULL))
   }
+  y_limits <- get_judgment_observed_bounds()
+  y_ticks <- get_judgment_axis_ticks()
 
   graphics::plot(
     ordered_df$x_value,
@@ -625,27 +723,35 @@ draw_categorical_panel <- function(panel_df, visual_spec, panel_title, style) {
     xaxt = "n",
     main = wrap_title(panel_title, width = 28),
     xlab = wrap_title(get_plot_axis_label(visual_spec$x_var), width = 26),
-    ylab = "Predicted latent judgment",
-    ylim = y_limits
+    ylab = "Predicted judgment",
+    ylim = y_limits,
+    yaxt = "n"
   )
+  graphics::axis(2, at = y_ticks, labels = y_ticks)
   graphics::axis(
     1,
     at = ordered_df$x_value,
     labels = wrap_plot_labels(ordered_df$x_label),
-    cex.axis = 0.90
+    cex.axis = 0.85
   )
   graphics::abline(h = 0, col = style$grid, lty = 3, lwd = 1)
-  graphics::segments(ordered_df$x_value, ordered_df$conf_low, ordered_df$x_value, ordered_df$conf_high, col = style$primary, lwd = 2)
+  draw_confidence_interval_bars(ordered_df$x_value, ordered_df$conf_low, ordered_df$conf_high, style$primary, cap_width = 0.1, lwd = 2)
   graphics::points(ordered_df$x_value, ordered_df$predicted, pch = 19, cex = 1.2, col = style$primary)
 }
 
 draw_interaction_panel <- function(panel_df, visual_spec, panel_title, style) {
+  panel_df <- panel_df[!is.na(panel_df$predicted), , drop = FALSE]
+  if (nrow(panel_df) == 0L) {
+    graphics::plot.new()
+    graphics::title(main = wrap_title(panel_title, width = 28))
+    graphics::text(0.5, 0.5, "No finite predictions available")
+    return(invisible(NULL))
+  }
+
   moderator_labels <- unique(panel_df$moderator_label)
   palette_dark <- c(style$primary, style$secondary, style$accent)
-  y_limits <- range(c(panel_df$conf_low, panel_df$conf_high, panel_df$predicted), finite = TRUE)
-  if (!all(is.finite(y_limits))) {
-    y_limits <- range(panel_df$predicted, finite = TRUE)
-  }
+  y_limits <- get_judgment_observed_bounds()
+  y_ticks <- get_judgment_axis_ticks()
 
   x_values <- sort(unique(panel_df$x_value))
   graphics::plot(
@@ -655,9 +761,11 @@ draw_interaction_panel <- function(panel_df, visual_spec, panel_title, style) {
     xaxt = if (identical(visual_spec$x_type, "continuous")) "s" else "n",
     main = wrap_title(panel_title, width = 28),
     xlab = wrap_title(get_plot_axis_label(visual_spec$x_var), width = 26),
-    ylab = "Predicted latent judgment",
-    ylim = y_limits
+    ylab = "Predicted judgment",
+    ylim = y_limits,
+    yaxt = "n"
   )
+  graphics::axis(2, at = y_ticks, labels = y_ticks)
   graphics::abline(h = 0, col = style$grid, lty = 3, lwd = 1)
 
   if (!identical(visual_spec$x_type, "continuous")) {
@@ -667,7 +775,7 @@ draw_interaction_panel <- function(panel_df, visual_spec, panel_title, style) {
       1,
       at = x_labels$x_value,
       labels = wrap_plot_labels(x_labels$x_label),
-      cex.axis = 0.90
+      cex.axis = 0.85
     )
   }
 
@@ -676,17 +784,22 @@ draw_interaction_panel <- function(panel_df, visual_spec, panel_title, style) {
     color <- palette_dark[((idx - 1L) %% length(palette_dark)) + 1L]
     group_df <- panel_df[panel_df$moderator_label == moderator_label, , drop = FALSE]
     group_df <- group_df[order(group_df$x_value), , drop = FALSE]
-    draw_confidence_band(group_df$x_value, group_df$conf_low, group_df$conf_high, color)
+    if (identical(visual_spec$x_type, "continuous")) {
+      draw_confidence_band(group_df$x_value, group_df$conf_low, group_df$conf_high, color)
+    } else {
+      draw_confidence_interval_bars(group_df$x_value, group_df$conf_low, group_df$conf_high, color, cap_width = 0.1, lwd = 2)
+      graphics::points(group_df$x_value, group_df$predicted, pch = 19, cex = 1.05, col = color)
+    }
     graphics::lines(group_df$x_value, group_df$predicted, col = color, lwd = 3)
   }
 
   graphics::legend(
-    "topleft",
+    if (identical(visual_spec$x_type, "continuous")) "bottomleft" else "topleft",
     legend = wrap_plot_labels(moderator_labels, width = 18L),
     col = palette_dark[seq_along(moderator_labels)],
     lwd = 3,
     bty = "n",
-    cex = 0.85,
+    cex = 0.82,
     title = wrap_title(get_plot_axis_label(visual_spec$moderator), width = 20)
   )
 }
@@ -709,9 +822,9 @@ write_significance_figure <- function(file_path, plot_payloads, figure_title) {
   apply_accessible_theme()
   graphics::par(
     mfrow = c(1, panel_count),
-    mar = c(8.5, 5.2, 4.0, 1.5),
-    mgp = c(4.1, 0.95, 0),
-    oma = c(0, 0, 2.2, 0)
+    mar = c(8.2, 5.0, 3.2, 1.4),
+    mgp = c(4.9, 0.9, 0),
+    oma = c(0, 0, 0.8, 0)
   )
 
   for (payload in plot_payloads) {
@@ -730,6 +843,5 @@ write_significance_figure <- function(file_path, plot_payloads, figure_title) {
     }
   }
 
-  graphics::mtext(wrap_title(figure_title, width = 70), outer = TRUE, line = 0.2, cex = 1.05, font = 2)
   invisible(TRUE)
 }

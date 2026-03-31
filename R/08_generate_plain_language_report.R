@@ -64,13 +64,13 @@ render_word <- function(md_file) {
 
 participants_df <- read_csv_if_exists(paths$processed_participants)
 judgments_df <- read_csv_if_exists(paths$processed_judgments)
-accepted_df <- read_csv_if_exists(paths$processed_accept)
-betrayal_df <- read_csv_if_exists(paths$processed_betrayal)
+victim_df <- read_csv_if_exists(paths$processed_victim)
+bystander_df <- read_csv_if_exists(paths$processed_bystander)
 
 participant_n <- if (is.null(participants_df)) NA_integer_ else nrow(participants_df)
 judgment_n <- if (is.null(judgments_df)) NA_integer_ else nrow(judgments_df)
-accepted_n <- if (is.null(accepted_df)) NA_integer_ else nrow(accepted_df)
-betrayal_n <- if (is.null(betrayal_df)) NA_integer_ else nrow(betrayal_df)
+victim_n <- if (is.null(victim_df)) NA_integer_ else nrow(victim_df)
+bystander_n <- if (is.null(bystander_df)) NA_integer_ else nrow(bystander_df)
 
 hypothesis_specs <- get_hypothesis_specs(paths = paths)
 
@@ -151,19 +151,22 @@ md_lines <- c(
   "",
   "Estas variables no miden una cantidad continua. Lo que hacen es comparar grupos, roles o tipos de escena.",
   "",
-  "### 1.3 La idea central de Option 2",
+  "### 1.3 La separacion en Subconjuntos (Victima y Observador)",
   "",
-  "Aqui esta uno de los puntos mas importantes del proyecto. Antes uno podia pensar en variables sueltas como ingroup y outgroup. Ahora el proyecto prioriza el caso completo.",
+  "A diferencia de versiones anteriores, el analisis ya no se divide segun si la gente acepto o traiciono. Ahora **todos los modelos** se corren dos veces: una vez exclusivamente para el subconjunto donde el participante actuo como **Victima**, y otra vez para el subconjunto donde actuo como **Observador (Bystander)**. En ambos subconjuntos, la decision (aceptar o rechazar el trato danino) se incluye siempre como un predictor.",
   "",
-  "Pero en H2 y H3 el pipeline ahora usa una descomposicion mas directa: estatus del negociador juzgado, decision de aceptar o rechazar, interaccion entre ambas, y controles relacionales para la contraparte y, cuando aplica, para la victima vista por el observador.",
+  "### 1.4 Interpretacion de Interacciones",
+  "",
+  "Cuando veas que un termino con dos puntos (`:`) es marcado como significativo, significa que ambos componentes interactuan. Si una interaccion es significativa, los efectos principales (los que van solos) ya no se interpretan por su cuenta, pues estan subordinados al contexto de la interaccion.",
+  "Si es una interaccion entre empatia continua y un grupo (ej. `iri_total:judged_outgroup`), un coeficiente negativo indica que el efecto de la empatia es todavia mas severo para el outgroup. Si es discreto por discreto (ej. `judged_outgroup:decision_accept`), un coeficiente positivo significa que penalizamos menos la traicion cuando la comete el outgroup comparado al ingroup.",
   "",
   "## 2. Data card corto",
   "",
   "- Archivos base principales: `data/raw/data_final_FLORIDA.xlsx` y `data/raw/data_final_BUC.xlsx`.",
   sprintf("- Filas de participantes disponibles ahora: **%s**.", format_count(participant_n)),
   sprintf("- Filas en formato largo de juicios disponibles ahora: **%s**.", format_count(judgment_n)),
-  sprintf("- Filas de decisiones aceptadas usadas en la mayoria de modelos: **%s**.", format_count(accepted_n)),
-  sprintf("- Filas del subconjunto de traicion usadas en H2a: **%s**.", format_count(betrayal_n)),
+  sprintf("- Juicios emitidos desde el rol de Victima: **%s**.", format_count(victim_n)),
+  sprintf("- Juicios emitidos desde el rol de Observador: **%s**.", format_count(bystander_n)),
   "- La base original empieza con una fila por participante.",
   "- Luego el pipeline reorganiza la informacion para que cada juicio sobre cada negociador quede como una fila propia.",
   "",
@@ -235,7 +238,8 @@ md_lines <- c(
   "",
   "Esta parte sirve para que los coeficientes se lean con mas tranquilidad.",
   "",
-  "- En H1, los controles centrales ya no dependen de etiquetas `Hum_x_...`; usan el estatus relacional del negociador juzgado, de la contraparte y de la victima cuando aplica.",
+  "- En H1, tanto en Victima como en Observador, el Modelo A usa `iri_total` y el Modelo B usa `iri_fs`, `iri_ec`, `iri_pt` e `iri_pd`; ambos retienen `judged_outgroup`, `judged_control`, `counterpart_outgroup`, `counterpart_control`, `decision_accept`, `sex_man`, `age` y `economic_status`.",
+  "- En H1, los controles centrales ya no dependen de etiquetas `Hum_x_...`; usan el estatus relacional del negociador juzgado, de la contraparte y de la victima cuando aplica, junto con `participant_engineering` y `factor(negotiator_slot)`.",
   "- En H2 y H3, los contrastes centrales usan el estatus del negociador juzgado (`judged_outgroup`, `judged_control`), la decision (`decision_accept`) y sus interacciones.",
   "- `role_observer = 1` significa observador y `0` significa victima.",
   "- `participant_engineering = 1` significa que el participante es de Ingenieria y `0` que es de Humanidades.",

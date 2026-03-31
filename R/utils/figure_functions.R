@@ -49,6 +49,97 @@ wrap_title <- function(title_text, width = 60) {
   paste(strwrap(title_text, width = width), collapse = "\n")
 }
 
+sanitize_filename_component <- function(x, max_chars = 90L) {
+  x <- trimws(as.character(x)[1])
+  if (!nzchar(x)) return("figure")
+  cleaned <- tolower(x)
+  cleaned <- gsub("[^a-z0-9]+", "_", cleaned)
+  cleaned <- gsub("_+", "_", cleaned)
+  cleaned <- gsub("^_+|_+$", "", cleaned)
+  if (!nzchar(cleaned)) cleaned <- "figure"
+  if (nchar(cleaned) > max_chars) {
+    cleaned <- substr(cleaned, 1, max_chars)
+    cleaned <- gsub("_+$", "", cleaned)
+  }
+  cleaned
+}
+
+build_titled_figure_filename <- function(prefix, title, ext = "png") {
+  sprintf("%s_%s.%s", prefix, sanitize_filename_component(title), ext)
+}
+
+get_standard_figure_filename <- function(figure_key) {
+  switch(
+    figure_key,
+    age = build_titled_figure_filename("figure_01", "Age distribution"),
+    empathy = build_titled_figure_filename("figure_02", "Empathy composite distribution"),
+    radar = build_titled_figure_filename("figure_03", "IRI latent variable averages"),
+    severity_panels = build_titled_figure_filename("figure_04", "Judgment distributions by judged negotiator status"),
+    bivariate_scatters = build_titled_figure_filename("figure_05", "Bivariate scatters IRI scales vs mean judgment"),
+    victim_case_panels = build_titled_figure_filename("figure_06", "Victim subset judgment distributions across six case configurations"),
+    bystander_case_panels = build_titled_figure_filename("figure_07", "Bystander subset judgment distributions across six case configurations"),
+    stop(sprintf("Unknown standard figure key '%s'.", figure_key), call. = FALSE)
+  )
+}
+
+get_judgment_axis_limits <- function() {
+  c(-10, 10)
+}
+
+get_judgment_observed_bounds <- function() {
+  c(-9, 9)
+}
+
+get_judgment_axis_ticks <- function() {
+  seq(get_judgment_observed_bounds()[1], get_judgment_observed_bounds()[2], by = 3)
+}
+
+get_judgment_hist_breaks <- function() {
+  seq(-9.5, 9.5, by = 1)
+}
+
+clamp_judgment_scale <- function(x, lower = get_judgment_observed_bounds()[1], upper = get_judgment_observed_bounds()[2]) {
+  pmin(pmax(x, lower), upper)
+}
+
+draw_confidence_interval_bars <- function(x, low, high, color, cap_width = 0.12, lwd = 2) {
+  finite_index <- is.finite(x) & is.finite(low) & is.finite(high)
+  if (!any(finite_index)) return(invisible(NULL))
+
+  x <- x[finite_index]
+  low <- low[finite_index]
+  high <- high[finite_index]
+
+  graphics::segments(x, low, x, high, col = color, lwd = lwd)
+  graphics::segments(x - cap_width, low, x + cap_width, low, col = color, lwd = lwd)
+  graphics::segments(x - cap_width, high, x + cap_width, high, col = color, lwd = lwd)
+  invisible(NULL)
+}
+
+draw_lm_fit_with_confidence_band <- function(x, y, line_color = "#083B5C", band_alpha = 0.18, level = 0.95, n_points = 100L) {
+  complete_cases <- is.finite(x) & is.finite(y)
+  x <- x[complete_cases]
+  y <- y[complete_cases]
+
+  if (length(x) < 3L || length(unique(x)) < 2L) {
+    return(invisible(FALSE))
+  }
+
+  lm_fit <- stats::lm(y ~ x)
+  prediction_grid <- data.frame(x = seq(min(x), max(x), length.out = n_points))
+  prediction <- stats::predict(lm_fit, newdata = prediction_grid, interval = "confidence", level = level)
+
+  graphics::polygon(
+    c(prediction_grid$x, rev(prediction_grid$x)),
+    c(prediction[, "lwr"], rev(prediction[, "upr"])),
+    col = grDevices::adjustcolor(line_color, alpha.f = band_alpha),
+    border = NA
+  )
+  graphics::lines(prediction_grid$x, prediction[, "fit"], col = line_color, lwd = 2.5)
+
+  invisible(TRUE)
+}
+
 #' Draw a high-quality, minimalistic Radar Plot (Base R)
 #' @param values Numeric vector of length N (scores to plot)
 #' @param labels Character vector of length N (axis labels)

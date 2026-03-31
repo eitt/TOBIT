@@ -10,7 +10,7 @@
 # Controls: iri_total or empathy subscales, counterpart_outgroup,
 # counterpart_control, observer_victim_outgroup, role_observer,
 # participant_engineering, sex_man, age, economic_status, slot
-# Sample: Full judgment sample
+# Sample: Full role-specific samples
 # Specification: Interval-censored clustered Tobit model plus
 # cluster-bootstrap non-parametric robustness check
 
@@ -22,12 +22,24 @@ spec <- get_hypothesis_spec("H2b", paths = paths)
 
 message("Testing H2b: Judged-status x decision contrasts with control included (Models A and B)")
 
-judgments_analysis <- read.csv(spec$data_path, stringsAsFactors = FALSE)
+judgments_victim <- read.csv(paths$processed_victim, stringsAsFactors = FALSE)
+judgments_bystander <- read.csv(paths$processed_bystander, stringsAsFactors = FALSE)
 
+# ---- Victim Subset ----
+message("--- Running H2b on Victim Subset ---")
 # Model A
-run_estimation_suite(judgments_analysis, spec$formula_rhs$A, "H2b_A", "H2b_A_Total", paths$models_dir)
+run_estimation_suite(judgments_victim, spec$formula_rhs$A, "H2b_A_Victim", "H2b_A_Victim_Total", paths$models_dir)
 
 # Model B
-run_estimation_suite(judgments_analysis, spec$formula_rhs$B, "H2b_B", "H2b_B_Constructs", paths$models_dir)
+run_estimation_suite(judgments_victim, spec$formula_rhs$B, "H2b_B_Victim", "H2b_B_Victim_Constructs", paths$models_dir)
 
-message("H2b test completed. Outputs saved to models/.")
+
+# ---- Bystander Subset ----
+message("--- Running H2b on Bystander Subset ---")
+# Model A
+run_estimation_suite(judgments_bystander, spec$formula_rhs$A, "H2b_A_Bystander", "H2b_A_Bystander_Total", paths$models_dir)
+
+# Model B
+run_estimation_suite(judgments_bystander, spec$formula_rhs$B, "H2b_B_Bystander", "H2b_B_Bystander_Constructs", paths$models_dir)
+
+message("H2b test completed for both subsets. Outputs saved to models/.")

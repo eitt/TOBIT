@@ -9,6 +9,10 @@ get_default_case_modeling_option <- function() {
   "Option 2: judgment-level relational modeling"
 }
 
+get_default_pipeline_mode <- function() {
+  "Tobit" # Can be "Tobit" or "Both"
+}
+
 # Central participant-level sampling setting for quick test runs.
 # Use 1.0 (or 100) when you want to keep the full imported dataset.
 get_default_dataset_sample_fraction <- function() {
@@ -95,12 +99,18 @@ resolve_dataset_sample_seed <- function() {
 
 apply_pipeline_runtime_options <- function(
   dataset_mode = NULL,
-  run_bootstrap = TRUE,
+  pipeline_mode = NULL,
   skip_tobit_refit = FALSE,
   clad_bootstrap_reps = NULL,
   dataset_sample_fraction = NULL,
   dataset_sample_seed = NULL
 ) {
+  if (is.null(pipeline_mode)) {
+    pipeline_mode <- getOption("tobit.pipeline_mode", get_default_pipeline_mode())
+  }
+  
+  run_bootstrap <- (tolower(trimws(pipeline_mode)) == "both")
+
   effective_bootstrap_reps <- parse_bootstrap_reps_value(clad_bootstrap_reps)
   if (is.na(effective_bootstrap_reps)) {
     effective_bootstrap_reps <- parse_bootstrap_reps_value(get_default_clad_bootstrap_reps())
@@ -121,6 +131,7 @@ apply_pipeline_runtime_options <- function(
   if (!is.null(dataset_mode)) {
     options(tobit.dataset_mode = dataset_mode)
   }
+  options(tobit.pipeline_mode = pipeline_mode)
   options(tobit.modeling_option = get_default_case_modeling_option())
   options(tobit.clad_run_bootstrap = isTRUE(run_bootstrap))
   options(tobit.skip_tobit_refit = isTRUE(skip_tobit_refit))
@@ -165,8 +176,8 @@ get_project_paths <- function(project_root = ".", dataset_mode = NULL) {
     raw_buc = file.path(root, "data", "raw", "data_final_BUC.xlsx"),
     processed_participants = file.path(root, "data", "processed", "participants_scored.csv"),
     processed_judgments = file.path(root, "data", "processed", "judgments_analysis.csv"),
-    processed_accept = file.path(root, "data", "processed", "judgments_accept_only.csv"),
-    processed_betrayal = file.path(root, "data", "processed", "judgments_betrayal_only.csv"),
+    processed_victim = file.path(root, "data", "processed", "judgments_victim.csv"),
+    processed_bystander = file.path(root, "data", "processed", "judgments_bystander.csv"),
     tables_dir = file.path(root, "outputs", "tables"),
     figures_dir = file.path(root, "outputs", "figures"),
     models_dir = file.path(root, "outputs", "models"),

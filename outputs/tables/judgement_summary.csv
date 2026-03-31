@@ -1,6 +1,7 @@
 "Metric","Value"
 "Judgments in analysis sample",3980
-"Harmful decisions in primary model sample",1939
+"Victim judgments",1990
+"Bystander judgments",1990
 "Acceptance rate",0.487185929648241
-"Left-censored share at -9",0.256317689530686
-"Right-censored share at 9",0.035585353274884
+"Left-censored share at -9",0.128140703517588
+"Right-censored share at 9",0.306030150753769

@@ -38,6 +38,7 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
     include_control = TRUE
   )
   control_terms <- c(
+    "decision_accept",
     "role_observer",
     "participant_engineering",
     "sex_man",
@@ -117,19 +118,21 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
       family_short_label = "H1: Empathy under relational controls",
       family_focus_label = "Empathy under relational controls",
       family_statement = paste(
-        "Higher empathy predicts lower moral-judgment scores for harmful decisions after",
-        "conditioning on judged-negotiator, counterpart, and observer-side victim relational controls."
+        "Within the victim and bystander subsets, higher empathy predicts lower moral-judgment scores",
+        "for harmful decisions after conditioning on judged-negotiator status, counterpart status,",
+        "decision outcome, observer-side victim alignment when applicable, and participant controls."
       ),
       short_label = "H1: Empathy under relational controls",
       focus_label = "Empathy under relational controls",
       script_path = "R/hypotheses/H1_test.R",
-      data_path = paths$processed_accept,
-      sample_key = "accepted",
-      sample_label = "Accepted decisions only",
+      data_path = "Subset dependent (Victim or Bystander)",
+      sample_key = "subset",
+      sample_label = "Full role-specific target sample",
       expected_direction = "negative",
       statement = paste(
-        "Higher empathy predicts lower moral-judgment scores for harmful decisions after",
-        "conditioning on judged-negotiator, counterpart, and observer-side victim relational controls."
+        "Within the victim and bystander subsets, higher empathy predicts lower moral-judgment scores",
+        "for harmful decisions after conditioning on judged-negotiator status, counterpart status,",
+        "decision outcome, observer-side victim alignment when applicable, and participant controls."
       ),
       dependent_variable = "judgement (-9 to 9)",
       primary_terms = list(
@@ -138,8 +141,14 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
       ),
       case_terms = h1_relational_terms,
       model_terms = list(
-        A = list(terms = c("iri_total"), description = "the composite empathy term"),
-        B = list(terms = c("iri_fs", "iri_ec", "iri_pt", "iri_pd"), description = "the empathy subscale main effects")
+        A = list(
+          terms = c("iri_total"),
+          description = "the composite empathy term, while retaining judged and counterpart status, decision outcome, and participant controls"
+        ),
+        B = list(
+          terms = c("iri_fs", "iri_ec", "iri_pt", "iri_pd"),
+          description = "the four empathy subscale main effects, while retaining judged and counterpart status, decision outcome, and participant controls"
+        )
       ),
       formula_rhs = list(
         A = paste("iri_total +", h1_relational_rhs, "+", control_rhs),
@@ -149,18 +158,24 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
       plain_title = "H1: empatia y juicio moral controlando por relaciones del caso",
       plain_question = paste(
         "una vez tenemos en cuenta el estatus relacional del negociador juzgado,",
-        "de la contraparte y de la victima cuando aplica, la empatia del participante",
-        "se relaciona con el juicio moral?"
+        "de la contraparte, la decision y la victima cuando aplica, la empatia del participante",
+        "se relaciona con el juicio moral en Victima y Observador?"
       ),
-      plain_sample = "solo decisiones aceptadas.",
-      plain_equation = "judgement = empatia + controles relacionales + controles demograficos",
+      plain_sample = "Se estima por separado en Victima y Observador con la misma estructura de predictores.",
+      plain_equation = paste(
+        "judgement = iri_total o {iri_fs + iri_ec + iri_pt + iri_pd} + judged_outgroup + judged_control +",
+        "counterpart_outgroup + counterpart_control + observer_victim_outgroup + decision_accept +",
+        "participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)"
+      ),
       plain_code_equations = c(
         "Modelo A: iri_total + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + observer_victim_outgroup + role_observer + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)",
         "Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + observer_victim_outgroup + role_observer + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)"
       ),
-      plain_term_note = sprintf(
-        "En H1, los controles relacionales que entran son %s.",
-        inline_code_list_text(h1_relational_terms)
+      plain_term_note = paste(
+        sprintf("En H1, los controles relacionales que entran son %s.", inline_code_list_text(h1_relational_terms)),
+        "En ambos subconjuntos, el Modelo B conserva las cuatro subescalas de empatia (`iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`),",
+        "mientras que ambos modelos retienen `decision_accept`, `sex_man`, `age` y `economic_status`.",
+        "`observer_victim_outgroup` solo varia cuando aplica y `role_observer` queda fijo dentro de cada subconjunto."
       )
     ),
     list(
@@ -175,9 +190,9 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
       short_label = "H2a: Judged-status x decision contrasts without control scenarios",
       focus_label = "Judged-status x decision contrasts without control scenarios",
       script_path = "R/hypotheses/H2a_test.R",
-      data_path = paths$processed_betrayal,
-      sample_key = "betrayal",
-      sample_label = "Full judgment sample excluding scenarios with control-labeled negotiators",
+      data_path = "Subset dependent (Victim or Bystander)",
+      sample_key = "subset",
+      sample_label = "Full role-specific target sample",
       expected_direction = "either",
       statement = paste(
         "Moral-judgment severity should vary with the judged negotiator's",
@@ -211,7 +226,7 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
         "juicio segun si el negociador juzgado es ingroup u outgroup y segun",
         "si acepto o rechazo el trato danino?"
       ),
-      plain_sample = "muestra completa de juicios, excluyendo escenarios con negociadores control.",
+      plain_sample = "Depende del subconjunto (Victima u Observador).",
       plain_equation = "judgement = estatus del negociador juzgado + decision + estatus x decision + empatia + controles relacionales",
       plain_code_equations = c(
         "Modelo A: judged_outgroup + decision_accept + judged_outgroup:decision_accept + iri_total + counterpart_outgroup + observer_victim_outgroup + role_observer + controles",
@@ -231,9 +246,9 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
       short_label = "H2b: Judged-status x decision contrasts with control included",
       focus_label = "Judged-status x decision contrasts with control included",
       script_path = "R/hypotheses/H2b_test.R",
-      data_path = paths$processed_judgments,
-      sample_key = "analysis",
-      sample_label = "Full judgment sample",
+      data_path = "Subset dependent (Victim or Bystander)",
+      sample_key = "subset",
+      sample_label = "Full role-specific target sample",
       expected_direction = "either",
       statement = paste(
         "Moral-judgment severity should vary with the judged negotiator's",
@@ -266,7 +281,7 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
         "cambia el juicio segun si el negociador juzgado es ingroup, outgroup o",
         "control y segun si acepto o rechazo el trato danino?"
       ),
-      plain_sample = "muestra completa de juicios.",
+      plain_sample = "Depende del subconjunto (Victima u Observador).",
       plain_equation = "judgement = estatus del negociador juzgado + decision + estatus x decision + empatia + controles relacionales",
       plain_code_equations = c(
         "Modelo A: judged_outgroup + judged_control + decision_accept + interacciones con decision + iri_total + controles relacionales",
@@ -286,9 +301,9 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
       short_label = "H3: Empathy x judged-status moderation",
       focus_label = "Empathy x judged-status moderation",
       script_path = "R/hypotheses/H3_test.R",
-      data_path = paths$processed_judgments,
-      sample_key = "analysis",
-      sample_label = "Full judgment sample",
+      data_path = "Subset dependent (Victim or Bystander)",
+      sample_key = "subset",
+      sample_label = "Full role-specific target sample",
       expected_direction = "either",
       statement = paste(
         "The empathy effect may vary according to whether the judged negotiator",
@@ -321,7 +336,7 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
         "la relacion entre empatia y juicio cambia dependiendo del tipo de",
         "estatus relacional del negociador juzgado?"
       ),
-      plain_sample = "muestra completa de juicios.",
+      plain_sample = "Depende del subconjunto (Victima u Observador).",
       plain_equation = "judgement = empatia + estatus del negociador + decision + estatus x decision + empatia x estatus + controles relacionales",
       plain_code_equations = c(
         "Modelo A: iri_total + judged_outgroup + judged_control + decision_accept + interacciones con decision + iri_total:judged_outgroup + iri_total:judged_control + controles relacionales",

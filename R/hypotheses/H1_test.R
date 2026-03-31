@@ -1,16 +1,17 @@
 # R/hypotheses/H1_test.R
 # Hypothesis 1: Empathy Effect under relational controls
 # Statement: Higher empathy predicts lower moral-judgment scores for harmful
-# decisions after conditioning on the judged negotiator, the counterpart
-# negotiator, and observer-side victim alignment.
+# decisions after conditioning on judged-negotiator status, counterpart
+# status, decision outcome, and observer-side victim alignment when applicable.
 # Dependent Variable: judgement (-9 to 9)
-# Independent Variable: iri_total (empathy composite average) or empathy
-# subscales
-# Relational controls: judged-negotiator status, counterpart-negotiator status,
-# and observer-side victim alignment
-# Additional controls: role_observer, participant_engineering, sex_man, age,
-# economic_status, slot
-# Sample: Accepted decisions (decision_accept = 1)
+# Empathy predictors: Model A uses iri_total; Model B uses iri_fs, iri_ec,
+# iri_pt, and iri_pd in both victim and bystander subsets
+# Relational predictors: judged_outgroup/judged_control,
+# counterpart_outgroup/counterpart_control, decision_accept, and
+# observer_victim_outgroup when applicable
+# Additional controls: participant_engineering, sex_man, age,
+# economic_status, role_observer, and factor(negotiator_slot)
+# Sample: Full role-specific samples (Victim and Bystander)
 # Specification: Interval-censored clustered Tobit model plus
 # cluster-bootstrap non-parametric robustness check
 
@@ -22,12 +23,24 @@ spec <- get_hypothesis_spec("H1", paths = paths)
 
 message("Testing H1: Empathy effect under judged/counterpart relational controls (Models A and B)")
 
-judgments_accept <- read.csv(spec$data_path, stringsAsFactors = FALSE)
+judgments_victim <- read.csv(paths$processed_victim, stringsAsFactors = FALSE)
+judgments_bystander <- read.csv(paths$processed_bystander, stringsAsFactors = FALSE)
 
+# ---- Victim Subset ----
+message("--- Running H1 on Victim Subset ---")
 # Model A: Total Empathy
-run_estimation_suite(judgments_accept, spec$formula_rhs$A, "H1_A", "H1_A_Total", paths$models_dir)
+run_estimation_suite(judgments_victim, spec$formula_rhs$A, "H1_A_Victim", "H1_A_Victim_Total", paths$models_dir)
 
 # Model B: Empathy Subscales
-run_estimation_suite(judgments_accept, spec$formula_rhs$B, "H1_B", "H1_B_Constructs", paths$models_dir)
+run_estimation_suite(judgments_victim, spec$formula_rhs$B, "H1_B_Victim", "H1_B_Victim_Constructs", paths$models_dir)
 
-message("H1 test completed. Outputs saved to models/.")
+
+# ---- Bystander Subset ----
+message("--- Running H1 on Bystander Subset ---")
+# Model A: Total Empathy
+run_estimation_suite(judgments_bystander, spec$formula_rhs$A, "H1_A_Bystander", "H1_A_Bystander_Total", paths$models_dir)
+
+# Model B: Empathy Subscales
+run_estimation_suite(judgments_bystander, spec$formula_rhs$B, "H1_B_Bystander", "H1_B_Bystander_Constructs", paths$models_dir)
+
+message("H1 test completed for both subsets. Outputs saved to models/.")

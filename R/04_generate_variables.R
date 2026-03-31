@@ -2,7 +2,7 @@
 # Purpose: Reshape wide data to long (negotiator level), construct fixed effect identifiers, 
 # identity alignments, and generate final variables.
 # Inputs: 03_transformed_participants.csv
-# Outputs: judgments_all.csv, judgments_analysis.csv, judgments_accept_only.csv
+# Outputs: judgments_all.csv, judgments_analysis.csv, judgments_victim.csv, judgments_bystander.csv
 # Dependencies: 00_config.R
 # Execution Order: 5
 
@@ -130,10 +130,10 @@ judgments_all <- add_analytic_case_configuration_columns(judgments_all)
 
 # Filter for relevant analytical datasets
 judgments_analysis <- judgments_all[judgments_all$analysis_include == TRUE, , drop = FALSE]
-judgments_accept <- judgments_analysis[!is.na(judgments_analysis$decision_accept) & judgments_analysis$decision_accept == 1L, , drop = FALSE]
-judgments_betrayal <- judgments_analysis[!is.na(judgments_analysis$scenario_has_control) & judgments_analysis$scenario_has_control == 0L, , drop = FALSE]
+judgments_victim <- judgments_analysis[judgments_analysis$role == "victim", , drop = FALSE]
+judgments_bystander <- judgments_analysis[judgments_analysis$role == "observer", , drop = FALSE]
 
 write.csv(participants, paths$processed_participants, row.names = FALSE, na = "")
 write.csv(judgments_analysis, paths$processed_judgments, row.names = FALSE, na = "")
-write.csv(judgments_accept, paths$processed_accept, row.names = FALSE, na = "")
-write.csv(judgments_betrayal, paths$processed_betrayal, row.names = FALSE, na = "")
+write.csv(judgments_victim, paths$processed_victim, row.names = FALSE, na = "")
+write.csv(judgments_bystander, paths$processed_bystander, row.names = FALSE, na = "")

@@ -10,8 +10,7 @@
 # Controls: iri_total or empathy subscales, counterpart_outgroup,
 # observer_victim_outgroup, role_observer, participant_engineering, sex_man,
 # age, economic_status, slot
-# Sample: Full judgment sample excluding scenarios with any control-labeled
-# negotiator
+# Sample: Full role-specific samples excluding scenarios with any control-labeled negotiator
 # Specification: Interval-censored clustered Tobit model plus
 # cluster-bootstrap non-parametric robustness check
 
@@ -23,12 +22,27 @@ spec <- get_hypothesis_spec("H2a", paths = paths)
 
 message("Testing H2a: Judged-status x decision contrasts without control scenarios (Models A and B)")
 
-judgments_betrayal <- read.csv(spec$data_path, stringsAsFactors = FALSE)
+judgments_victim <- read.csv(paths$processed_victim, stringsAsFactors = FALSE)
+judgments_bystander <- read.csv(paths$processed_bystander, stringsAsFactors = FALSE)
 
+judgments_victim_betrayal <- judgments_victim[!is.na(judgments_victim$scenario_has_control) & judgments_victim$scenario_has_control == 0L, , drop = FALSE]
+judgments_bystander_betrayal <- judgments_bystander[!is.na(judgments_bystander$scenario_has_control) & judgments_bystander$scenario_has_control == 0L, , drop = FALSE]
+
+# ---- Victim Subset ----
+message("--- Running H2a on Victim Subset ---")
 # Model A
-run_estimation_suite(judgments_betrayal, spec$formula_rhs$A, "H2a_A", "H2a_A_Total", paths$models_dir)
+run_estimation_suite(judgments_victim_betrayal, spec$formula_rhs$A, "H2a_A_Victim", "H2a_A_Victim_Total", paths$models_dir)
 
 # Model B
-run_estimation_suite(judgments_betrayal, spec$formula_rhs$B, "H2a_B", "H2a_B_Constructs", paths$models_dir)
+run_estimation_suite(judgments_victim_betrayal, spec$formula_rhs$B, "H2a_B_Victim", "H2a_B_Victim_Constructs", paths$models_dir)
 
-message("H2a test completed. Outputs saved to models/.")
+
+# ---- Bystander Subset ----
+message("--- Running H2a on Bystander Subset ---")
+# Model A
+run_estimation_suite(judgments_bystander_betrayal, spec$formula_rhs$A, "H2a_A_Bystander", "H2a_A_Bystander_Total", paths$models_dir)
+
+# Model B
+run_estimation_suite(judgments_bystander_betrayal, spec$formula_rhs$B, "H2a_B_Bystander", "H2a_B_Bystander_Constructs", paths$models_dir)
+
+message("H2a test completed for both subsets. Outputs saved to models/.")

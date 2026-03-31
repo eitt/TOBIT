@@ -167,6 +167,23 @@ generate_coefficient_narrative <- function(coef_df, model_family = "Tobit") {
       "The term %s (representing %s) has an estimated $\\beta$ coefficient of %.3f. The p-value of %.3f %s.",
       term, term_def, est, p_val, sig_desc
     )
+    
+    # Add interaction interpretation context if it's significant and an interaction
+    if (grepl(":", term, fixed = TRUE) && !is.na(p_val) && p_val < 0.1) {
+      if (grepl("iri", term)) { # continuous x discrete
+        interaction_context <- sprintf("Because this is a continuous-by-discrete interaction, the %s coefficient indicates that the slope of empathy on moral judgment is %s for the specified condition compared to the baseline condition. The individual main effects of the components are subsumed by this contextual relationship.", 
+          if(est > 0) "positive" else "negative",
+          if(est > 0) "more positive (less severe)" else "steeper/more negative (more severe)"
+        )
+      } else { # discrete x discrete
+        interaction_context <- sprintf("Because this is a discrete-by-discrete interaction, the %s coefficient indicates that the penalty or reward associated with one condition is %s when combined with the other condition. Note that any non-significant main effects involved in this term are superseded by this significant interaction.",
+          if(est > 0) "positive" else "negative",
+          if(est > 0) "lessened (more positive)" else "magnified (more severe)"
+        )
+      }
+      sentence <- paste(sentence, interaction_context)
+    }
+
     lines <- c(lines, sentence)
   }
 

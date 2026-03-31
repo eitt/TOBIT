@@ -14,7 +14,9 @@ paths <- get_project_paths()
 
 participants <- read.csv(paths$processed_participants, stringsAsFactors = FALSE)
 judgments_analysis <- read.csv(paths$processed_judgments, stringsAsFactors = FALSE)
-judgments_accept <- read.csv(paths$processed_accept, stringsAsFactors = FALSE)
+# H1-H3 subsets
+judgments_victim <- read.csv(paths$processed_victim, stringsAsFactors = FALSE)
+judgments_bystander <- read.csv(paths$processed_bystander, stringsAsFactors = FALSE)
 
 # 1. Participant Summary
 analysis_participants <- participants[participants$analysis_include, , drop = FALSE]
@@ -46,12 +48,12 @@ write.csv(empathy_summary, file.path(paths$tables_dir, "empathy_summary.csv"), r
 
 # 3. Judgment Summary
 judgement_summary <- data.frame(
-  Metric = c("Judgments in analysis sample", "Harmful decisions in primary model sample",
+  Metric = c("Judgments in analysis sample", "Victim judgments", "Bystander judgments",
              "Acceptance rate", "Left-censored share at -9", "Right-censored share at 9"),
-  Value = c(nrow(judgments_analysis), nrow(judgments_accept),
+  Value = c(nrow(judgments_analysis), nrow(judgments_victim), nrow(judgments_bystander),
             mean(judgments_analysis$decision_accept, na.rm = TRUE),
-            mean(judgments_accept$judgement == -9, na.rm = TRUE),
-            mean(judgments_accept$judgement == 9, na.rm = TRUE))
+            mean(judgments_analysis$judgement == -9, na.rm = TRUE),
+            mean(judgments_analysis$judgement == 9, na.rm = TRUE))
 )
 write.csv(judgement_summary, file.path(paths$tables_dir, "judgement_summary.csv"), row.names = FALSE)
 
@@ -65,65 +67,113 @@ write.csv(relational_status_summary, file.path(paths$tables_dir, "relational_sta
 
 # Generate Figures
 style <- get_plot_style()
+judgment_axis_limits <- get_judgment_axis_limits()
+judgment_hist_breaks <- get_judgment_hist_breaks()
+figure_age_file <- get_standard_figure_filename("age")
+figure_empathy_file <- get_standard_figure_filename("empathy")
+figure_radar_file <- get_standard_figure_filename("radar")
+figure_severity_panels_file <- get_standard_figure_filename("severity_panels")
+figure_bivariate_scatters_file <- get_standard_figure_filename("bivariate_scatters")
+figure_victim_case_panels_file <- get_standard_figure_filename("victim_case_panels")
+figure_bystander_case_panels_file <- get_standard_figure_filename("bystander_case_panels")
+
+draw_distribution_panel_figure <- function(
+    file_path,
+    panel_values,
+    panel_titles,
+    figure_title,
+    layout,
+    width,
+    height) {
+  open_accessible_png(file_path, width = width, height = height)
+  apply_accessible_theme()
+  graphics::par(
+    mfrow = layout,
+    mar = c(4.8, 4.8, 3.2, 1.2),
+    oma = c(0, 0, 3.0, 0)
+  )
+
+  max_freq <- max(vapply(panel_values, function(x) {
+    finite_x <- x[is.finite(x)]
+    if (length(finite_x) == 0L) return(0)
+    hist(finite_x, breaks = judgment_hist_breaks, plot = FALSE)$counts |> max()
+  }, numeric(1)), na.rm = TRUE)
+  max_freq <- max(1, ceiling(max_freq * 1.15))
+
+  for (idx in seq_along(panel_values)) {
+    values <- panel_values[[idx]]
+    values <- values[is.finite(values)]
+    if (length(values) == 0L) {
+      graphics::plot.new()
+      graphics::title(main = wrap_title(panel_titles[[idx]], width = 22))
+      graphics::text(0.5, 0.5, "No observations available")
+      next
+    }
+
+    graphics::hist(
+      values,
+      breaks = judgment_hist_breaks,
+      col = grDevices::adjustcolor(style$primary_light, alpha.f = 0.8),
+      border = style$primary_dark,
+      main = wrap_title(panel_titles[[idx]], width = 22),
+      xlab = "Judgment severity",
+      ylab = "Frequency",
+      xlim = judgment_axis_limits,
+      ylim = c(0, max_freq)
+    )
+    graphics::abline(v = 0, col = style$grid, lty = 3, lwd = 1.5)
+  }
+
+  graphics::par(mfrow = c(1, 1), oma = c(0, 0, 0, 0))
+  dev.off()
+}
 
 # Age distribution
-open_accessible_png(file.path(paths$figures_dir, "figure_01_age.png"))
+open_accessible_png(file.path(paths$figures_dir, figure_age_file))
 apply_accessible_theme()
 hist(analysis_participants$age, breaks = pretty(analysis_participants$age, n=8), 
-     col = style$primary_light, border = style$primary_dark, main = "Age distribution", xlab = "Age (years)")
+     col = style$primary_light, border = style$primary_dark, main = "", xlab = "Age (years)")
 dev.off()
 
 # Empathy distribution
-open_accessible_png(file.path(paths$figures_dir, "figure_02_empathy.png"))
+open_accessible_png(file.path(paths$figures_dir, figure_empathy_file))
 apply_accessible_theme()
 hist(analysis_participants$iri_total, breaks = pretty(analysis_participants$iri_total, n=8), 
-     col = style$primary_light, border = style$primary_dark, main = "Empathy composite distribution", xlab = "IRI composite")
+     col = style$primary_light, border = style$primary_dark, main = "", xlab = "IRI composite")
 dev.off()
 
 # Empathy Radar Plot
-open_accessible_png(file.path(paths$figures_dir, "figure_03_empathy_radar.png"))
+open_accessible_png(file.path(paths$figures_dir, figure_radar_file))
 apply_accessible_theme()
 iri_means <- c(safe_mean(analysis_participants$iri_fs), safe_mean(analysis_participants$iri_ec), 
                safe_mean(analysis_participants$iri_pt), safe_mean(analysis_participants$iri_pd))
 iri_labels <- c("FS", "EC", "PT", "PD")
 iri_legend <- c("FS: Fantasy", "EC: Empathic concern", "PT: Perspective taking", "PD: Personal distress")
 draw_base_radar_plot(values = iri_means, labels = iri_labels, max_scale = 4, min_scale = 0,
-                     title = "IRI Latent Variable Averages", legend_text = iri_legend)
+                     title = "", legend_text = iri_legend)
 dev.off()
 
 # Severity by Judged-Status Panels
-open_accessible_png(file.path(paths$figures_dir, "figure_04_severity_panels.png"), width = 12, height = 7)
-apply_accessible_theme()
-graphics::par(mfrow = c(2, 3))
 judged_levels <- c("In", "Out", "Cont")
-panel_counts <- lapply(judged_levels, function(group_level) {
-  judgments_accept$judgement[judgments_accept$group_negotiator_judged == group_level]
+judged_panel_values <- lapply(judged_levels, function(group_level) {
+  judgments_analysis$judgement[judgments_analysis$group_negotiator_judged == group_level]
 })
-max_freq <- max(vapply(panel_counts, function(x) {
-  if (length(x) == 0L) return(0)
-  max(table(cut(x, breaks = pretty(judgments_accept$judgement, n = 10))))
-}, numeric(1))) * 1.2
-
-for (group_level in judged_levels) {
-  panel_values <- judgments_accept$judgement[judgments_accept$group_negotiator_judged == group_level]
-  hist(
-    panel_values,
-    breaks = pretty(judgments_accept$judgement, n = 10),
-    col = grDevices::adjustcolor(style$primary_light, alpha.f = 0.75),
-    border = style$primary_dark,
-    main = group_level,
-    xlab = "Judgment Severity",
-    ylim = c(0, max_freq)
-  )
-}
-graphics::mtext("Accepted-decision judgment distributions by judged negotiator status", outer = TRUE, line = -1.5, cex = 1.05, font = 2)
-graphics::par(mfrow = c(1, 1))
-dev.off()
+draw_distribution_panel_figure(
+  file.path(paths$figures_dir, figure_severity_panels_file),
+  panel_values = judged_panel_values,
+  panel_titles = vapply(judged_levels, function(group_level) {
+    sprintf("Judged status: %s", label_relative_group(group_level))
+  }, character(1)),
+  figure_title = "Judgment distributions by judged negotiator status",
+  layout = c(3, 1),
+  width = 6,
+  height = 10
+)
 
 # Bi-variate Statistics (Correlations)
 iri_vars <- c("iri_fs", "iri_ec", "iri_pt", "iri_pd", "iri_total")
 # Aggregated judgment mean per participant for correlation
-part_judg_means <- aggregate(judgement ~ id, data = judgments_accept, FUN = mean, na.rm = TRUE)
+part_judg_means <- aggregate(judgement ~ id, data = judgments_analysis, FUN = mean, na.rm = TRUE)
 analysis_data_bivar <- merge(analysis_participants[, c("id", iri_vars)], part_judg_means, by = "id")
 
 # Create correlation matrix
@@ -135,14 +185,58 @@ rownames(bivar_cor) <- colnames(bivar_cor) <- c("Fantasy", "Empathic Concern", "
 write.csv(bivar_cor, file.path(paths$tables_dir, "bivariate_correlations.csv"))
 
 # Optional: Simple scatter for Bivariate section
-open_accessible_png(file.path(paths$figures_dir, "figure_05_bivariate_scatters.png"), width = 10, height = 4)
+open_accessible_png(file.path(paths$figures_dir, figure_bivariate_scatters_file), width = 10, height = 4)
+apply_accessible_theme()
 graphics::par(mfrow = c(1, 4))
 for (v in iri_vars[1:4]) {
   v_label <- c("Fantasy", "Empathic Concern", "Perspective Taking", "Personal Distress")[which(iri_vars == v)]
-  plot(analysis_data_bivar[[v]], analysis_data_bivar$judgement, 
-       pch = 16, col = style$primary, alpha=0.5,
-       main = v_label, xlab = "Scale Value", ylab = "Mean Judgment")
-  graphics::abline(stats::lm(judgement ~ analysis_data_bivar[[v]], data = analysis_data_bivar), col = "red", lwd = 2)
+  if (v %in% names(analysis_data_bivar)) {
+    x_values <- analysis_data_bivar[[v]]
+    y_values <- analysis_data_bivar$judgement
+    plot(
+      x_values,
+      y_values,
+      pch = 16,
+      col = grDevices::adjustcolor(style$primary, alpha.f = 0.55),
+      main = "",
+      xlab = v_label,
+      ylab = "Mean Judgment",
+      ylim = judgment_axis_limits
+    )
+    graphics::abline(h = 0, col = style$grid, lty = 3, lwd = 1.5)
+    try(draw_lm_fit_with_confidence_band(x_values, y_values, line_color = style$primary_dark), silent = TRUE)
+  }
 }
 graphics::par(mfrow = c(1, 1))
 dev.off()
+
+case_configuration_levels <- get_case_configuration_levels(include_control = TRUE)
+case_panel_titles <- vapply(case_configuration_levels, function(case_val) {
+  sprintf("%s", case_val)
+}, character(1))
+
+# Plot: Figure 04-style severity panels by explicit case configuration (Victim)
+draw_distribution_panel_figure(
+  file.path(paths$figures_dir, figure_victim_case_panels_file),
+  panel_values = lapply(case_configuration_levels, function(case_val) {
+    judgments_victim$judgement[judgments_victim$case_configuration == case_val]
+  }),
+  panel_titles = case_panel_titles,
+  figure_title = "Victim subset: judgment distributions across the six explicit victim x negotiator case configurations",
+  layout = c(2, 3),
+  width = 12,
+  height = 8
+)
+
+# Plot: Figure 04-style severity panels by explicit case configuration (Bystander)
+draw_distribution_panel_figure(
+  file.path(paths$figures_dir, figure_bystander_case_panels_file),
+  panel_values = lapply(case_configuration_levels, function(case_val) {
+    judgments_bystander$judgement[judgments_bystander$case_configuration == case_val]
+  }),
+  panel_titles = case_panel_titles,
+  figure_title = "Bystander subset: judgment distributions across the six explicit victim x negotiator case configurations",
+  layout = c(2, 3),
+  width = 12,
+  height = 8
+)

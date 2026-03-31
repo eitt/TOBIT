@@ -14,7 +14,7 @@ dataset_mode <- "BUC"
 source("R/00_config.R")
 apply_pipeline_runtime_options(
   dataset_mode = dataset_mode,
-  run_bootstrap = TRUE,
+  pipeline_mode = "Tobit", 
   skip_tobit_refit = FALSE
 )
 message(sprintf(
