@@ -13,6 +13,10 @@ get_default_pipeline_mode <- function() {
   "Tobit" # Can be "Tobit" or "Both"
 }
 
+get_default_active_model_suffixes <- function() {
+  "B"
+}
+
 # Central participant-level sampling setting for quick test runs.
 # Use 1.0 (or 100) when you want to keep the full imported dataset.
 get_default_dataset_sample_fraction <- function() {
@@ -67,6 +71,38 @@ parse_bootstrap_reps_value <- function(x) {
   suppressWarnings(as.integer(x_chr))
 }
 
+parse_model_suffixes_value <- function(x, allowed = c("A", "B")) {
+  if (length(x) == 0L || is.null(x) || all(is.na(x))) {
+    return(character(0))
+  }
+
+  suffix_values <- if (length(x) == 1L) {
+    unlist(strsplit(as.character(x[1]), "[,;\\s]+"), use.names = FALSE)
+  } else {
+    as.character(x)
+  }
+
+  suffix_values <- unique(toupper(trimws(suffix_values[nzchar(trimws(suffix_values))])))
+  suffix_values[suffix_values %in% allowed]
+}
+
+resolve_active_model_suffixes <- function() {
+  suffixes <- parse_model_suffixes_value(
+    getOption("tobit.active_model_suffixes", get_default_active_model_suffixes())
+  )
+  if (length(suffixes) == 0L) {
+    suffixes <- parse_model_suffixes_value(get_default_active_model_suffixes())
+  }
+  suffixes
+}
+
+pipeline_includes_nonparametric <- function() {
+  identical(
+    toupper(trimws(as.character(getOption("tobit.pipeline_mode", get_default_pipeline_mode())))),
+    "BOTH"
+  )
+}
+
 resolve_clad_bootstrap_reps <- function() {
   bootstrap_reps <- parse_bootstrap_reps_value(
     getOption("tobit.clad_bootstrap_reps", get_default_clad_bootstrap_reps())
@@ -101,6 +137,7 @@ apply_pipeline_runtime_options <- function(
   dataset_mode = NULL,
   pipeline_mode = NULL,
   skip_tobit_refit = FALSE,
+  active_model_suffixes = NULL,
   clad_bootstrap_reps = NULL,
   dataset_sample_fraction = NULL,
   dataset_sample_seed = NULL
@@ -127,6 +164,10 @@ apply_pipeline_runtime_options <- function(
   if (is.na(effective_sample_seed)) {
     effective_sample_seed <- get_default_dataset_sample_seed()
   }
+  effective_model_suffixes <- parse_model_suffixes_value(active_model_suffixes)
+  if (length(effective_model_suffixes) == 0L) {
+    effective_model_suffixes <- resolve_active_model_suffixes()
+  }
 
   if (!is.null(dataset_mode)) {
     options(tobit.dataset_mode = dataset_mode)
@@ -135,6 +176,7 @@ apply_pipeline_runtime_options <- function(
   options(tobit.modeling_option = get_default_case_modeling_option())
   options(tobit.clad_run_bootstrap = isTRUE(run_bootstrap))
   options(tobit.skip_tobit_refit = isTRUE(skip_tobit_refit))
+  options(tobit.active_model_suffixes = effective_model_suffixes)
   options(tobit.clad_bootstrap_reps = effective_bootstrap_reps)
   options(tobit.dataset_sample_fraction = effective_sample_fraction)
   options(tobit.dataset_sample_seed = as.integer(effective_sample_seed))

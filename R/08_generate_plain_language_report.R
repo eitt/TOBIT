@@ -9,6 +9,7 @@ source("R/utils/hypothesis_metadata.R")
 
 dataset_mode <- getOption("tobit.dataset_mode", default = "BUC")
 paths <- get_project_paths(dataset_mode = dataset_mode)
+active_model_suffixes <- resolve_active_model_suffixes()
 
 read_csv_if_exists <- function(path) {
   if (!file.exists(path)) {
@@ -75,6 +76,16 @@ bystander_n <- if (is.null(bystander_df)) NA_integer_ else nrow(bystander_df)
 hypothesis_specs <- get_hypothesis_specs(paths = paths)
 
 build_plain_hypothesis_section <- function(spec) {
+  code_equations <- spec$plain_code_equations
+  if (length(active_model_suffixes) > 0L && length(code_equations) > 0L) {
+    wanted_labels <- paste0("Modelo ", active_model_suffixes)
+    keep_mask <- vapply(
+      code_equations,
+      function(line) any(vapply(wanted_labels, grepl, logical(1), x = line, fixed = TRUE)),
+      logical(1)
+    )
+    code_equations <- code_equations[keep_mask]
+  }
   lines <- c(
     sprintf("### %s", spec$plain_title),
     "",
@@ -91,7 +102,7 @@ build_plain_hypothesis_section <- function(spec) {
     "Version mas pegada al codigo:",
     "",
     "```text",
-    spec$plain_code_equations,
+    code_equations,
     "```"
   )
   if (!is.null(spec$plain_term_note) && nzchar(spec$plain_term_note)) {
@@ -131,7 +142,7 @@ md_lines <- c(
   "",
   "### 1.1 Predictores continuos",
   "",
-  "- Empatia total: `iri_total`.",
+  "- `iri_total` se conserva en la base como resumen psicometrico, pero no entra al flujo activo de estimacion.",
   "- Subescalas de empatia: `iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`.",
   "- Edad: `age`.",
   "- Nivel socioeconomico: `economic_status`.",
@@ -140,8 +151,8 @@ md_lines <- c(
   "",
   "### 1.2 Predictores categoricos o de comparacion",
   "",
-  "- Estatus del negociador juzgado: `judged_outgroup` y `judged_control`.",
-  "- Estatus de la contraparte: `counterpart_outgroup` y `counterpart_control`.",
+  "- Estatus del negociador juzgado: `judged_ingroup` y `judged_outgroup`, con control como referencia.",
+  "- Estatus de la contraparte: `counterpart_ingroup` y `counterpart_outgroup`, con control como referencia.",
   "- Alineacion victima-observador: `observer_victim_outgroup` (solo cuando el subconjunto es Observador).",
   "- Decision del negociador juzgado: `decision_accept`.",
   "- Rol del participante en la escena: `role_observer`.",
@@ -158,7 +169,7 @@ md_lines <- c(
   "### 1.4 Interpretacion de Interacciones",
   "",
   "Cuando veas que un termino con dos puntos (`:`) es marcado como significativo, significa que ambos componentes interactuan. Si una interaccion es significativa, los efectos principales (los que van solos) ya no se interpretan por su cuenta, pues estan subordinados al contexto de la interaccion.",
-  "Si es una interaccion entre empatia continua y un grupo (ej. `iri_total:judged_outgroup`), un coeficiente negativo indica que el efecto de la empatia es todavia mas severo para el outgroup. Si es discreto por discreto (ej. `judged_outgroup:decision_accept`), un coeficiente positivo significa que penalizamos menos la traicion cuando la comete el outgroup comparado al ingroup.",
+  "Si es una interaccion entre una subescala continua de empatia y un grupo (ej. `iri_pt:judged_outgroup`), un coeficiente negativo indica que el efecto de la empatia es todavia mas severo para el outgroup frente a la condicion control. Si es discreto por discreto (ej. `judged_outgroup:decision_accept`), un coeficiente positivo significa que penalizamos menos la traicion cuando la comete el outgroup comparado a la condicion control.",
   "",
   "## 2. Data card corto",
   "",
@@ -188,7 +199,7 @@ md_lines <- c(
   "### 3.2 Variables de empatia",
   "",
   "```text",
-  "iri_total = promedio de todos los items IRI si al menos el 80% de los items fue respondido",
+  "iri_total = promedio de todos los items IRI si al menos el 80% de los items fue respondido (se conserva en la base, pero no entra al flujo activo de estimacion)",
   "iri_fs = promedio de los items de Fantasy",
   "iri_ec = promedio de los items de Empathic Concern",
   "iri_pt = promedio de los items de Perspective Taking",
@@ -213,10 +224,10 @@ md_lines <- c(
   "```text",
   "group_negotiator1 = estatus In/Out/Cont del negociador 1 respecto al referente del rol",
   "group_negotiator2 = estatus In/Out/Cont del negociador 2 respecto al referente del rol",
+  "judged_ingroup = 1 si el negociador juzgado es ingroup, 0 si no",
   "judged_outgroup = 1 si el negociador juzgado es outgroup, 0 si no",
-  "judged_control = 1 si el negociador juzgado esta en control, 0 si no",
+  "counterpart_ingroup = 1 si la contraparte es ingroup, 0 si no",
   "counterpart_outgroup = 1 si la contraparte es outgroup, 0 si no",
-  "counterpart_control = 1 si la contraparte esta en control, 0 si no",
   "observer_victim_outgroup = 1 si en filas de observador la victima es outgroup, 0 si no",
   "h2_negotiator_structure = estructura conjunta del negociador juzgado y la contraparte dentro del mismo juicio",
   "player_victim_outgroup = 1 si en Observador el jugador y la victima no comparten facultad, 0 si la comparten",
@@ -230,7 +241,7 @@ md_lines <- c(
   "judgments_analysis = filas en formato largo con analysis_include = TRUE",
   "judgments_victim = filas de judgments_analysis donde role = victim",
   "judgments_bystander = filas de judgments_analysis donde role = observer",
-  "judgments_accept = filas usadas por H1 cuando decision_accept = 1",
+  "judgments_accept = subconjunto legado que se puede conservar para auditoria, pero no es la base activa de H1 en el flujo actual",
   "```",
   "",
   "## 4. Hipotesis explicadas de manera sencilla",
@@ -241,25 +252,25 @@ md_lines <- c(
   "",
   "Esta parte sirve para que los coeficientes se lean con mas tranquilidad.",
   "",
-  "- En H1, tanto en Victima como en Observador, el Modelo A usa `iri_total` y el Modelo B usa `iri_fs`, `iri_ec`, `iri_pt` e `iri_pd`; ambos retienen `judged_outgroup`, `judged_control`, `counterpart_outgroup`, `counterpart_control`, `decision_accept`, `sex_man`, `age` y `economic_status`.",
+  "- En H1, tanto en Victima como en Observador, el flujo activo usa `iri_fs`, `iri_ec`, `iri_pt` e `iri_pd`; ademas retiene `judged_ingroup`, `judged_outgroup`, `counterpart_ingroup`, `counterpart_outgroup`, `decision_accept`, `sex_man`, `age` y `economic_status`. Eso deja a la condicion control como referencia.",
   "- En H1, `observer_victim_outgroup` entra solo en Observador. En Victima se elimina para no meter un predictor estructuralmente fijo dentro del subconjunto.",
-  "- En H2, el subconjunto Victima usa la estructura conjunta `h2_negotiator_structure`; el subconjunto Observador usa esa misma estructura, `player_victim_outgroup`, y sus interacciones.",
-  "- En H3, los contrastes centrales siguen usando el estatus del negociador juzgado (`judged_outgroup`, `judged_control`), la decision (`decision_accept`) y sus interacciones. Igual que en H1, `observer_victim_outgroup` solo aparece en Observador.",
+  "- En H2, ambos subconjuntos retienen las subescalas de empatia activas y la estructura conjunta `h2_negotiator_structure`; el subconjunto Observador agrega `player_victim_outgroup` y sus interacciones con esa estructura.",
+  "- En H3, los contrastes centrales siguen usando el estatus del negociador juzgado (`judged_ingroup`, `judged_outgroup`), la decision (`decision_accept`) y sus interacciones. Igual que en H1, `observer_victim_outgroup` solo aparece en Observador.",
   "- `role_observer = 1` significa observador y `0` significa victima.",
   "- `participant_engineering = 1` significa que el participante es de Ingenieria y `0` que es de Humanidades.",
   "- `sex_man = 1` significa hombre y `0` mujer.",
   "- `decision_accept = 1` significa que el negociador acepto y `0` que rechazo.",
   "- `factor(negotiator_slot)` compara al negociador 2 contra el negociador 1. El negociador 1 es la referencia.",
   "- `age` y `economic_status` entran como numeros en su escala original.",
-  "- En las tablas y figuras del informe tecnico aparecen abreviaturas compactas: `JN` (judged negotiator), `CN` (counterpart negotiator), `V` (relacion jugador-victima en Observador), `Acc`/`Rej`, `FS`, `EC`, `PT`, `PD` y `SES`.",
+  "- En las tablas y figuras del informe tecnico aparecen abreviaturas compactas: `N1` (judged negotiator), `N2` (counterpart negotiator), `V` (relacion jugador-victima en Observador), `Acc`/`Rej`, `FS`, `EC`, `PT`, `PD` y `SES`.",
   "",
   "### Como leer un coeficiente de caso",
   "",
-  "Si el coeficiente de una dummy `h2_negstruct_*` es negativo, eso quiere decir que esa estructura juzgado-contraparte recibe un juicio mas negativo que la estructura de referencia `J_In__C_In`, manteniendo lo demas constante.",
+  "Si el coeficiente de una dummy `h2_negstruct_*` es negativo, eso quiere decir que esa estructura juzgado-contraparte recibe un juicio mas negativo que la estructura de referencia `J_Cont__C_Cont`, manteniendo lo demas constante.",
   "",
   "Si una interaccion como `player_victim_outgroup:h2_negstruct_*` es negativa, eso quiere decir que esa estructura negociador-contraparte se vuelve todavia mas severa cuando, en Observador, el jugador y la victima son de grupos distintos.",
   "",
-  "Si una interaccion como `iri_total:judged_outgroup` es negativa, eso quiere decir que la pendiente de empatia es mas negativa cuando el negociador juzgado es outgroup que cuando es ingroup.",
+  "Si una interaccion como `iri_pt:judged_outgroup` es negativa, eso quiere decir que la pendiente de esa dimension de empatia es mas negativa cuando el negociador juzgado es outgroup que en la condicion control.",
   "",
   "## 6. Por que el proyecto usa dos familias de modelos",
   "",

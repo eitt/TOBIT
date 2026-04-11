@@ -1,7 +1,5 @@
 "Metric","Value"
-"Judgments in analysis sample",5140
-"Victim judgments",2570
-"Bystander judgments",2570
-"Acceptance rate",0.487937743190661
-"Left-censored share at -9",0.134630350194553
-"Right-censored share at 9",0.301556420233463
+"Judgments in analysis sample",4860
+"Victim judgments",2430
+"Bystander judgments",2430
+"Acceptance rate (Target)",0.485802469135802

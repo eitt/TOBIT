@@ -1,143 +1,240 @@
-# R/04_generate_variables.R
-# Purpose: Reshape wide data to long (negotiator level), construct fixed effect identifiers, 
-# identity alignments, and generate final variables.
-# Inputs: 03_transformed_participants.csv
-# Outputs: judgments_all.csv, judgments_analysis.csv, judgments_victim.csv, judgments_bystander.csv
-# Dependencies: 00_config.R
-# Execution Order: 5
-
 source("R/00_config.R")
 source("R/utils/case_configuration_functions.R")
+
 paths <- get_project_paths()
 
-participants <- read.csv(file.path(paths$root, "data", "processed", "03_transformed_participants.csv"), stringsAsFactors = FALSE)
+df <- read.csv(
+  file.path(paths$root, "data", "processed", "03_transformed_participants.csv"),
+  stringsAsFactors = FALSE
+)
 
-# Generate wide role variables as requested
-for (stage in 1:10) {
-  role_col <- sprintf("role_s%d", stage)
-  participants[[role_col]] <- ifelse(participants$treatment == 1, ifelse(stage <= 5, 2, 1),
-                              ifelse(participants$treatment == 2, ifelse(stage <= 5, 1, 2), NA_integer_))
+decode_negotiator_group_label <- function(x) {
+  x_num <- suppressWarnings(as.integer(x))
+  ifelse(
+    is.na(x_num),
+    NA_character_,
+    ifelse(
+      x_num == 1L,
+      "Ingroup",
+      ifelse(x_num == 2L, "Outgroup", ifelse(x_num == 0L, "Control", NA_character_))
+    )
+  )
 }
 
-n_rows <- nrow(participants) * 20L
-long_rows <- vector("list", n_rows)
-index <- 1L
+decode_relative_group_code <- function(x) {
+  x_num <- suppressWarnings(as.integer(x))
+  ifelse(
+    is.na(x_num),
+    NA_character_,
+    ifelse(
+      x_num == 1L,
+      "In",
+      ifelse(x_num == 2L, "Out", ifelse(x_num == 0L, "Cont", NA_character_))
+    )
+  )
+}
 
-for (row_id in seq_len(nrow(participants))) {
-  row <- participants[row_id, , drop = FALSE]
-  
-  for (stage in 1:10) {
-    # Generate Role for stage given treatment
-    role_numeric <- ifelse(row$treatment == 1, ifelse(stage <= 5, 2, 1),
-                    ifelse(row$treatment == 2, ifelse(stage <= 5, 1, 2), NA_real_))
-    role <- ifelse(is.na(role_numeric), NA_character_, ifelse(role_numeric == 2, "victim", "observer"))
-    faculty_negotiator1 <- as.integer(row[[sprintf("faculty_neg_1_s%d", stage)]])
-    faculty_negotiator2 <- as.integer(row[[sprintf("faculty_neg_2_s%d", stage)]])
-    victim_faculty <- as.integer(row[[sprintf("faculty_victim_s%d", stage)]])
-    participant_faculty <- as.integer(row$faculty_player)
-    group_negotiator1 <- build_relative_group(faculty_negotiator1, participant_faculty, allow_control = TRUE)
-    group_negotiator2 <- build_relative_group(faculty_negotiator2, participant_faculty, allow_control = TRUE)
-    group_victim_stage <- if (identical(role, "observer")) {
-      build_relative_group(victim_faculty, participant_faculty, allow_control = FALSE)
-    } else {
-      NA_character_
-    }
-    
-    # Each vignette contributes two judgment-level rows because the participant
-    # evaluates both negotiators separately within the same scenario.
-    for (slot in 1:2) {
-      neg_faculty <- as.integer(row[[sprintf("faculty_neg_%d_s%d", slot, stage)]])
-      counterpart_slot <- ifelse(slot == 1L, 2L, 1L)
-      counterpart_faculty <- as.integer(row[[sprintf("faculty_neg_%d_s%d", counterpart_slot, stage)]])
-      judgement <- as.numeric(row[[sprintf("judgement_n%d_s%d", slot, stage)]])
-      counterpart_decision_accept <- as.integer(row[[sprintf("decision_neg%d_s%d", counterpart_slot, stage)]])
-      
-      negotiator_alignment <- if (is.na(neg_faculty)) NA_character_ else if (neg_faculty == 3L) "control" else if (neg_faculty == participant_faculty) "ingroup" else "outgroup"
-      counterpart_alignment <- if (is.na(counterpart_faculty)) NA_character_ else if (counterpart_faculty == 3L) "control" else if (counterpart_faculty == participant_faculty) "ingroup" else "outgroup"
-      group_negotiator_judged <- if (slot == 1L) group_negotiator1 else group_negotiator2
-      group_negotiator_counterpart <- if (slot == 1L) group_negotiator2 else group_negotiator1
-      group_victim <- group_victim_stage
-      analytic_case_configuration <- build_analytic_case_configuration(
-        role = role,
-        judged_group = group_negotiator_judged,
-        counterpart_group = group_negotiator_counterpart,
-        victim_group = group_victim
-      )
-      scenario_has_control <- as.integer(
-        (!is.na(neg_faculty) && neg_faculty == 3L) ||
-          (!is.na(counterpart_faculty) && counterpart_faculty == 3L)
-      )
-      
-      long_rows[[index]] <- data.frame(
-        id = as.integer(row$id),
-        stage = stage,
-        negotiator_slot = slot,
-        role = role,
-        role_observer = as.integer(role == "observer"),
-        age = as.numeric(row$age),
-        economic_status = as.numeric(row$economic_status),
-        sex = as.integer(row$sex),
-        sex_man = as.integer(row$sex == 2),
-        participant_faculty = participant_faculty,
-        faculty_player_obs = if (identical(role, "observer")) participant_faculty else NA_integer_,
-        participant_engineering = as.integer(participant_faculty == 2),
-        treatment = as.integer(row$treatment),
-        analysis_include = as.logical(row$analysis_include),
-        iri_total = as.numeric(row$iri_total),
-        iri_fs = as.numeric(row$iri_fs),
-        iri_ec = as.numeric(row$iri_ec),
-        iri_pt = as.numeric(row$iri_pt),
-        iri_pd = as.numeric(row$iri_pd),
-        relational_reference_faculty = participant_faculty,
-        faculty_negotiator1 = faculty_negotiator1,
-        faculty_negotiator2 = faculty_negotiator2,
-        faculty_negotiator = neg_faculty,
-        faculty_counterpart_negotiator = counterpart_faculty,
-        faculty_victim = victim_faculty,
-        group_negotiator1 = group_negotiator1,
-        group_negotiator2 = group_negotiator2,
-        negotiator_alignment = negotiator_alignment,
-        counterpart_alignment = counterpart_alignment,
-        perp_outgroup = as.integer(negotiator_alignment == "outgroup"),
-        perp_control = as.integer(negotiator_alignment == "control"),
-        victim_outgroup = as.integer(victim_faculty != participant_faculty),
-        same_group_harm = if (is.na(neg_faculty) || neg_faculty == 3L) NA_integer_ else as.integer(neg_faculty == victim_faculty),
-        decision_accept = as.integer(row[[sprintf("decision_neg%d_s%d", slot, stage)]]),
-        counterpart_decision_accept = counterpart_decision_accept,
-        group_negotiator_judged = group_negotiator_judged,
-        group_negotiator_counterpart = group_negotiator_counterpart,
-        group_victim = group_victim,
-        negotiator1_outgroup = as.integer(group_negotiator1 == "Out"),
-        negotiator1_control = as.integer(group_negotiator1 == "Cont"),
-        negotiator2_outgroup = as.integer(group_negotiator2 == "Out"),
-        negotiator2_control = as.integer(group_negotiator2 == "Cont"),
-        judged_outgroup = as.integer(group_negotiator_judged == "Out"),
-        judged_control = as.integer(group_negotiator_judged == "Cont"),
-        counterpart_outgroup = as.integer(group_negotiator_counterpart == "Out"),
-        counterpart_control = as.integer(group_negotiator_counterpart == "Cont"),
-        observer_victim_outgroup = as.integer(identical(role, "observer") && identical(group_victim, "Out")),
-        analytic_case_configuration = analytic_case_configuration,
-        scenario_has_control = scenario_has_control,
-        judgement = judgement,
-        condemnation = -judgement,
-        stringsAsFactors = FALSE
-      )
-      index <- index + 1L
-    }
+decode_observer_victim_group <- function(x) {
+  x_num <- suppressWarnings(as.integer(x))
+  ifelse(
+    is.na(x_num),
+    NA_character_,
+    ifelse(x_num == 1L, "In", ifelse(x_num == 2L, "Out", NA_character_))
+  )
+}
+
+normalize_faculty_code <- function(x) {
+  x_num <- suppressWarnings(as.integer(x))
+  ifelse(
+    is.na(x_num),
+    NA_integer_,
+    ifelse(x_num == 0L, 3L, x_num)
+  )
+}
+
+relative_group_to_alignment <- function(x) {
+  ifelse(
+    is.na(x),
+    NA_character_,
+    ifelse(
+      x == "In",
+      "ingroup",
+      ifelse(x == "Out", "outgroup", ifelse(x == "Cont", "control", NA_character_))
+    )
+  )
+}
+
+safe_row_mean <- function(df_subset) {
+  if (ncol(df_subset) == 0L) {
+    return(rep(NA_real_, nrow(df_subset)))
   }
+  row_sums <- rowSums(df_subset, na.rm = TRUE)
+  non_missing <- rowSums(!is.na(df_subset))
+  ifelse(non_missing > 0L, row_sums / non_missing, NA_real_)
 }
 
-judgments_all <- do.call(rbind, long_rows)
-judgments_all <- add_case_configuration_columns(judgments_all)
-judgments_all <- add_analytic_case_configuration_columns(judgments_all)
-judgments_all <- add_h2_relational_structure_columns(judgments_all)
+df$role_observer <- ifelse(suppressWarnings(as.integer(df$role)) == 0L, 1L, 0L)
+df$role <- ifelse(df$role_observer == 1L, "observer", "victim")
+df$analysis_include <- TRUE
 
-# Filter for relevant analytical datasets
-judgments_analysis <- judgments_all[judgments_all$analysis_include == TRUE, , drop = FALSE]
+df$participant_faculty <- suppressWarnings(as.integer(df$faculty_player))
+df$participant_engineering <- as.integer(df$participant_faculty == 2L)
+df$sex <- ifelse(df$sex_female == 1L, 1L, 2L)
+df$sex_man <- as.integer(df$sex_female == 0L)
+df$economic_status <- df$ses
+df$iri_total <- safe_row_mean(df[, c("iri_fs", "iri_ec", "iri_pt", "iri_pd"), drop = FALSE])
+
+df$negotiator_slot <- suppressWarnings(as.integer(df$target))
+
+df$group_target_num <- suppressWarnings(as.integer(df$group_target))
+df$group_other_num <- suppressWarnings(as.integer(df$group_other))
+df$obs_group_num <- suppressWarnings(as.integer(df$obs_group))
+
+df$group_target <- decode_negotiator_group_label(df$group_target_num)
+df$group_other <- decode_negotiator_group_label(df$group_other_num)
+df$obs_group <- ifelse(
+  is.na(df$obs_group_num),
+  NA_character_,
+  ifelse(df$obs_group_num == 1L, "Ingroup", ifelse(df$obs_group_num == 2L, "Outgroup", NA_character_))
+)
+
+df$group_negotiator_judged <- decode_relative_group_code(df$group_target_num)
+df$group_negotiator_counterpart <- decode_relative_group_code(df$group_other_num)
+df$group_victim <- ifelse(
+  df$role_observer == 1L,
+  decode_observer_victim_group(df$obs_group_num),
+  NA_character_
+)
+
+df$group_negotiator1 <- ifelse(
+  df$negotiator_slot == 1L,
+  df$group_negotiator_judged,
+  df$group_negotiator_counterpart
+)
+df$group_negotiator2 <- ifelse(
+  df$negotiator_slot == 1L,
+  df$group_negotiator_counterpart,
+  df$group_negotiator_judged
+)
+
+df$negotiator_alignment <- relative_group_to_alignment(df$group_negotiator_judged)
+df$counterpart_alignment <- relative_group_to_alignment(df$group_negotiator_counterpart)
+
+df$faculty_target_norm <- normalize_faculty_code(df$faculty_target)
+df$faculty_other_norm <- normalize_faculty_code(df$faculty_other)
+df$faculty_negotiator1 <- ifelse(
+  df$negotiator_slot == 1L,
+  df$faculty_target_norm,
+  df$faculty_other_norm
+)
+df$faculty_negotiator2 <- ifelse(
+  df$negotiator_slot == 1L,
+  df$faculty_other_norm,
+  df$faculty_target_norm
+)
+df$faculty_negotiator <- ifelse(
+  df$negotiator_slot == 1L,
+  df$faculty_negotiator1,
+  df$faculty_negotiator2
+)
+df$faculty_counterpart_negotiator <- ifelse(
+  df$negotiator_slot == 1L,
+  df$faculty_negotiator2,
+  df$faculty_negotiator1
+)
+df$faculty_victim <- ifelse(
+  df$role_observer == 1L,
+  normalize_faculty_code(df$faculty_victim),
+  df$participant_faculty
+)
+
+df$decision_target <- suppressWarnings(as.integer(df$decision_target))
+df$decision_other <- suppressWarnings(as.integer(df$decision_other))
+df$decision_accept <- ifelse(
+  df$negotiator_slot == 1L,
+  df$decision_target,
+  df$decision_other
+)
+df$counterpart_decision_accept <- ifelse(
+  df$negotiator_slot == 1L,
+  df$decision_other,
+  df$decision_target
+)
+
+df$judged_ingroup <- as.integer(df$group_negotiator_judged == "In")
+df$judged_outgroup <- as.integer(df$group_negotiator_judged == "Out")
+df$judged_control <- as.integer(df$group_negotiator_judged == "Cont")
+df$counterpart_ingroup <- as.integer(df$group_negotiator_counterpart == "In")
+df$counterpart_outgroup <- as.integer(df$group_negotiator_counterpart == "Out")
+df$counterpart_control <- as.integer(df$group_negotiator_counterpart == "Cont")
+df$observer_victim_outgroup <- ifelse(
+  df$role_observer == 1L & df$group_victim == "Out",
+  1L,
+  ifelse(df$role_observer == 1L & df$group_victim == "In", 0L, NA_integer_)
+)
+
+df$negotiator1_outgroup <- as.integer(df$group_negotiator1 == "Out")
+df$negotiator1_control <- as.integer(df$group_negotiator1 == "Cont")
+df$negotiator2_outgroup <- as.integer(df$group_negotiator2 == "Out")
+df$negotiator2_control <- as.integer(df$group_negotiator2 == "Cont")
+
+df$perp_outgroup <- df$judged_outgroup
+df$perp_control <- df$judged_control
+df$victim_outgroup <- ifelse(is.na(df$observer_victim_outgroup), 0L, df$observer_victim_outgroup)
+df$same_group_harm <- ifelse(
+  df$role_observer == 1L,
+  as.integer(df$group_negotiator_judged == df$group_victim),
+  as.integer(df$group_negotiator_judged == "In")
+)
+
+df$case_configuration <- build_case_configuration(df$faculty_victim, df$faculty_negotiator)
+df <- add_case_configuration_columns(
+  df,
+  victim_col = "faculty_victim",
+  negotiator_col = "faculty_negotiator",
+  role_col = "role",
+  decision_col = "decision_accept"
+)
+
+df$analytic_case_configuration <- build_analytic_case_configuration(
+  role = df$role,
+  judged_group = df$group_negotiator_judged,
+  counterpart_group = df$group_negotiator_counterpart,
+  victim_group = df$group_victim
+)
+df <- add_analytic_case_configuration_columns(
+  df,
+  config_col = "analytic_case_configuration",
+  decision_col = "decision_accept"
+)
+df <- add_h2_relational_structure_columns(
+  df,
+  judged_col = "group_negotiator_judged",
+  counterpart_col = "group_negotiator_counterpart",
+  victim_col = "group_victim",
+  role_col = "role"
+)
+
+df$scenario_has_control <- as.integer(
+  df$group_negotiator1 == "Cont" |
+    df$group_negotiator2 == "Cont"
+)
+df$condemnation <- -df$judgement
+
+drop_cols <- c("group_target_num", "group_other_num", "obs_group_num", "faculty_target_norm", "faculty_other_norm")
+df <- df[, setdiff(names(df), drop_cols), drop = FALSE]
+
+judgments_analysis <- df
 judgments_victim <- judgments_analysis[judgments_analysis$role == "victim", , drop = FALSE]
 judgments_bystander <- judgments_analysis[judgments_analysis$role == "observer", , drop = FALSE]
 
-write.csv(participants, paths$processed_participants, row.names = FALSE, na = "")
 write.csv(judgments_analysis, paths$processed_judgments, row.names = FALSE, na = "")
 write.csv(judgments_victim, paths$processed_victim, row.names = FALSE, na = "")
 write.csv(judgments_bystander, paths$processed_bystander, row.names = FALSE, na = "")
+
+message(sprintf(
+  "Files generated successfully: %s total rows, %s victim rows, %s bystander rows.",
+  nrow(judgments_analysis),
+  nrow(judgments_victim),
+  nrow(judgments_bystander)
+))

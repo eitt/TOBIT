@@ -75,9 +75,9 @@ The preprocessing pipeline creates these H2-relevant variables in `R/04_generate
 
 The reference structure for `h2_negotiator_structure` is:
 
-- `J_In__C_In`
+- `J_Cont__C_Cont`
 
-meaning judged negotiator ingroup and counterpart negotiator ingroup.
+meaning judged negotiator control-labeled and counterpart negotiator control-labeled.
 
 ## H1
 
@@ -94,10 +94,10 @@ H1 always retains the sociodemographic controls:
 
 Victim-subset H1 keeps:
 
+- `judged_ingroup`
 - `judged_outgroup`
-- `judged_control`
+- `counterpart_ingroup`
 - `counterpart_outgroup`
-- `counterpart_control`
 - `decision_accept`
 - `participant_engineering`
 - `sex_man`
@@ -138,11 +138,10 @@ where:
 - `S^(V)_{isj}` = dummies for `h2_negotiator_structure`
 - `Z_i` = participant controls
 
-In the executable code:
+In the active executable code:
 
-- Model A adds `iri_total`
-- Model B replaces that with `iri_fs + iri_ec + iri_pt + iri_pd`
-- Both models retain `participant_engineering`, `sex_man`, `age`, `economic_status`, and `factor(negotiator_slot)`
+- The model uses `iri_fs + iri_ec + iri_pt + iri_pd`
+- It retains `participant_engineering`, `sex_man`, `age`, `economic_status`, and `factor(negotiator_slot)`
 
 ### H2 in the Bystander subset
 
@@ -164,11 +163,10 @@ where:
 - `V_{is}` = `player_victim_outgroup`
 - `Z_i` = participant controls
 
-In the executable code:
+In the active executable code:
 
-- Model A adds `iri_total`
-- Model B replaces that with `iri_fs + iri_ec + iri_pt + iri_pd`
-- Both models retain `participant_engineering`, `sex_man`, `age`, `economic_status`, and `factor(negotiator_slot)`
+- The model uses `iri_fs + iri_ec + iri_pt + iri_pd`
+- It retains `participant_engineering`, `sex_man`, `age`, `economic_status`, and `factor(negotiator_slot)`
 
 ### Interpretation of H2
 
@@ -188,16 +186,16 @@ It is now a relational-structure hypothesis:
 
 H3 still uses:
 
+- `judged_ingroup`
 - `judged_outgroup`
-- `judged_control`
 - `decision_accept`
+- `decision_accept:judged_ingroup`
 - `decision_accept:judged_outgroup`
-- `decision_accept:judged_control`
 - empathy-by-judged-status interactions
 
 In addition:
 
-- both subsets retain `counterpart_outgroup`, `counterpart_control`, `participant_engineering`, `sex_man`, `age`, `economic_status`, and `factor(negotiator_slot)`
+- both subsets retain `counterpart_ingroup`, `counterpart_outgroup`, `participant_engineering`, `sex_man`, `age`, `economic_status`, and `factor(negotiator_slot)`
 - only the bystander subset retains `observer_victim_outgroup`
 
 So, as with H1, H3 avoids carrying observer-only predictors into victim-only estimation.
@@ -218,8 +216,8 @@ This keeps the H2 tables, figures, and narrative aligned with the actual subset-
 
 The dynamic report shortens predictor labels inside regression tables and figures so H2 and H3 remain readable. The main conventions are:
 
-- `JN` = judged negotiator
-- `CN` = counterpart negotiator
+- `N1` = judged negotiator
+- `N2` = counterpart negotiator
 - `V` = victim-side player-victim relation in observer models
 - `Vic` = victim subset
 - `Obs` = bystander / observer subset

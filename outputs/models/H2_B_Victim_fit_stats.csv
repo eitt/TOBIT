@@ -1,2 +1,2 @@
 "Model","Approach","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2","Quantile","Converged","Iterations","Inference","ClusterUnit","BootstrapReplicates","BootstrapSuccessful","BootstrapFailed","BootstrapSuccessRate","ConfidenceLevel","Status","ErrorMessage"
-"H2_B_Victim_Constructs_Tobit","Tobit",2570,257,388,789,-6487.22074215882,13012.4414843176,0.0062394332382768,NA,NA,3,"Cluster-robust standard errors by participant id","id",NA,NA,NA,NA,0.95,"completed",NA
+"H2_B_Victim_Constructs_Tobit","Tobit",2430,243,377,744,-6120.58939025049,12279.178780501,0.00299370643141994,NA,NA,3,"Cluster-robust standard errors by participant id","id",NA,NA,NA,NA,0.95,"completed",NA

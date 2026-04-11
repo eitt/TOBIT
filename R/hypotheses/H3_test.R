@@ -14,8 +14,8 @@
 # Sample: Full role-specific samples
 # Subset-specific formulas: the victim subset excludes observer-only predictors
 # so structurally fixed terms are not carried into victim-only estimation.
-# Specification: Interval-censored clustered Tobit model plus
-# cluster-bootstrap non-parametric robustness check
+# Specification: Interval-censored clustered Tobit model in the active
+# workflow; archived non-parametric utilities remain available but are not run
 
 source("R/00_config.R")
 source("R/utils/model_functions.R")
@@ -23,50 +23,43 @@ source("R/utils/hypothesis_metadata.R")
 paths <- get_project_paths()
 spec <- get_hypothesis_spec("H3", paths = paths)
 
-message("Testing H3: Empathy x judged-status moderation with decision context retained (Models A and B)")
+active_model_suffixes <- resolve_active_model_suffixes()
+model_label_suffix <- list(
+  A = "Total",
+  B = "Constructs"
+)
+
+message(sprintf(
+  "Testing H3: Empathy x judged-status moderation with decision context retained (active model suffixes: %s)",
+  paste(active_model_suffixes, collapse = ", ")
+))
 
 judgments_victim <- read.csv(paths$processed_victim, stringsAsFactors = FALSE)
 judgments_bystander <- read.csv(paths$processed_bystander, stringsAsFactors = FALSE)
 
 # ---- Victim Subset ----
 message("--- Running H3 on Victim Subset ---")
-# Model A
-run_estimation_suite(
-  judgments_victim,
-  get_hypothesis_formula_rhs(spec, "A", "Victim"),
-  "H3_A_Victim",
-  "H3_A_Victim_Total",
-  paths$models_dir
-)
-
-# Model B
-run_estimation_suite(
-  judgments_victim,
-  get_hypothesis_formula_rhs(spec, "B", "Victim"),
-  "H3_B_Victim",
-  "H3_B_Victim_Constructs",
-  paths$models_dir
-)
+for (model_suffix in active_model_suffixes) {
+  run_estimation_suite(
+    judgments_victim,
+    get_hypothesis_formula_rhs(spec, model_suffix, "Victim"),
+    sprintf("H3_%s_Victim", model_suffix),
+    sprintf("H3_%s_Victim_%s", model_suffix, model_label_suffix[[model_suffix]]),
+    paths$models_dir
+  )
+}
 
 
 # ---- Bystander Subset ----
 message("--- Running H3 on Bystander Subset ---")
-# Model A
-run_estimation_suite(
-  judgments_bystander,
-  get_hypothesis_formula_rhs(spec, "A", "Bystander"),
-  "H3_A_Bystander",
-  "H3_A_Bystander_Total",
-  paths$models_dir
-)
-
-# Model B
-run_estimation_suite(
-  judgments_bystander,
-  get_hypothesis_formula_rhs(spec, "B", "Bystander"),
-  "H3_B_Bystander",
-  "H3_B_Bystander_Constructs",
-  paths$models_dir
-)
+for (model_suffix in active_model_suffixes) {
+  run_estimation_suite(
+    judgments_bystander,
+    get_hypothesis_formula_rhs(spec, model_suffix, "Bystander"),
+    sprintf("H3_%s_Bystander", model_suffix),
+    sprintf("H3_%s_Bystander_%s", model_suffix, model_label_suffix[[model_suffix]]),
+    paths$models_dir
+  )
+}
 
 message("H3 test completed for both subsets. Outputs saved to models/.")

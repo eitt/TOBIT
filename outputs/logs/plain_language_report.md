@@ -1,7 +1,7 @@
 # Guia sencilla para leer el informe TOBIT
 
 Base analizada: **Florida + Bucaramanga**
-Generado el: **2026-03-31 15:12:31**
+Generado el: **2026-04-11 09:04:58**
 
 Hola Diego, he creado este documento para orientar de manera un poco mas sencilla la lectura del informe.
 
@@ -21,7 +21,7 @@ Los predictores se pueden entender en dos grupos.
 
 ### 1.1 Predictores continuos
 
-- Empatia total: `iri_total`.
+- `iri_total` se conserva en la base como resumen psicometrico, pero no entra al flujo activo de estimacion.
 - Subescalas de empatia: `iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`.
 - Edad: `age`.
 - Nivel socioeconomico: `economic_status`.
@@ -30,8 +30,8 @@ Estas variables cambian en una escala numerica. Por ejemplo, una persona puede t
 
 ### 1.2 Predictores categoricos o de comparacion
 
-- Estatus del negociador juzgado: `judged_outgroup` y `judged_control`.
-- Estatus de la contraparte: `counterpart_outgroup` y `counterpart_control`.
+- Estatus del negociador juzgado: `judged_ingroup` y `judged_outgroup`, con control como referencia.
+- Estatus de la contraparte: `counterpart_ingroup` y `counterpart_outgroup`, con control como referencia.
 - Alineacion victima-observador: `observer_victim_outgroup` (solo cuando el subconjunto es Observador).
 - Decision del negociador juzgado: `decision_accept`.
 - Rol del participante en la escena: `role_observer`.
@@ -48,15 +48,15 @@ A diferencia de versiones anteriores, el analisis ya no se divide segun si la ge
 ### 1.4 Interpretacion de Interacciones
 
 Cuando veas que un termino con dos puntos (`:`) es marcado como significativo, significa que ambos componentes interactuan. Si una interaccion es significativa, los efectos principales (los que van solos) ya no se interpretan por su cuenta, pues estan subordinados al contexto de la interaccion.
-Si es una interaccion entre empatia continua y un grupo (ej. `iri_total:judged_outgroup`), un coeficiente negativo indica que el efecto de la empatia es todavia mas severo para el outgroup. Si es discreto por discreto (ej. `judged_outgroup:decision_accept`), un coeficiente positivo significa que penalizamos menos la traicion cuando la comete el outgroup comparado al ingroup.
+Si es una interaccion entre una subescala continua de empatia y un grupo (ej. `iri_pt:judged_outgroup`), un coeficiente negativo indica que el efecto de la empatia es todavia mas severo para el outgroup frente a la condicion control. Si es discreto por discreto (ej. `judged_outgroup:decision_accept`), un coeficiente positivo significa que penalizamos menos la traicion cuando la comete el outgroup comparado a la condicion control.
 
 ## 2. Data card corto
 
 - Archivos base principales: `data/raw/data_final_FLORIDA.xlsx` y `data/raw/data_final_BUC.xlsx`.
 - Filas de participantes disponibles ahora: **272**.
-- Filas en formato largo de juicios disponibles ahora: **5,140**.
-- Juicios emitidos desde el rol de Victima: **2,570**.
-- Juicios emitidos desde el rol de Observador: **2,570**.
+- Filas en formato largo de juicios disponibles ahora: **4,860**.
+- Juicios emitidos desde el rol de Victima: **2,430**.
+- Juicios emitidos desde el rol de Observador: **2,430**.
 - La base original empieza con una fila por participante.
 - Luego el pipeline reorganiza la informacion para que cada juicio sobre cada negociador quede como una fila propia.
 
@@ -78,7 +78,7 @@ En sencillo: para entrar al analisis principal, la persona debe pasar los attent
 ### 3.2 Variables de empatia
 
 ```text
-iri_total = promedio de todos los items IRI si al menos el 80% de los items fue respondido
+iri_total = promedio de todos los items IRI si al menos el 80% de los items fue respondido (se conserva en la base, pero no entra al flujo activo de estimacion)
 iri_fs = promedio de los items de Fantasy
 iri_ec = promedio de los items de Empathic Concern
 iri_pt = promedio de los items de Perspective Taking
@@ -103,10 +103,10 @@ condemnation = -judgement
 ```text
 group_negotiator1 = estatus In/Out/Cont del negociador 1 respecto al referente del rol
 group_negotiator2 = estatus In/Out/Cont del negociador 2 respecto al referente del rol
+judged_ingroup = 1 si el negociador juzgado es ingroup, 0 si no
 judged_outgroup = 1 si el negociador juzgado es outgroup, 0 si no
-judged_control = 1 si el negociador juzgado esta en control, 0 si no
+counterpart_ingroup = 1 si la contraparte es ingroup, 0 si no
 counterpart_outgroup = 1 si la contraparte es outgroup, 0 si no
-counterpart_control = 1 si la contraparte esta en control, 0 si no
 observer_victim_outgroup = 1 si en filas de observador la victima es outgroup, 0 si no
 h2_negotiator_structure = estructura conjunta del negociador juzgado y la contraparte dentro del mismo juicio
 player_victim_outgroup = 1 si en Observador el jugador y la victima no comparten facultad, 0 si la comparten
@@ -120,104 +120,98 @@ Esto permite nombrar cada escena de una forma mas clara y, en H2, modelar la est
 judgments_analysis = filas en formato largo con analysis_include = TRUE
 judgments_victim = filas de judgments_analysis donde role = victim
 judgments_bystander = filas de judgments_analysis donde role = observer
-judgments_accept = filas usadas por H1 cuando decision_accept = 1
+judgments_accept = subconjunto legado que se puede conservar para auditoria, pero no es la base activa de H1 en el flujo actual
 ```
 
 ## 4. Hipotesis explicadas de manera sencilla
 
-### H1: empatia y juicio moral controlando por relaciones del caso
+### H1
 
-Pregunta simple: una vez tenemos en cuenta el estatus relacional del negociador juzgado, de la contraparte, la decision y la victima cuando aplica, la empatia del participante se relaciona con el juicio moral en Victima y Observador?
+Pregunta simple: Si las dimensiones de empatia se relacionan con la severidad del juicio moral cuando ya controlamos el contexto relacional del negociador.
 
-- Muestra usada: Se estima por separado en Victima y Observador con formulas especificas por subconjunto para no retener predictores estructuralmente fijos.
+- Muestra usada: Se estima por separado en Victima y Observador, con una fila por juicio sobre un negociador.
 
 Ecuacion sencilla:
 
 ```text
-Victima: judgement = empatia + estatus del negociador juzgado + estatus de la contraparte + decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot); Observador: judgement = empatia + estatus del negociador juzgado + estatus de la contraparte + observer_victim_outgroup + decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
+Juicio moral ~ empatia + estatus del negociador juzgado + estatus de la contraparte + decision + controles
 ```
 
 Version mas pegada al codigo:
 
 ```text
-Victima, Modelo A: iri_total + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
-Victima, Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
-Observador, Modelo A: iri_total + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + observer_victim_outgroup + decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
-Observador, Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + judged_outgroup + judged_control + counterpart_outgroup + counterpart_control + observer_victim_outgroup + decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
+Modelo B Victima: judgement ~ iri_fs + iri_ec + iri_pt + iri_pd + judged_ingroup + judged_outgroup + counterpart_ingroup + counterpart_outgroup + decision_accept + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
+Modelo B Observador: judgement ~ iri_fs + iri_ec + iri_pt + iri_pd + judged_ingroup + judged_outgroup + counterpart_ingroup + counterpart_outgroup + decision_accept + observer_victim_outgroup + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
 ```
 
-En H1, los controles relacionales que entran son `judged_outgroup`, `judged_control`, `counterpart_outgroup`, `counterpart_control`, `observer_victim_outgroup`. En ambos subconjuntos, el Modelo B conserva las cuatro subescalas de empatia (`iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`), mientras que ambos modelos retienen `decision_accept`, `sex_man`, `age` y `economic_status`. `observer_victim_outgroup` entra solo en Observador porque en Victima no es un predictor definible dentro del subconjunto.
+En Observador se agrega `observer_victim_outgroup` porque solo ahi varia la relacion entre el jugador y la victima.
 
-### H2: estructura relacional del juicio por negociador
+### H2
 
-Pregunta simple: cambia el juicio moral cuando cambia la estructura conjunta del negociador juzgado y de la contraparte, y en Observador ademas cuando cambia la relacion entre jugador y victima?
+Pregunta simple: Si el juicio cambia segun la posicion conjunta del negociador juzgado y su contraparte respecto al participante.
 
-- Muestra usada: Se estima por separado en Victima y Observador. Cada participante juzga dos veces por escenario, una vez por cada negociador, asi que H2 siempre trabaja al nivel juicio-por-negociador.
+- Muestra usada: Se estima por separado en Victima y Observador, con una fila por juicio sobre un negociador.
 
 Ecuacion sencilla:
 
 ```text
-Victima: judgement = estructura conjunta {juzgado, contraparte} + empatia + controles; Observador: judgement = estructura conjunta {juzgado, contraparte} + jugador-victima + estructura x jugador-victima + empatia + controles
+Juicio moral ~ estructura juzgado-contraparte (+ alineacion jugador-victima e interacciones en Observador) + empatia + controles
 ```
 
 Version mas pegada al codigo:
 
 ```text
-Victima, Modelo A: all h2_negstruct_* dummies + iri_total + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
-Victima, Modelo B: all h2_negstruct_* dummies + iri_fs + iri_ec + iri_pt + iri_pd + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
-Observador, Modelo A: all h2_negstruct_* dummies + player_victim_outgroup + player_victim_outgroup:h2_negstruct_* + iri_total + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
-Observador, Modelo B: all h2_negstruct_* dummies + player_victim_outgroup + player_victim_outgroup:h2_negstruct_* + iri_fs + iri_ec + iri_pt + iri_pd + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
+Modelo B Victima: judgement ~ iri_fs + iri_ec + iri_pt + iri_pd + h2_negstruct_j_in_c_in + h2_negstruct_j_out_c_in + h2_negstruct_j_cont_c_in + h2_negstruct_j_in_c_out + h2_negstruct_j_out_c_out + h2_negstruct_j_cont_c_out + h2_negstruct_j_in_c_cont + h2_negstruct_j_out_c_cont + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
+Modelo B Observador: judgement ~ iri_fs + iri_ec + iri_pt + iri_pd + h2_negstruct_j_in_c_in + h2_negstruct_j_out_c_in + h2_negstruct_j_cont_c_in + h2_negstruct_j_in_c_out + h2_negstruct_j_out_c_out + h2_negstruct_j_cont_c_out + h2_negstruct_j_in_c_cont + h2_negstruct_j_out_c_cont + player_victim_outgroup + player_victim_outgroup:h2_negstruct_j_in_c_in + player_victim_outgroup:h2_negstruct_j_out_c_in + player_victim_outgroup:h2_negstruct_j_cont_c_in + player_victim_outgroup:h2_negstruct_j_in_c_out + player_victim_outgroup:h2_negstruct_j_out_c_out + player_victim_outgroup:h2_negstruct_j_cont_c_out + player_victim_outgroup:h2_negstruct_j_in_c_cont + player_victim_outgroup:h2_negstruct_j_out_c_cont + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
 ```
 
-La referencia de H2 es `J_In__C_In`, es decir, negociador juzgado ingroup y contraparte ingroup. En Observador, `player_victim_outgroup` compara victima outgroup contra victima ingroup, y las interacciones prueban si el efecto de la estructura negociador-contraparte cambia segun esa relacion jugador-victima.
+La referencia de H2 es `J_Cont__C_Cont`: N1 y N2 en la condicion control.
 
-### H3: interaccion entre empatia y estatus del negociador juzgado
+### H3
 
-Pregunta simple: la relacion entre empatia y juicio cambia dependiendo del tipo de estatus relacional del negociador juzgado?
+Pregunta simple: Si la relacion entre empatia y juicio moral cambia dependiendo del estatus del negociador juzgado.
 
-- Muestra usada: Se estima por separado en Victima y Observador con formulas especificas por subconjunto.
+- Muestra usada: Se estima por separado en Victima y Observador, con una fila por juicio sobre un negociador.
 
 Ecuacion sencilla:
 
 ```text
-judgement = empatia + estatus del negociador + decision + estatus x decision + empatia x estatus + controles relacionales
+Juicio moral ~ empatia + estatus del negociador juzgado + decision + empatia x estatus juzgado + decision x estatus juzgado + controles
 ```
 
 Version mas pegada al codigo:
 
 ```text
-Victima, Modelo A: iri_total + judged_outgroup + judged_control + decision_accept + decision_accept:judged_outgroup + decision_accept:judged_control + iri_total:judged_outgroup + iri_total:judged_control + counterpart_outgroup + counterpart_control + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
-Victima, Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + judged_outgroup + judged_control + decision_accept + decision_accept:judged_outgroup + decision_accept:judged_control + interacciones entre subescalas y estatus del negociador + counterpart_outgroup + counterpart_control + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
-Observador, Modelo A: iri_total + judged_outgroup + judged_control + decision_accept + decision_accept:judged_outgroup + decision_accept:judged_control + iri_total:judged_outgroup + iri_total:judged_control + counterpart_outgroup + counterpart_control + observer_victim_outgroup + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
-Observador, Modelo B: iri_fs + iri_ec + iri_pt + iri_pd + judged_outgroup + judged_control + decision_accept + decision_accept:judged_outgroup + decision_accept:judged_control + interacciones entre subescalas y estatus del negociador + counterpart_outgroup + counterpart_control + observer_victim_outgroup + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
+Modelo B Victima: judgement ~ iri_fs + iri_ec + iri_pt + iri_pd + judged_ingroup + judged_outgroup + decision_accept + decision_accept:judged_ingroup + decision_accept:judged_outgroup + iri_fs:judged_ingroup + iri_ec:judged_ingroup + iri_pt:judged_ingroup + iri_pd:judged_ingroup + iri_fs:judged_outgroup + iri_ec:judged_outgroup + iri_pt:judged_outgroup + iri_pd:judged_outgroup + counterpart_ingroup + counterpart_outgroup + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
+Modelo B Observador: judgement ~ iri_fs + iri_ec + iri_pt + iri_pd + judged_ingroup + judged_outgroup + decision_accept + decision_accept:judged_ingroup + decision_accept:judged_outgroup + iri_fs:judged_ingroup + iri_ec:judged_ingroup + iri_pt:judged_ingroup + iri_pd:judged_ingroup + iri_fs:judged_outgroup + iri_ec:judged_outgroup + iri_pt:judged_outgroup + iri_pd:judged_outgroup + counterpart_ingroup + counterpart_outgroup + observer_victim_outgroup + participant_engineering + sex_man + age + economic_status + factor(negotiator_slot)
 ```
 
-En H3, `ingroup` es la referencia para el negociador juzgado y las interacciones principales comparan como cambia la pendiente de empatia en outgroup y control. La formula de Observador agrega `observer_victim_outgroup`; la de Victima no lo hace para evitar predictores estructuralmente fijos.
+En Observador se conserva ademas `observer_victim_outgroup` para no mezclar un predictor solo-observador dentro del subconjunto Victima.
 
 
 ## 5. Como leer las codificaciones de la regresion
 
 Esta parte sirve para que los coeficientes se lean con mas tranquilidad.
 
-- En H1, tanto en Victima como en Observador, el Modelo A usa `iri_total` y el Modelo B usa `iri_fs`, `iri_ec`, `iri_pt` e `iri_pd`; ambos retienen `judged_outgroup`, `judged_control`, `counterpart_outgroup`, `counterpart_control`, `decision_accept`, `sex_man`, `age` y `economic_status`.
+- En H1, tanto en Victima como en Observador, el flujo activo usa `iri_fs`, `iri_ec`, `iri_pt` e `iri_pd`; ademas retiene `judged_ingroup`, `judged_outgroup`, `counterpart_ingroup`, `counterpart_outgroup`, `decision_accept`, `sex_man`, `age` y `economic_status`. Eso deja a la condicion control como referencia.
 - En H1, `observer_victim_outgroup` entra solo en Observador. En Victima se elimina para no meter un predictor estructuralmente fijo dentro del subconjunto.
-- En H2, el subconjunto Victima usa la estructura conjunta `h2_negotiator_structure`; el subconjunto Observador usa esa misma estructura, `player_victim_outgroup`, y sus interacciones.
-- En H3, los contrastes centrales siguen usando el estatus del negociador juzgado (`judged_outgroup`, `judged_control`), la decision (`decision_accept`) y sus interacciones. Igual que en H1, `observer_victim_outgroup` solo aparece en Observador.
+- En H2, ambos subconjuntos retienen las subescalas de empatia activas y la estructura conjunta `h2_negotiator_structure`; el subconjunto Observador agrega `player_victim_outgroup` y sus interacciones con esa estructura.
+- En H3, los contrastes centrales siguen usando el estatus del negociador juzgado (`judged_ingroup`, `judged_outgroup`), la decision (`decision_accept`) y sus interacciones. Igual que en H1, `observer_victim_outgroup` solo aparece en Observador.
 - `role_observer = 1` significa observador y `0` significa victima.
 - `participant_engineering = 1` significa que el participante es de Ingenieria y `0` que es de Humanidades.
 - `sex_man = 1` significa hombre y `0` mujer.
 - `decision_accept = 1` significa que el negociador acepto y `0` que rechazo.
 - `factor(negotiator_slot)` compara al negociador 2 contra el negociador 1. El negociador 1 es la referencia.
 - `age` y `economic_status` entran como numeros en su escala original.
-- En las tablas y figuras del informe tecnico aparecen abreviaturas compactas: `JN` (judged negotiator), `CN` (counterpart negotiator), `V` (relacion jugador-victima en Observador), `Acc`/`Rej`, `FS`, `EC`, `PT`, `PD` y `SES`.
+- En las tablas y figuras del informe tecnico aparecen abreviaturas compactas: `N1` (judged negotiator), `N2` (counterpart negotiator), `V` (relacion jugador-victima en Observador), `Acc`/`Rej`, `FS`, `EC`, `PT`, `PD` y `SES`.
 
 ### Como leer un coeficiente de caso
 
-Si el coeficiente de una dummy `h2_negstruct_*` es negativo, eso quiere decir que esa estructura juzgado-contraparte recibe un juicio mas negativo que la estructura de referencia `J_In__C_In`, manteniendo lo demas constante.
+Si el coeficiente de una dummy `h2_negstruct_*` es negativo, eso quiere decir que esa estructura juzgado-contraparte recibe un juicio mas negativo que la estructura de referencia `J_Cont__C_Cont`, manteniendo lo demas constante.
 
 Si una interaccion como `player_victim_outgroup:h2_negstruct_*` es negativa, eso quiere decir que esa estructura negociador-contraparte se vuelve todavia mas severa cuando, en Observador, el jugador y la victima son de grupos distintos.
 
-Si una interaccion como `iri_total:judged_outgroup` es negativa, eso quiere decir que la pendiente de empatia es mas negativa cuando el negociador juzgado es outgroup que cuando es ingroup.
+Si una interaccion como `iri_pt:judged_outgroup` es negativa, eso quiere decir que la pendiente de esa dimension de empatia es mas negativa cuando el negociador juzgado es outgroup que en la condicion control.
 
 ## 6. Por que el proyecto usa dos familias de modelos
 

@@ -325,7 +325,7 @@ label_analytic_case_configuration <- function(configuration_label) {
 
   if (identical(role_label, "Victim")) {
     return(sprintf(
-      "Victim role: judged negotiator %s, counterpart negotiator %s",
+      "Victim role: N1 %s, N2 %s",
       label_relative_group(judged_group),
       label_relative_group(counterpart_group)
     ))
@@ -335,7 +335,7 @@ label_analytic_case_configuration <- function(configuration_label) {
 
   victim_group <- sub("^V_", "", parts[4])
   sprintf(
-    "Observer role: judged negotiator %s, counterpart negotiator %s, victim %s",
+    "Observer role: N1 %s, N2 %s, victim %s",
     label_relative_group(judged_group),
     label_relative_group(counterpart_group),
     label_relative_group(victim_group)
@@ -386,7 +386,7 @@ h2_negotiator_structure_dummy_name <- function(structure_label) {
 }
 
 get_h2_negotiator_structure_dummy_names <- function(
-    reference = "J_In__C_In",
+    reference = "J_Cont__C_Cont",
     include_control = TRUE) {
   levels <- get_h2_negotiator_structure_levels(include_control = include_control)
   dummy_map <- stats::setNames(
@@ -400,7 +400,7 @@ get_h2_negotiator_structure_dummy_names <- function(
 }
 
 get_h2_negotiator_structure_term_names <- function(
-    reference = "J_In__C_In",
+    reference = "J_Cont__C_Cont",
     include_control = TRUE) {
   unname(get_h2_negotiator_structure_dummy_names(
     reference = reference,
@@ -417,7 +417,7 @@ label_h2_negotiator_structure <- function(structure_label) {
   judged_group <- sub("^J_", "", parts[1])
   counterpart_group <- sub("^C_", "", parts[2])
   sprintf(
-    "judged negotiator %s, counterpart negotiator %s",
+    "N1 %s, N2 %s",
     label_relative_group(judged_group),
     label_relative_group(counterpart_group)
   )
@@ -430,7 +430,7 @@ label_h2_negotiator_structure_term <- function(term) {
     return(paste(
       "Negotiator-side structure:",
       sprintf(
-        "%s (ref = judged negotiator ingroup, counterpart negotiator ingroup)",
+        "%s (ref = N1 control label hidden, N2 control label hidden)",
         label_h2_negotiator_structure(matched_level)
       )
     ))

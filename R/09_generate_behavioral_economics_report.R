@@ -10,6 +10,7 @@ source("R/utils/hypothesis_metadata.R")
 source("R/utils/figure_functions.R")
 
 paths <- get_project_paths()
+active_model_suffixes <- resolve_active_model_suffixes()
 
 report_pipeline_mode <- toupper(trimws(as.character(
   getOption("tobit.pipeline_mode", get_default_pipeline_mode())
@@ -193,7 +194,7 @@ read_coefficients <- function(output_prefix) {
   read.csv(coef_file, stringsAsFactors = FALSE)
 }
 
-collect_focal_rows <- function(hypothesis_id, model_suffixes = c("A", "B"), subset_roles = c("Victim", "Bystander")) {
+collect_focal_rows <- function(hypothesis_id, model_suffixes = active_model_suffixes, subset_roles = c("Victim", "Bystander")) {
   hypothesis_id <- toupper(trimws(hypothesis_id))
   signal_df <- read_csv_if_exists(file.path(paths$tables_dir, "hypothesis_signal_details.csv"))
 
@@ -336,6 +337,59 @@ summarize_subset_top_rows <- function(rows, subset_role, max_rows = 3L) {
   paste(paste(descriptors[-length(descriptors)], collapse = ", "), descriptors[length(descriptors)], sep = ", and ")
 }
 
+count_unique_signals <- function(rows, subset_role = NULL) {
+  if (is.null(rows) || nrow(rows) == 0L) return(0L)
+  if (!is.null(subset_role)) {
+    rows <- rows[rows$subset_role == subset_role, , drop = FALSE]
+  }
+  if (nrow(rows) == 0L) return(0L)
+  key_col <- if ("canonical_term" %in% names(rows)) "canonical_term" else "term"
+  length(unique(rows[[key_col]]))
+}
+
+build_family_signal_intro <- function(family_label, rows, focal_label) {
+  victim_n <- count_unique_signals(rows, "Victim")
+  bystander_n <- count_unique_signals(rows, "Bystander")
+
+  if (victim_n == 0L && bystander_n == 0L) {
+    return(sprintf(
+      "At the reporting threshold, %s produced no focal %s in either subset.",
+      family_label,
+      focal_label
+    ))
+  }
+
+  if (victim_n > 0L && bystander_n > 0L) {
+    density_text <- if (victim_n > bystander_n) {
+      "Signals were denser in the victim subset."
+    } else if (bystander_n > victim_n) {
+      "Signals were denser in the bystander subset."
+    } else {
+      "Signal density was similar across subsets."
+    }
+    return(sprintf(
+      "At the reporting threshold, %s produced focal %s in both subsets. %s",
+      family_label,
+      focal_label,
+      density_text
+    ))
+  }
+
+  if (victim_n > 0L) {
+    return(sprintf(
+      "At the reporting threshold, %s produced focal %s only in the victim subset.",
+      family_label,
+      focal_label
+    ))
+  }
+
+  sprintf(
+    "At the reporting threshold, %s produced focal %s only in the bystander subset.",
+    family_label,
+    focal_label
+  )
+}
+
 select_hypothesis_figure <- function(hypothesis_id) {
   catalog <- read_csv_if_exists(file.path(paths$tables_dir, "hypothesis_figure_catalog.csv"))
   signal_df <- read_csv_if_exists(file.path(paths$tables_dir, "hypothesis_signal_details.csv"))
@@ -471,6 +525,10 @@ h2_bystander_text <- summarize_subset_top_rows(h2_rows, "Bystander", max_rows = 
 h3_victim_text <- summarize_subset_top_rows(h3_rows, "Victim", max_rows = 3L)
 h3_bystander_text <- summarize_subset_top_rows(h3_rows, "Bystander", max_rows = 3L)
 
+h1_intro_text <- build_family_signal_intro("H1", h1_rows, "empathy effects")
+h2_intro_text <- build_family_signal_intro("H2", h2_rows, "relational-structure effects")
+h3_intro_text <- build_family_signal_intro("H3", h3_rows, "moderation effects")
+
 h1_figure <- select_hypothesis_figure("H1")
 h2_figure <- select_hypothesis_figure("H2")
 h3_figure <- select_hypothesis_figure("H3")
@@ -528,7 +586,7 @@ md_lines <- c(
   "",
   "$$y_{isn}^{obs} = \\min\\{9,\\max[-9, y_{isn}^{*}]\\}$$",
   "",
-  "For H1, empathy enters either as the composite score (Model A) or as the four IRI dimensions (Model B), together with judged-negotiator status, counterpart status, decision outcome, subset-relevant victim alignment, and participant controls.",
+  "For H1, empathy enters through the four IRI dimensions (`iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`), together with judged-negotiator status, counterpart status, decision outcome, subset-relevant victim alignment, and participant controls.",
   "",
   "$$y_{isn}^{*} = \\alpha_r + \\mathbf{E}_i\\beta_r + \\mathbf{R}_{isn}\\gamma_r + \\mathbf{X}_i\\delta_r + \\varepsilon_{isn}$$",
   "",
@@ -569,17 +627,18 @@ md_lines <- c(
     "Figure 2. Bystander-subset judgment distributions across the six explicit case configurations. The histogram scale is fixed at -9 to 9 to match the observed judgment bounds.",
     width = "6.7in"
   ),
-  "H1 produced the densest and clearest signal pattern. The compact summary in Table 2 focuses on the empathy terms only, using the richer Model B decomposition when available and retaining the composite Model A term whenever it reaches the reporting threshold. In the victim subset, the strongest focal estimates were",
+  h1_intro_text,
+  "The compact summary in Table 2 focuses on the active four-construct empathy specification. In the victim subset, the strongest focal estimates were",
   if (!is.null(h1_victim_text)) paste0(h1_victim_text, ".") else "not available at the reporting threshold.",
   "In the bystander subset, the corresponding focal estimates were",
   if (!is.null(h1_bystander_text)) paste0(h1_bystander_text, ".") else "not available at the reporting threshold.",
-  "Taken together, the H1 pattern indicates that empathy dimensions matter in both subsets, with larger and more differentiated slopes in victim judgments.",
+  "The H1 narrative below is generated from the currently saved focal coefficient rows rather than from a fixed template.",
   "",
   build_markdown_table_block(
     h1_table,
     note = paste(
-      "A = Model A (Emp); B = Model B (FS, EC, PT, PD).",
-      "JN = judged negotiator; CN = counterpart negotiator; V = observer-victim relation; In = ingroup; Out = outgroup; Ctl = control label hidden; Acc = accepted harmful deal.",
+      "Active empathy specification = FS, EC, PT, PD.",
+      "N1 = judged negotiator; N2 = counterpart negotiator; V = observer-victim relation; In = ingroup; Out = outgroup; Ctl = control label hidden; Acc = accepted harmful deal.",
       "The table is intentionally restricted to focal empathy estimates reported by the dynamic pipeline."
     ),
     digits = 2L
@@ -592,7 +651,8 @@ md_lines <- c(
     ),
     width = "6.4in"
   ) else character(0),
-  "H2 yielded a more selective relational pattern than H1. Rather than showing a broad shift across all joint structures, the dynamic results concentrate on a small number of judged-counterpart contrasts, and those contrasts differ by subset. In the victim subset, the most relevant H2 estimate was",
+  h2_intro_text,
+  "In the victim subset, the most relevant H2 estimate was",
   if (!is.null(h2_victim_text)) paste0(h2_victim_text, ".") else "not available at the reporting threshold.",
   "In the bystander subset, the most relevant H2 estimates were",
   if (!is.null(h2_bystander_text)) paste0(h2_bystander_text, ".") else "not available at the reporting threshold.",
@@ -601,8 +661,8 @@ md_lines <- c(
   build_markdown_table_block(
     h2_table,
     note = paste(
-      "A = Model A (Emp); B = Model B (FS, EC, PT, PD).",
-      "JN = judged negotiator; CN = counterpart negotiator; V = observer-victim relation.",
+      "Active empathy specification = FS, EC, PT, PD.",
+      "N1 = judged negotiator; N2 = counterpart negotiator; V = observer-victim relation.",
       "Only focal H2 structure and observer-side interaction terms are shown."
     ),
     digits = 2L
@@ -615,17 +675,18 @@ md_lines <- c(
     ),
     width = "6.4in"
   ) else character(0),
-  "H3 shows that empathy is not merely additive with relational status. Instead, the empathy slope changes with judged-negotiator status, and that moderation is again subset-specific. In the victim subset, the leading H3 interactions were",
+  h3_intro_text,
+  "In the victim subset, the leading H3 interactions were",
   if (!is.null(h3_victim_text)) paste0(h3_victim_text, ".") else "not available at the reporting threshold.",
   "In the bystander subset, the leading H3 interactions were",
   if (!is.null(h3_bystander_text)) paste0(h3_bystander_text, ".") else "not available at the reporting threshold.",
-  "The interaction pattern therefore suggests that empathy-linked evaluation is conditional on who is being judged, not just on the participant's average empathy level.",
+  "The interaction summary below is generated from the currently saved focal coefficient rows rather than from a fixed template.",
   "",
   build_markdown_table_block(
     h3_table,
     note = paste(
-      "A = Model A (Emp); B = Model B (FS, EC, PT, PD).",
-      "JN = judged negotiator; CN = counterpart negotiator; Acc = accepted harmful deal.",
+      "Active empathy specification = FS, EC, PT, PD.",
+      "N1 = judged negotiator; N2 = counterpart negotiator; Acc = accepted harmful deal.",
       "Only focal H3 empathy-by-judged-status interactions are shown."
     ),
     digits = 2L

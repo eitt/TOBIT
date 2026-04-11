@@ -35,9 +35,21 @@ report_pipeline_mode <- toupper(trimws(as.character(
 if (!(report_pipeline_mode %in% c("TOBIT", "BOTH"))) {
   report_pipeline_mode <- "TOBIT"
 }
+report_active_model_suffixes <- resolve_active_model_suffixes()
+if (length(report_active_model_suffixes) == 0L) {
+  report_active_model_suffixes <- "B"
+}
 
 report_includes_nonparametric <- function() {
   identical(report_pipeline_mode, "BOTH")
+}
+
+report_uses_composite_model <- function() {
+  "A" %in% report_active_model_suffixes
+}
+
+report_uses_construct_model <- function() {
+  "B" %in% report_active_model_suffixes
 }
 
 get_report_approaches <- function() {
@@ -317,7 +329,7 @@ describe_row_group <- function(rows) {
   collapse_with_and(phrases)
 }
 
-assess_model_terms <- function(bundle, term_info, expected_direction, alpha = 0.05) {
+assess_model_terms <- function(bundle, term_info, expected_direction, alpha = 0.10) {
   if (!bundle$available) {
     return(list(
       status = "unavailable",
@@ -381,7 +393,7 @@ assess_model_terms <- function(bundle, term_info, expected_direction, alpha = 0.
   )
 }
 
-summarize_additional_signals <- function(bundles, excluded_terms, alpha = 0.05, max_terms = 2L) {
+summarize_additional_signals <- function(bundles, excluded_terms, alpha = 0.10, max_terms = 2L) {
   available_bundles <- Filter(function(bundle) isTRUE(bundle$available), bundles)
   if (length(available_bundles) == 0L) return(NULL)
 
@@ -426,24 +438,23 @@ summarize_overall_support <- function(statuses) {
   "the available models do not support the hypothesis."
 }
 
-summarize_estimator_hypothesis_for_subset <- function(spec, approach, subset_role, alpha = 0.05) {
-  bundles <- list(
-    A = read_model_bundle(spec$id, "A", approach, subset_role),
-    B = read_model_bundle(spec$id, "B", approach, subset_role)
+summarize_estimator_hypothesis_for_subset <- function(spec, approach, subset_role, alpha = 0.10) {
+  bundles <- stats::setNames(
+    lapply(report_active_model_suffixes, function(model_suffix) {
+      read_model_bundle(spec$id, model_suffix, approach, subset_role)
+    }),
+    report_active_model_suffixes
   )
-  assessments <- list(
-    A = assess_model_terms(
-      bundles$A,
-      get_hypothesis_model_terms(spec, "A", subset_role),
-      spec$expected_direction,
-      alpha
-    ),
-    B = assess_model_terms(
-      bundles$B,
-      get_hypothesis_model_terms(spec, "B", subset_role),
-      spec$expected_direction,
-      alpha
-    )
+  assessments <- stats::setNames(
+    lapply(report_active_model_suffixes, function(model_suffix) {
+      assess_model_terms(
+        bundles[[model_suffix]],
+        get_hypothesis_model_terms(spec, model_suffix, subset_role),
+        spec$expected_direction,
+        alpha
+      )
+    }),
+    report_active_model_suffixes
   )
 
   available_flags <- vapply(bundles, function(bundle) isTRUE(bundle$available), logical(1))
@@ -494,7 +505,7 @@ summarize_estimator_hypothesis_for_subset <- function(spec, approach, subset_rol
   )
 }
 
-summarize_estimator_hypothesis <- function(spec, approach, alpha = 0.05) {
+summarize_estimator_hypothesis <- function(spec, approach, alpha = 0.10) {
   victim_summary <- summarize_estimator_hypothesis_for_subset(spec, approach, "Victim", alpha)
   bystander_summary <- summarize_estimator_hypothesis_for_subset(spec, approach, "Bystander", alpha)
 
@@ -550,7 +561,7 @@ filter_significant_coefficients <- function(coef_df, alpha = 0.10) {
 collect_hypothesis_signal_details <- function(spec, alpha = 0.10) {
   bundle_grid <- expand.grid(
     approach = get_report_approaches(),
-    model_suffix = c("A", "B"),
+    model_suffix = report_active_model_suffixes,
     subset_role = c("Victim", "Bystander"),
     stringsAsFactors = FALSE
   )
@@ -617,7 +628,7 @@ collect_all_significant_predictor_details <- function(alpha = 0.10) {
   bundle_grid <- expand.grid(
     hypothesis_idx = seq_along(hypothesis_specs),
     approach = get_report_approaches(),
-    model_suffix = c("A", "B"),
+    model_suffix = report_active_model_suffixes,
     subset_role = c("Victim", "Bystander"),
     stringsAsFactors = FALSE
   )
@@ -667,11 +678,17 @@ collect_all_significant_predictor_details <- function(alpha = 0.10) {
 }
 
 collect_hypothesis_signals <- function(spec, approach, alpha = 0.10, signal_details = NULL) {
-  bundles <- list(
-    V_A = read_model_bundle(spec$id, "A", approach, "Victim"),
-    V_B = read_model_bundle(spec$id, "B", approach, "Victim"),
-    B_A = read_model_bundle(spec$id, "A", approach, "Bystander"),
-    B_B = read_model_bundle(spec$id, "B", approach, "Bystander")
+  bundle_grid <- expand.grid(
+    model_suffix = report_active_model_suffixes,
+    subset_role = c("Victim", "Bystander"),
+    stringsAsFactors = FALSE
+  )
+  bundle_names <- sprintf("%s_%s", substr(bundle_grid$subset_role, 1, 1), bundle_grid$model_suffix)
+  bundles <- stats::setNames(
+    lapply(seq_len(nrow(bundle_grid)), function(idx) {
+      read_model_bundle(spec$id, bundle_grid$model_suffix[idx], approach, bundle_grid$subset_role[idx])
+    }),
+    bundle_names
   )
   available_bundles <- Filter(function(bundle) isTRUE(bundle$available), bundles)
   if (length(available_bundles) == 0L) {
@@ -717,7 +734,7 @@ collect_hypothesis_family_signals <- function(family_spec, approach, alpha = 0.1
   subset_roles <- if (is.null(subset_role)) c("Victim", "Bystander") else subset_role
   bundle_grid <- expand.grid(
     hypothesis_id = family_spec$member_ids,
-    model_suffix = c("A", "B"),
+    model_suffix = report_active_model_suffixes,
     subset_role = subset_roles,
     stringsAsFactors = FALSE
   )
@@ -849,7 +866,7 @@ to_latex_wrapped_hypothesis_summary <- function(df, caption, label) {
   c(
     "\\begin{table}[H]",
     "\\centering",
-    "\\small",
+    "{\\fontsize{11}{13}\\selectfont",
     "\\renewcommand{\\arraystretch}{1.15}",
     paste0("\\caption{", caption_text, "}"),
     paste0("\\label{", label, "}"),
@@ -860,6 +877,7 @@ to_latex_wrapped_hypothesis_summary <- function(df, caption, label) {
     paste0(body, " \\\\"),
     "\\bottomrule",
     "\\end{tabular}",
+    "}",
     "\\end{table}"
   )
 }
@@ -885,12 +903,12 @@ build_markdown_note_line <- function(text) {
 }
 
 build_predictor_glossary_df <- function() {
-  data.frame(
+  glossary_df <- data.frame(
     `Code / pattern` = c(
       "iri_total",
       "iri_fs, iri_ec, iri_pt, iri_pd",
-      "judged_outgroup, judged_control",
-      "counterpart_outgroup, counterpart_control",
+      "judged_ingroup, judged_outgroup",
+      "counterpart_ingroup, counterpart_outgroup",
       "decision_accept",
       "observer_victim_outgroup",
       "h2_negstruct_*",
@@ -907,15 +925,15 @@ build_predictor_glossary_df <- function() {
     Compact = c(
       "Emp",
       "FS, EC, PT, PD",
-      "JN Out, JN Ctl",
-      "CN Out, CN Ctl",
+      "N1 In, N1 Out",
+      "N2 In, N2 Out",
       "Acc",
       "V Out (Obs)",
-      "JN ..., CN ...",
+      "N1 ..., N2 ...",
       "V Out",
-      "V Out x JN ..., CN ...",
-      "Acc x JN ...",
-      "Emp / FS / EC / PT / PD x JN ...",
+      "V Out x N1 ..., N2 ...",
+      "Acc x N1 ...",
+      "Emp / FS / EC / PT / PD x N1 ...",
       "Eng part.",
       "Man",
       "Age",
@@ -925,11 +943,11 @@ build_predictor_glossary_df <- function() {
     Meaning = c(
       "Composite empathy predictor used in Model A.",
       "IRI subscales used in Model B: fantasy, empathic concern, perspective taking, and personal distress.",
-      "Judged-negotiator contrasts relative to judged ingroup.",
-      "Counterpart-negotiator contrasts relative to counterpart ingroup.",
+      "N1 contrasts relative to the N1 control-labeled baseline.",
+      "N2 contrasts relative to the N2 control-labeled baseline.",
       "Accepted harmful deal relative to rejected harmful deal.",
       "Observer-only victim outgroup contrast; excluded from victim-only formulas.",
-      "H2 joint judged/counterpart structure dummies with reference JN In, CN In.",
+      "H2 joint N1/N2 structure dummies with reference N1 Ctl, N2 Ctl.",
       "Observer-side player-victim outgroup contrast with player-victim ingroup as the reference.",
       "Bystander-only H2 interaction: whether the negotiator-side structure changes when player and victim are outgroup-aligned.",
       "H3 decision-by-judged-status interaction block.",
@@ -961,6 +979,16 @@ build_predictor_glossary_df <- function() {
     stringsAsFactors = FALSE,
     check.names = FALSE
   )
+
+  if (!report_uses_composite_model()) {
+    glossary_df <- glossary_df[glossary_df$`Code / pattern` != "iri_total", , drop = FALSE]
+    glossary_df$Compact[glossary_df$`Code / pattern` == "iri_*:judged_*"] <- "FS / EC / PT / PD x N1 ..."
+    glossary_df$Meaning[glossary_df$`Code / pattern` == "iri_fs, iri_ec, iri_pt, iri_pd"] <-
+      "Active empathy predictors: fantasy, empathic concern, perspective taking, and personal distress."
+    glossary_df$`Used in`[glossary_df$`Code / pattern` == "iri_fs, iri_ec, iri_pt, iri_pd"] <- "H1/H2/H3 active model"
+  }
+
+  glossary_df
 }
 
 build_latex_predictor_glossary_list <- function() {
@@ -1597,7 +1625,7 @@ build_markdown_significance_figure_section <- function(artifacts) {
   section_lines
 }
 
-build_hypothesis_conclusion_items <- function(alpha = 0.05) {
+build_hypothesis_conclusion_items <- function(alpha = 0.10) {
   hypothesis_specs <- get_hypothesis_specs(paths = paths)
   vapply(
     hypothesis_specs,
@@ -1709,7 +1737,8 @@ build_estimator_block <- function(output_prefix, estimator_name, table_caption, 
       format_sample_description(fit_stats, subset_role = subset_role)
     ),
     sprintf("tab:%s", tolower(output_prefix)),
-    digits = 3
+    digits = 3,
+    preserve_font_size = TRUE
   )
 
   narrative <- if (!is.null(model_fit)) {
@@ -1803,10 +1832,15 @@ latex_lines <- c(
   "\\usepackage{amsmath, amssymb, amsfonts}",
   "\\usepackage{graphicx}",
   "\\usepackage{array}",
+  "\\usepackage{tabularx}",
   "\\usepackage{booktabs}",
   "\\usepackage{float}",
   "\\usepackage{hyperref}",
-  "\\title{Scientific Analysis of Moral Judgments using Tobit and Cluster-Aware Non-Parametric Robustness Models}",
+  if (report_includes_nonparametric()) {
+    "\\title{Scientific Analysis of Moral Judgments using Tobit and Cluster-Aware Non-Parametric Robustness Models}"
+  } else {
+    "\\title{Scientific Analysis of Moral Judgments using Tobit Models with Four Empathy Constructs}"
+  },
   "\\author{Automated Research Pipeline}",
   paste0("\\date{", format(Sys.Date(), "%B %d, %Y"), "}"),
   "\\begin{document}",
@@ -1831,8 +1865,8 @@ latex_lines <- c(
   "The models herein employ several predefined predictors. It is important to note how interaction terms are interpreted in the context of this behavioral experiment:",
   "\\begin{enumerate}",
   "  \\item \\textbf{Interaction Subsumption:} When an interaction term is statistically significant, it indicates that the effect of one variable depends on the level of the other. Crucially, if the interaction is significant but the constituent main effects are not explicitly significant, their effects are fully subsumed and contextualized by the interaction.",
-  "  \\item \\textbf{Continuous by Discrete Interactions:} For terms like \\texttt{iri\\_total:judged\\_outgroup}, a negative coefficient implies that the severity of moral judgment (lower score) induced by higher empathy is steeper (magnified) when evaluating an outgroup negotiator compared to an ingroup negotiator. A positive coefficient would mean empathy makes judgments less severe for the outgroup.",
-  "  \\item \\textbf{Discrete by Discrete Interactions:} For terms like \\texttt{judged\\_outgroup:decision\\_accept}, a positive coefficient implies that the change in moral judgment when moving from rejecting a deal to accepting a deal is more positive (less morally condemned) for an outgroup negotiator than for an ingroup negotiator.",
+  "  \\item \\textbf{Continuous by Discrete Interactions:} For terms like \\texttt{iri\\_total:judged\\_outgroup}, a negative coefficient implies that the severity of moral judgment (lower score) induced by higher empathy is steeper (magnified) when evaluating an outgroup negotiator relative to the control-labeled baseline. A positive coefficient would mean empathy makes judgments less severe for that outgroup condition.",
+  "  \\item \\textbf{Discrete by Discrete Interactions:} For terms like \\texttt{judged\\_outgroup:decision\\_accept}, a positive coefficient implies that the change in moral judgment when moving from rejecting a deal to accepting a deal is more positive (less morally condemned) for an outgroup negotiator than for the control-labeled baseline condition.",
   "\\end{enumerate}",
   "",
   "\\section{Hypotheses to Test}",
@@ -1861,21 +1895,44 @@ latex_lines <- c(
   sprintf("\nBased on the current run, the observed Intraclass Correlation (ICC) is %.3f, with an Effective Sample Size (ESS) of %.1f.", power_results$ICC, power_results$EffectiveN),
   "",
   "\\section{Descriptive Statistics}",
-  "The empathy profile of the sample is visualized in Figure \\ref{fig:radar}, showing the average scores across the four IRI latent variables.",
-  latex_include_graphic(file.path("../figures", figure_radar_file), "IRI Latent Variable Averages (Radar Plot profile).", "fig:radar"),
-  "Figure \\ref{fig:severity_panels} summarizes the overall judgment distribution across judged-negotiator status. Figures \\ref{fig:victim_case_panels} and \\ref{fig:bystander_case_panels} replicate that severity-panel logic across the six explicit victim x negotiator case configurations within the victim and bystander subsets, and Figures \\ref{fig:accepted_case_panels} and \\ref{fig:rejected_case_panels} add the same six-panel histograms for accepted versus rejected harmful deals.",
-  latex_include_graphic(file.path("../figures", figure_severity_panels_file), "Judgment distributions by judged-negotiator status, using a fixed judgment scale from -9 to 9.", "fig:severity_panels"),
-  latex_include_graphic(file.path("../figures", figure_victim_case_panels_file), "Victim-subset severity panels across the six explicit victim x negotiator case configurations, using a fixed judgment scale from -9 to 9.", "fig:victim_case_panels"),
-  latex_include_graphic(file.path("../figures", figure_bystander_case_panels_file), "Bystander-subset severity panels across the six explicit victim x negotiator case configurations, using a fixed judgment scale from -9 to 9.", "fig:bystander_case_panels"),
-  latex_include_graphic(file.path("../figures", figure_accepted_case_panels_file), "Agreement severity panels across the six explicit victim x negotiator case configurations, using a fixed judgment scale from -9 to 9.", "fig:accepted_case_panels"),
-  latex_include_graphic(file.path("../figures", figure_rejected_case_panels_file), "Disagreement severity panels across the six explicit victim x negotiator case configurations, using a fixed judgment scale from -9 to 9.", "fig:rejected_case_panels"),
-  "The descriptive branch no longer centers the main report on victim x negotiator case-label tables; the hypothesis tests below work directly with negotiator-level relational predictors.",
+  paste0(
+    "The empathy profile of the sample is visualized in Figure \\ref{fig:radar}, showing the average scores ",
+    "across the four IRI subscales (Fantasy, Empathic Concern, Perspective Taking, Personal Distress), ",
+    "each scored 0\u20134 (scale mean per subscale)."
+  ),
+  latex_include_graphic(file.path("../figures", figure_radar_file), "IRI subscale averages (radar plot; scale 0--4 per subscale).", "fig:radar", escape = FALSE),
+  paste0(
+    "Figure \\ref{fig:severity_panels} shows severity distributions pooled across the full analytical sample, ",
+    "broken down by N1 group membership (\\textit{group\\_target}: Ingroup, Outgroup, Control). ",
+    "Figures \\ref{fig:victim_case_panels} and \\ref{fig:bystander_case_panels} replicate this breakdown ",
+    "separately within the victim and bystander subsets. Figure \\ref{fig:accepted_case_panels} adds the ",
+    "bystander-subset view by observer\u2013victim group alignment (\\textit{obs\\_group}), and ",
+    "Figure \\ref{fig:rejected_case_panels} shows the N2 group panels (\\textit{group\\_other}) ",
+    "for the full sample."
+  ),
+  latex_include_graphic(file.path("../figures", figure_severity_panels_file),
+    "Judgment severity by N1 group (\\textit{group\\_target}: Ingroup, Outgroup, Control) --- full analytical sample, scale $-9$ to $9$.",
+    "fig:severity_panels", escape = FALSE),
+  latex_include_graphic(file.path("../figures", figure_victim_case_panels_file),
+    "Victim-subset severity by N1 group (\\textit{group\\_target}), scale $-9$ to $9$.",
+    "fig:victim_case_panels", escape = FALSE),
+  latex_include_graphic(file.path("../figures", figure_bystander_case_panels_file),
+    "Bystander-subset severity by N1 group (\\textit{group\\_target}), scale $-9$ to $9$.",
+    "fig:bystander_case_panels", escape = FALSE),
+  latex_include_graphic(file.path("../figures", figure_accepted_case_panels_file),
+    "Bystander-subset severity by observer--victim group alignment (\\textit{obs\\_group}: Ingroup, Outgroup), scale $-9$ to $9$.",
+    "fig:accepted_case_panels", escape = FALSE),
+  latex_include_graphic(file.path("../figures", figure_rejected_case_panels_file),
+    "Judgment severity by N2 group (\\textit{group\\_other}: Ingroup, Outgroup, Control) --- full analytical sample, scale $-9$ to $9$.",
+    "fig:rejected_case_panels", escape = FALSE),
+  paste0(
+    "When a control-labeled negotiator condition exists, the active hypothesis models treat that control level as the reference category. ",
+    "Observer--victim alignment remains binary and therefore keeps ingroup as its reference level."
+  ),
   "",
   "\\section{Bi-variate Statistics}",
   "The correlation matrix between the psychometric subscales and the mean moral judgment is presented below.",
   to_latex_table(bivar_cor, "Correlation Matrix: IRI Subscales and Moral Judgment.", "tab:bivar"),
-  "Visual representations of these relationships, including fitted lines with 95\\% confidence bands, are provided in Figure \\ref{fig:bivar_scatters}.",
-  latex_include_graphic(file.path("../figures", figure_bivariate_scatters_file), "Bivariate Scatters: IRI Scales vs. Mean Judgment, with fitted lines and 95\\% confidence bands.", "fig:bivar_scatters"),
   "",
   "\\section{Estimator Fit Summary}",
   if (report_includes_nonparametric()) {
@@ -1942,39 +1999,30 @@ latex_lines <- c(
   },
   "",
   "\\subsection{H1: Empathy Effect}",
-  "This section evaluates H1 separately in the victim and bystander subsets. Model A uses the overall empathy composite. Model B replaces that composite with the four IRI subscales: fantasy, empathic concern, perspective taking, and personal distress. Both formulas retain judged-negotiator status, counterpart status, decision outcome, and participant controls for sex, age, and economic status, but only the bystander subset includes the observer-side victim-alignment predictor because it is not meaningful inside the victim-only subset.",
-  "\\subsubsection{Model A: Composite Empathy}",
-  build_subset_formula_lines(report_h1_spec, "A"),
-  build_model_section("H1", "A", "H1 Model A: Composite Empathy Regression Coefficients."),
-  "\\subsubsection{Model B: Separated Empathy Constructs}",
+  "This section evaluates H1 separately in the victim and bystander subsets using the four IRI subscales as the active empathy specification: fantasy, empathic concern, perspective taking, and personal distress. The formula retains judged-negotiator status, counterpart status, decision outcome, and participant controls for sex, age, and economic status, while the bystander subset additionally includes the observer-side victim-alignment predictor because it is meaningful only in that subset.",
+  "\\subsubsection{Active Empathy-Construct Specification}",
   build_subset_formula_lines(report_h1_spec, "B"),
-  build_model_section("H1", "B", "H1 Model B: Separated Constructs Regression Coefficients."),
+  build_model_section("H1", "B", "H1 active model: empathy-construct Tobit coefficients."),
   "",
   "\\subsection{H2: Negotiator-Side Relational Structure}",
-  "This section estimates H2 separately in the victim and bystander subsets. The dependent variable remains negotiator-specific judgment severity, so each participant contributes two judgment rows per scenario, one for each negotiator. In the victim subset, H2 uses the joint judged-plus-counterpart negotiator structure relative to the victim-player, with judged ingroup and counterpart ingroup as the reference structure. In the bystander subset, the same negotiator-side structure is defined relative to the observing player's faculty, and the model additionally includes the player-victim outgroup term and its interaction with the negotiator-side structure dummies.",
+  "This section estimates H2 separately in the victim and bystander subsets. The dependent variable remains negotiator-specific judgment severity, so each participant contributes two judgment rows per scenario, one for each negotiator. In the victim subset, H2 uses the joint judged-plus-counterpart negotiator structure relative to the victim-player, with the control-labeled N1 plus control-labeled N2 condition as the reference structure. In the bystander subset, the same negotiator-side structure is defined relative to the observing player's faculty, and the model additionally includes the player-victim outgroup term and its interaction with the negotiator-side structure dummies.",
   "Victim-subset equation: $y^*_{isj,Victim} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\gamma}' \\mathbf{S}^{(V)}_{isj} + \\boldsymbol{\\delta}' \\mathbf{Z}_i + \\epsilon_{isj}$, where $\\mathbf{S}^{(V)}_{isj}$ indexes the judged-plus-counterpart structure dummies and $\\mathbf{Z}_i$ collects participant controls.",
   "Bystander-subset equation: $y^*_{isj,Obs} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\gamma}' \\mathbf{S}^{(O)}_{isj} + \\eta V_{is} + \\boldsymbol{\\theta}' (\\mathbf{S}^{(O)}_{isj} \\times V_{is}) + \\boldsymbol{\\delta}' \\mathbf{Z}_i + \\epsilon_{isj}$, where $V_{is}$ is the player-victim outgroup indicator.",
-  "\\subsubsection{Model A: Composite Empathy Control}",
-  build_subset_formula_lines(report_h2_spec, "A"),
-  build_model_section("H2", "A", "H2 Model A: Composite Empathy Regression Coefficients."),
-  "\\subsubsection{Model B: Separated Construct Controls}",
+  "\\subsubsection{Active Empathy-Construct Specification}",
   build_subset_formula_lines(report_h2_spec, "B"),
-  build_model_section("H2", "B", "H2 Model B: Separated Constructs Regression Coefficients."),
+  build_model_section("H2", "B", "H2 active model: empathy-construct Tobit coefficients."),
   "",
   "\\subsection{H3: Empathy x Judged-Status Moderation}",
   "This section tests whether empathy slopes differ across judged-negotiator status categories after retaining decision outcome, judged-status x decision terms, counterpart status, and observer-side victim alignment when that predictor is meaningful. As in H1, the victim and bystander subsets use different formulas only where observer-only predictors would otherwise be structurally fixed.",
-  "\\subsubsection{Model A: Composite Empathy Interaction}",
-  build_subset_formula_lines(report_h3_spec, "A"),
-  build_model_section("H3", "A", "H3 Model A: Composite Empathy Regression Coefficients."),
-  "\\subsubsection{Model B: Separated Constructs Interaction}",
+  "\\subsubsection{Active Empathy-Construct Specification}",
   build_subset_formula_lines(report_h3_spec, "B"),
-  build_model_section("H3", "B", "H3 Model B: Separated Constructs Regression Coefficients."),
+  build_model_section("H3", "B", "H3 active model: empathy-construct Tobit coefficients."),
   "",
   "\\section{Discussion and Limitations}",
   paste(get_limitations_narration(), collapse = " "),
   "",
   "\\section{Conclusion}",
-  "Based on the combined interval-censored Tobit estimations and the cluster-aware non-parametric robustness workflow, empathy and relational judgment structure have been documented together under Option 2 through negotiator-level relational predictors rather than descriptive case labels.",
+  "Based on the interval-censored Tobit estimations using the four empathy constructs, empathy and relational judgment structure have been documented together under Option 2 through negotiator-level relational predictors rather than descriptive case labels.",
   "\\end{document}"
 )
 
@@ -1983,7 +2031,11 @@ write_text_file(latex_lines, tex_path)
 
 # Rendering Markdown is temporarily simplified to focus on standardizing the LaTeX/PDF engine.
 md_lines <- c(
-  "# Scientific Analysis of Moral Judgments with Tobit and Cluster-Aware Non-Parametric Robustness Checks",
+  if (report_includes_nonparametric()) {
+    "# Scientific Analysis of Moral Judgments with Tobit and Cluster-Aware Non-Parametric Robustness Checks"
+  } else {
+    "# Scientific Analysis of Moral Judgments with Tobit Models and Four Empathy Constructs"
+  },
   "",
   "## Dataset Description",
   paste(get_dataset_narration(paths$dataset_mode), collapse = " "),
@@ -2001,8 +2053,8 @@ md_lines <- c(
   "The models herein employ several predefined predictors. It is important to note how interaction terms are interpreted in the context of this behavioral experiment:",
   "",
   "1. **Interaction Subsumption:** When an interaction term is statistically significant, it indicates that the effect of one variable depends on the level of the other. Crucially, if the interaction is significant but the constituent main effects are not explicitly significant, their effects are fully subsumed and contextualized by the interaction.",
-  "2. **Continuous by Discrete Interactions:** For terms like `iri_total:judged_outgroup`, a negative coefficient implies that the severity of moral judgment (lower score) induced by higher empathy is steeper (magnified) when evaluating an outgroup negotiator compared to an ingroup negotiator. A positive coefficient would mean empathy makes judgments less severe for the outgroup.",
-  "3. **Discrete by Discrete Interactions:** For terms like `judged_outgroup:decision_accept`, a positive coefficient implies that the change in moral judgment when moving from rejecting a deal to accepting a deal is more positive (less morally condemned) for an outgroup negotiator than for an ingroup negotiator.",
+  "2. **Continuous by Discrete Interactions:** For terms like `iri_pt:judged_outgroup`, a negative coefficient implies that the severity of moral judgment (lower score) induced by higher empathy is steeper (magnified) when evaluating an outgroup negotiator relative to the control-labeled baseline. A positive coefficient would mean empathy makes judgments less severe for that outgroup condition.",
+  "3. **Discrete by Discrete Interactions:** For terms like `judged_outgroup:decision_accept`, a positive coefficient implies that the change in moral judgment when moving from rejecting a deal to accepting a deal is more positive (less morally condemned) for an outgroup negotiator than for the control-labeled baseline condition.",
   "",
   "## Hypothesis Significance Summary",
   if (report_includes_nonparametric()) {

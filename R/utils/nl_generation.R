@@ -2,33 +2,34 @@
 # Purpose: Generate dynamic narrative text explaining Tobit and CLAD model coefficients
 # Dependencies: model_functions.R
 
-# Helper to explain p-value significance
+#' Helper to explain significance in plain language
 describe_significance <- function(p_value, estimate) {
   if (is.na(p_value)) {
-    return("the p-value cannot be determined")
+    return("the statistical significance is unclear")
   }
 
   if (p_value < 0.001) {
-    sig <- "highly statistically significant"
+    sig <- "very strong evidence"
   } else if (p_value < 0.01) {
-    sig <- "statistically significant"
+    sig <- "strong evidence"
   } else if (p_value < 0.05) {
-    sig <- "statistically significant"
+    sig <- "clear evidence"
   } else if (p_value < 0.1) {
-    sig <- "marginally significant"
+    sig <- "suggestive but inconclusive evidence"
   } else {
-    sig <- "not statistically significant"
+    sig <- "little to no evidence"
   }
 
-  direction <- if (estimate > 0) "a positive effect" else "a negative effect"
+  direction <- if (estimate > 0) "an increase (higher scores)" else "a decrease (lower, more severe scores)"
+  
   if (p_value >= 0.05) {
-    return(sprintf("indicates the effect is %s, meaning we do not have enough evidence to reject the null hypothesis for this vector", sig))
+    return(sprintf("indicates %s of an effect, meaning the current data doesn't reliably show a relationship for this specific variable", sig))
   } else {
-    return(sprintf("indicates %s, meaning the predictor has %s on the latent moral judgment", sig, direction))
+    return(sprintf("indicates %s of an effect, showing that this variable leads to %s in the moral judgment", sig, direction))
   }
 }
 
-# Helper mapping term explicitly to a natural language definition for insertion into a sentence
+#' Helper mapping term explicitly to a natural language definition
 get_term_definition <- function(term) {
   describe_case_term <- function(term_key) {
     if (!grepl("^case_[a-z]+_x_[a-z]+$", term_key)) {
@@ -63,44 +64,30 @@ get_term_definition <- function(term) {
   }
 
   meaning_map <- c(
-    "iri_total" = "the average composite of empathetic propensity across the participant",
-    "iri_fs" = "the participant's inclination to transpose themselves imaginatively into the feelings of fictitious characters (Fantasy scale)",
-    "iri_ec" = "the participant's tendency to experience feelings of sympathy and compassion for unfortunate others (Empathic Concern)",
-    "iri_pt" = "the participant's tendency to spontaneously adopt the psychological point of view of others (Perspective Taking)",
-    "iri_pd" = "the participant's tendency to experience distress and discomfort in tense interpersonal settings (Personal Distress)",
-    "case_configuration" = "the explicit victim x negotiator case-configuration factor used in Option 2 relational modeling",
-    "case_configuration_role" = "the victim x negotiator case configuration further conditioned by participant role (Observer or Victim)",
-    "case_configuration_decision" = "the victim x negotiator case configuration further conditioned by decision context (Accept or Reject)",
-    "case_configuration_context" = "the full victim x negotiator case configuration further conditioned by both role and decision context",
-    "analytic_case_configuration" = "the role-dependent judgment configuration that preserves the judged negotiator, the counterpart negotiator, and observer-side victim alignment",
-    "analytic_case_configuration_decision" = "the role-dependent judgment configuration further conditioned by decision context (Accept or Reject)",
-    "analytic_case_configuration_context" = "the role-dependent judgment configuration further conditioned by decision context (Accept or Reject)",
-    "decision_accept" = "whether the judged negotiator accepted the harmful deal instead of rejecting it",
-    "judged_outgroup" = "whether the judged negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)",
-    "judged_control" = "whether the judged negotiator appeared in the control or unlabeled condition instead of the ingroup condition",
-    "counterpart_outgroup" = "whether the counterpart negotiator belonged to a different faculty than the role-relevant reference actor (outgroup versus ingroup)",
-    "counterpart_control" = "whether the counterpart negotiator appeared in the control or unlabeled condition instead of the ingroup condition",
-    "observer_victim_outgroup" = "whether, in observer-role judgments, the victim belonged to a different faculty than the observing participant",
-    "player_victim_outgroup" = "whether, in observer-role judgments, the player and victim belonged to different faculties",
-    "perp_outgroup" = "whether the perpetrator belonged to a faculty different from the participant (Outgroup)",
-    "perp_control" = "whether the perpetrator's organizational alignment was explicitly hidden (Control label)",
-    "victim_outgroup" = "whether the victim was affiliated with a different faculty than the participant",
-    "iri_total:perp_outgroup" = "the combined interaction effect between overall empathy and an outgroup perpetrator",
-    "iri_total:perp_control" = "the combined interaction effect between overall empathy and an unidentified perpetrator",
-    "iri_fs:perp_outgroup" = "the combined interaction effect between the Fantasy scale and an outgroup perpetrator",
-    "iri_fs:perp_control" = "the combined interaction effect between the Fantasy scale and an unidentified perpetrator",
-    "iri_ec:perp_outgroup" = "the combined interaction effect between Empathic Concern and an outgroup perpetrator",
-    "iri_ec:perp_control" = "the combined interaction effect between Empathic Concern and an unidentified perpetrator",
-    "iri_pt:perp_outgroup" = "the combined interaction effect between Perspective Taking and an outgroup perpetrator",
-    "iri_pt:perp_control" = "the combined interaction effect between Perspective Taking and an unidentified perpetrator",
-    "iri_pd:perp_outgroup" = "the combined interaction effect between Personal Distress and an outgroup perpetrator",
-    "iri_pd:perp_control" = "the combined interaction effect between Personal Distress and an unidentified perpetrator",
-    "role_observer" = "the procedural role where the participant acted exclusively as an observer rather than a victim",
-    "participant_engineering" = "whether the participant belonged to the Engineering faculty as opposed to Humanities",
-    "sex_man" = "whether the participant identified as a man instead of a woman",
-    "age" = "the participant's biological age in years",
+    "iri_total" = "the participant's general level of empathy across all dimensions",
+    "iri_fs" = "the tendency to imaginatively get involved in fictitious stories (Fantasy subscale)",
+    "iri_ec" = "the tendency to feel sympathy and compassion for others (Empathic Concern subscale)",
+    "iri_pt" = "the tendency to look at things from another's point of view (Perspective Taking subscale)",
+    "iri_pd" = "the tendency to feel distress in uncomfortable social situations (Personal Distress subscale)",
+    "case_configuration" = "the relational configuration of victim and negotiator groups",
+    "decision_accept" = "whether N1 accepted the harmful deal",
+    "judged_ingroup" = "whether N1 was ingroup rather than in the control-labeled baseline",
+    "judged_outgroup" = "whether N1 belonged to a different faculty than the reference participant (Outgroup)",
+    "judged_control" = "whether N1's group affiliation was hidden from the participant (Control)",
+    "counterpart_ingroup" = "whether N2 was ingroup rather than in the control-labeled baseline",
+    "counterpart_outgroup" = "whether N2 belonged to a different faculty than the reference participant (Outgroup)",
+    "counterpart_control" = "whether N2's group affiliation was hidden from the participant (Control)",
+    "observer_victim_outgroup" = "whether the victim belonged to a different faculty than the observer (Outgroup)",
+    "player_victim_outgroup" = "whether the player and victim belonged to different groups",
+    "perp_outgroup" = "whether the perpetrator was from a different group",
+    "perp_control" = "whether the perpetrator's group was hidden",
+    "victim_outgroup" = "whether the victim was from a different group",
+    "role_observer" = "the bystander role where the participant observes rather than being the victim",
+    "participant_engineering" = "whether the participant is from an Engineering faculty",
+    "sex_man" = "being a man (relative to being a woman)",
+    "age" = "the participant's age",
     "economic_status" = "the socioeconomic contextual stratum of the participant's background",
-    "same_group_harm" = "whether the harm inflicted by the perpetrator targeted a victim from their own faculty (Ingroup Betrayal)"
+    "same_group_harm" = "whether the harm inflicted by the perpetrator targeted their own group member (betrayal)"
   )
   term_key <- canonicalize_term_name(term)
   if (term_key %in% names(meaning_map)) {
@@ -116,11 +103,11 @@ get_term_definition <- function(term) {
   }
   h2_structure_term <- label_h2_negotiator_structure_term(term_key)
   if (!identical(h2_structure_term, term_key)) {
-    return(paste("the H2 negotiator-side structure contrast comparing", sub("^Negotiator-side structure: ", "", h2_structure_term)))
+    return(paste("the N1-N2 group structure comparing", sub("^Negotiator-side structure: ", "", h2_structure_term)))
   }
   if (grepl(":", term_key, fixed = TRUE)) {
     term_parts <- strsplit(term_key, ":", fixed = TRUE)[[1]]
-    return(paste(vapply(term_parts, get_term_definition, character(1)), collapse = " interacted with "))
+    return(paste(vapply(term_parts, get_term_definition, character(1)), collapse = " in combination with "))
   }
   if (grepl("^factor\\(negotiator_slot\\)", term)) {
     return("fixed effects for specific negotiator presentation order")
@@ -140,50 +127,50 @@ generate_coefficient_narrative <- function(coef_df, model_family = "Tobit") {
     est <- coef_df$estimate[i]
     p_val <- coef_df$p_value[i]
 
-    # Handle the standard intercepts and scales that bounded-outcome models produce.
+    # Intercept
     if (term == "(Intercept)") {
       lines <- c(lines, sprintf(
-        if (model_family == "CLAD") {
-          "The Intercept represents the baseline conditional median latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, that baseline median is estimated at %.3f (p=%.3f)."
-        } else {
-          "The Intercept represents the baseline latent moral judgment when all continuous predictors are zero and categorical predictors are at their reference levels. In this model, the baseline is estimated at %.3f (p=%.3f)."
-        },
+        "The **Baseline judgment** represents the starting moral score when all continuous variables are at their average and all group variables are at their reference levels (for the active negotiator-status terms, the control-labeled condition). In this model, that baseline is estimated at %.3f (p=%.3f).",
         est,
         p_val
       ))
       next
     }
+    
+    # Scale
     if (term == "Log(scale)") {
       lines <- c(lines, sprintf(
-        "The Log(scale) is a standard Tobit variance parameter representing the natural logarithm of the standard deviation of the unobserved residuals. The estimated scale parameter log is %.3f, capturing the underlying dispersion of latent judgments.",
+        "The **Judgment variation (log-scale)** is %.3f, which indicates the level of dispersion or 'noise' in the latent judgments. This reflects the inherent variety of moral opinions across the sample.",
         est
       ))
       next
     }
 
-    # Skip fixed effect slot outputs to avoid cluttering narrative
+    # Hide fixed effects
     if (grepl("^factor\\(negotiator_slot\\)", term)) next
 
-    # Dynamic Natural Language construction
+    # Simplified Term labels
+    term_label <- label_term(term)
     term_def <- get_term_definition(term)
     sig_desc <- describe_significance(p_val, est)
 
     sentence <- sprintf(
-      "The term %s (representing %s) has an estimated $\\beta$ coefficient of %.3f. The p-value of %.3f %s.",
-      term, term_def, est, p_val, sig_desc
+      "The variable **%s** (%s) has an estimated effect of %.3f. The results show %s. For example, a 1-unit increase in this variable (or moving from the reference group to this group) would shift the moral judgment by approximately %.2f points on the -9 to 9 scale.",
+      term_label, term_def, est, sig_desc, est
     )
     
-    # Add interaction interpretation context if it's significant and an interaction
+    # Interactions
     if (grepl(":", term, fixed = TRUE) && !is.na(p_val) && p_val < 0.1) {
       if (grepl("iri", term)) { # continuous x discrete
-        interaction_context <- sprintf("Because this is a continuous-by-discrete interaction, the %s coefficient indicates that the slope of empathy on moral judgment is %s for the specified condition compared to the baseline condition. The individual main effects of the components are subsumed by this contextual relationship.", 
+        interaction_context <- sprintf("Because this is a continuous-by-discrete interaction, the %s coefficient indicates that the effect of empathy on the judgment is %s for this specific condition compared to the baseline. This means the 'empathy gap' in judgment is %s here.", 
           if(est > 0) "positive" else "negative",
-          if(est > 0) "more positive (less severe)" else "steeper/more negative (more severe)"
+          if(est > 0) "strengthened (pushed higher)" else "dampened (pushed lower)",
+          if(est > 0) "less severe" else "more severe"
         )
       } else { # discrete x discrete
-        interaction_context <- sprintf("Because this is a discrete-by-discrete interaction, the %s coefficient indicates that the penalty or reward associated with one condition is %s when combined with the other condition. Note that any non-significant main effects involved in this term are superseded by this significant interaction.",
+        interaction_context <- sprintf("Because this is an interaction between two group conditions, the %s coefficient indicates that the judgment penalty or reward is %s when both conditions are present at once.",
           if(est > 0) "positive" else "negative",
-          if(est > 0) "lessened (more positive)" else "magnified (more severe)"
+          if(est > 0) "offset or reduced" else "magnified or increased"
         )
       }
       sentence <- paste(sentence, interaction_context)

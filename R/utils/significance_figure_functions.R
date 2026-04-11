@@ -30,7 +30,7 @@ get_binary_value_labels <- function(var_name) {
   if (grepl("^h2_negstruct_", var_name)) {
     structure_label <- compact_h2_negotiator_structure_term(var_name)
     return(c(
-      "0" = "Ref: JN In, CN In",
+      "0" = "Ref: N1 Ctl, N2 Ctl",
       "1" = structure_label
     ))
   }
@@ -67,10 +67,12 @@ get_binary_value_labels <- function(var_name) {
     same_group_harm = c("0" = "Cross-faculty harm", "1" = "Same-faculty harm"),
     victim_outgroup = c("0" = "Victim ingroup", "1" = "Victim outgroup"),
     decision_accept = c("0" = "Rej", "1" = "Acc"),
-    judged_outgroup = c("0" = "JN In", "1" = "JN Out"),
-    judged_control = c("0" = "JN In", "1" = "JN Ctl"),
-    counterpart_outgroup = c("0" = "CN In", "1" = "CN Out"),
-    counterpart_control = c("0" = "CN In", "1" = "CN Ctl"),
+    judged_ingroup = c("0" = "N1 Ctl", "1" = "N1 In"),
+    judged_outgroup = c("0" = "N1 Ctl", "1" = "N1 Out"),
+    judged_control = c("0" = "Not N1 Ctl", "1" = "N1 Ctl"),
+    counterpart_ingroup = c("0" = "N2 Ctl", "1" = "N2 In"),
+    counterpart_outgroup = c("0" = "N2 Ctl", "1" = "N2 Out"),
+    counterpart_control = c("0" = "Not N2 Ctl", "1" = "N2 Ctl"),
     observer_victim_outgroup = c("0" = "V In", "1" = "V Out"),
     player_victim_outgroup = c("0" = "V In", "1" = "V Out"),
     role_observer = c("0" = "Vic", "1" = "Obs"),
@@ -83,7 +85,7 @@ get_binary_value_labels <- function(var_name) {
 
 get_plot_axis_label <- function(var_name) {
   if (grepl("^h2_negstruct_", var_name)) {
-    return("JN / CN structure")
+    return("N1 / N2 structure")
   }
 
   if (grepl("^case_[a-z]+_x_[a-z]+$", var_name)) {
@@ -195,6 +197,7 @@ format_discrete_value_label <- function(var_name, value) {
 }
 
 classify_predictor_component <- function(data, var_name) {
+  var_name <- sub("^factor\\(([^)]+)\\).*", "\\1", var_name)
   if (!(var_name %in% names(data))) return("categorical")
 
   values <- data[[var_name]]
@@ -222,13 +225,14 @@ classify_predictor_component <- function(data, var_name) {
 
 build_term_visual_spec <- function(term, data) {
   canonical_term <- canonicalize_term_name(term)
+  clean_canonical_term <- sub("^factor\\(([^)]+)\\).*", "\\1", canonical_term)
   if (!grepl(":", canonical_term, fixed = TRUE)) {
     component_type <- classify_predictor_component(data, canonical_term)
     return(list(
       term = canonical_term,
       label = label_term(canonical_term),
       kind = if (identical(component_type, "continuous")) "continuous_main" else "categorical_main",
-      x_var = canonical_term,
+      x_var = clean_canonical_term,
       x_type = component_type,
       moderator = NULL,
       moderator_type = NULL
@@ -243,21 +247,24 @@ build_term_visual_spec <- function(term, data) {
 
   continuous_parts <- names(part_types)[part_types == "continuous"]
   if (length(continuous_parts) >= 1L) {
-    x_var <- continuous_parts[1]
-    moderator <- setdiff(parts, x_var)[1]
+    orig_x_var <- continuous_parts[1]
+    orig_moderator <- setdiff(parts, orig_x_var)[1]
   } else {
-    x_var <- parts[1]
-    moderator <- parts[2]
+    orig_x_var <- parts[1]
+    orig_moderator <- parts[2]
   }
+
+  clean_x_var <- sub("^factor\\(([^)]+)\\).*", "\\1", orig_x_var)
+  clean_moderator <- sub("^factor\\(([^)]+)\\).*", "\\1", orig_moderator)
 
   list(
     term = canonical_term,
     label = label_term(canonical_term),
     kind = "interaction",
-    x_var = x_var,
-    x_type = unname(part_types[[x_var]]),
-    moderator = moderator,
-    moderator_type = unname(part_types[[moderator]])
+    x_var = clean_x_var,
+    x_type = unname(part_types[[orig_x_var]]),
+    moderator = clean_moderator,
+    moderator_type = unname(part_types[[orig_moderator]])
   )
 }
 

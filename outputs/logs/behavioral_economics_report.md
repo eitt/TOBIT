@@ -1,12 +1,12 @@
 # Behavioral-Economics Style Dynamic Report
 
-Generated on 2026-03-31 15:36:32.
+Generated on 2026-04-11 09:04:59.
 
 ## Materials and Methods
 
-The journal-style report uses the pooled analytical file rather than splitting the narrative by source dataset. The analyzed sample contains 257 participants and 5,140 judgment-by-negotiator observations after preprocessing. Each participant contributes two judgments per scenario, one for each negotiator, so the long-format outcome is defined at the judgment-by-negotiator level throughout.
+The journal-style report uses the pooled analytical file rather than splitting the narrative by source dataset. The analyzed sample contains 243 participants and 4,860 judgment-by-negotiator observations after preprocessing. Each participant contributes two judgments per scenario, one for each negotiator, so the long-format outcome is defined at the judgment-by-negotiator level throughout.
 
-Role-specific estimation remains central to the design, but it is handled within a single narrative. The victim subset contributes 257 participants, whereas the bystander subset contributes 257 participants. In the victim subset, ingroup/outgroup/control coding is defined relative to the victim-player; in the bystander subset, negotiator-side coding is defined relative to the observer and is paired with the observer-victim ingroup/outgroup relation.
+Role-specific estimation remains central to the design, but it is handled within a single narrative. The victim subset contributes 243 participants, whereas the bystander subset contributes 243 participants. In the victim subset, ingroup/outgroup/control coding is defined relative to the victim-player; in the bystander subset, negotiator-side coding is defined relative to the observer and is paired with the observer-victim ingroup/outgroup relation.
 
 To respect journal space constraints, the report uses four compact tables and five figures, with a fifth table added only when the non-parametric robustness branch is enabled. The figure plan prioritizes the two six-panel descriptive subset figures plus one focal figure each for H1, H2, and H3, selected from the dynamic figure catalog by the lowest Tobit p-value among focal predictors. The table plan prioritizes one design table and one compact results table for each hypothesis family.
 
@@ -14,7 +14,7 @@ The bounded outcome is observed judgment severity on the original -9 to 9 scale.
 
 $$y_{isn}^{obs} = \min\{9,\max[-9, y_{isn}^{*}]\}$$
 
-For H1, empathy enters either as the composite score (Model A) or as the four IRI dimensions (Model B), together with judged-negotiator status, counterpart status, decision outcome, subset-relevant victim alignment, and participant controls.
+For H1, empathy enters through the four IRI dimensions (`iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`), together with judged-negotiator status, counterpart status, decision outcome, subset-relevant victim alignment, and participant controls.
 
 $$y_{isn}^{*} = \alpha_r + \mathbf{E}_i\beta_r + \mathbf{R}_{isn}\gamma_r + \mathbf{X}_i\delta_r + \varepsilon_{isn}$$
 
@@ -34,9 +34,9 @@ Table 1 reports the pooled design and outcome distribution that anchor the rest 
 
 | Sample | Participants | Judgments | Judgments / participant | Mean judgment | SD | % at -9 | % at 9 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Pooled | 257 | 5140 | 20 | 1.62 | 6.66 | 13.5% | 30.2% |
-| Victim | 257 | 2570 | 10 | 1.49 | 6.84 | 15.1% | 30.7% |
-| Bystander | 257 | 2570 | 10 | 1.75 | 6.48 | 11.8% | 29.6% |
+| Pooled | 243 | 4860 | 20 | 1.62 | 6.67 | 13.9% | 30.2% |
+| Victim | 243 | 2430 | 10 | 1.50 | 6.84 | 15.5% | 30.6% |
+| Bystander | 243 | 2430 | 10 | 1.74 | 6.50 | 12.3% | 29.8% |
 
 _Note._ Pooled = full analytical long file. Each scenario contributes two judgment observations per participant, one per negotiator. Outcome bounds are the observed censoring points used by the Tobit estimator.
 
@@ -48,58 +48,51 @@ The descriptive distributions already show why subset-specific estimation matter
 
 ![Figure 2. Bystander-subset judgment distributions across the six explicit case configurations. The histogram scale is fixed at -9 to 9 to match the observed judgment bounds.](../figures/figure_07_bystander_subset_judgment_distributions_across_six_case_configurations.png){ width=6.7in }
 
-H1 produced the densest and clearest signal pattern. The compact summary in Table 2 focuses on the empathy terms only, using the richer Model B decomposition when available and retaining the composite Model A term whenever it reaches the reporting threshold. In the victim subset, the strongest focal estimates were
-PT (B; b = 2.02, p < 0.001; more positive judgments), EC (B; b = -2.64, p < 0.001; more negative judgments), and PD (B; b = 1.68, p = 0.004; more positive judgments).
+At the reporting threshold, H1 produced focal empathy effects only in the victim subset.
+The compact summary in Table 2 focuses on the active four-construct empathy specification. In the victim subset, the strongest focal estimates were
+PT (B; b = 1.32, p = 0.010; more positive judgments).
 In the bystander subset, the corresponding focal estimates were
-EC (B; b = -1.43, p = 0.045; more negative judgments), PT (B; b = 0.87, p = 0.048; more positive judgments), and PD (B; b = 1.11, p = 0.049; more positive judgments).
-Taken together, the H1 pattern indicates that empathy dimensions matter in both subsets, with larger and more differentiated slopes in victim judgments.
+not available at the reporting threshold.
+The H1 narrative below is generated from the currently saved focal coefficient rows rather than from a fixed template.
 
 | Subset | Model | Predictor | b [95% CI] | p |
 | --- | --- | --- | --- | --- |
-| Victim | B | PT | 2.02 [1.05, 2.98] | <0.001*** |
-| Victim | B | EC | -2.64 [-3.92, -1.36] | <0.001*** |
-| Victim | B | PD | 1.68 [0.52, 2.84] | 0.004** |
-| Bystander | B | EC | -1.43 [-2.84, -0.03] | 0.045* |
-| Bystander | B | PT | 0.87 [0.01, 1.73] | 0.048* |
-| Bystander | B | PD | 1.11 [0.01, 2.21] | 0.049* |
+| Victim | B | PT | 1.32 [0.31, 2.32] | 0.010* |
 
-_Note._ A = Model A (Emp); B = Model B (FS, EC, PT, PD). JN = judged negotiator; CN = counterpart negotiator; V = observer-victim relation; In = ingroup; Out = outgroup; Ctl = control label hidden; Acc = accepted harmful deal. The table is intentionally restricted to focal empathy estimates reported by the dynamic pipeline.
+_Note._ Active empathy specification = FS, EC, PT, PD. N1 = judged negotiator; N2 = counterpart negotiator; V = observer-victim relation; In = ingroup; Out = outgroup; Ctl = control label hidden; Acc = accepted harmful deal. The table is intentionally restricted to focal empathy estimates reported by the dynamic pipeline.
 
 ![Figure 3. Selected H1 focal effect (PT). Panels show Tobit-predicted judgments on the observed -9 to 9 scale with 95% confidence intervals.](../figures/figure_sig_H1_iri_pt_h1_empathy_perspective_taking.png){ width=6.4in }
 
-H2 yielded a more selective relational pattern than H1. Rather than showing a broad shift across all joint structures, the dynamic results concentrate on a small number of judged-counterpart contrasts, and those contrasts differ by subset. In the victim subset, the most relevant H2 estimate was
-JN Ctl, CN In (B; b = -1.89, p = 0.087; more negative judgments).
+At the reporting threshold, H2 produced focal relational-structure effects only in the bystander subset.
+In the victim subset, the most relevant H2 estimate was
+not available at the reporting threshold.
 In the bystander subset, the most relevant H2 estimates were
-JN Out, CN In (A; b = -2.36, p = 0.065; more negative judgments) and JN Out, CN In (B; b = -2.20, p = 0.087; more negative judgments).
+N1 Out, N2 In (B; b = -2.67, p = 0.054; more negative judgments).
 This role difference is substantively important because the bystander model adds the player-victim relation and its interaction with negotiator-side structure, whereas the victim model does not require that extra layer.
 
 | Subset | Model | Predictor | b [95% CI] | p |
 | --- | --- | --- | --- | --- |
-| Victim | B | JN Ctl, CN In | -1.89 [-4.07, 0.28] | 0.087+ |
-| Bystander | A | JN Out, CN In | -2.36 [-4.87, 0.15] | 0.065+ |
-| Bystander | B | JN Out, CN In | -2.20 [-4.71, 0.32] | 0.087+ |
+| Bystander | B | N1 Out, N2 In | -2.67 [-5.37, 0.04] | 0.054+ |
 
-_Note._ A = Model A (Emp); B = Model B (FS, EC, PT, PD). JN = judged negotiator; CN = counterpart negotiator; V = observer-victim relation. Only focal H2 structure and observer-side interaction terms are shown.
+_Note._ Active empathy specification = FS, EC, PT, PD. N1 = judged negotiator; N2 = counterpart negotiator; V = observer-victim relation. Only focal H2 structure and observer-side interaction terms are shown.
 
-![Figure 4. Selected H2 relational effect (JN Out, CN In). Panels show Tobit-predicted judgments on the observed -9 to 9 scale with 95% confidence intervals.](../figures/figure_sig_H2_h2_negstruct_j_out_c_in_h2_negotiator_side_structure_judged_negotiator_outgroup_counterpart_negotiator_ingroup_ref.png){ width=6.4in }
+![Figure 4. Selected H2 relational effect (N1 Out, N2 In). Panels show Tobit-predicted judgments on the observed -9 to 9 scale with 95% confidence intervals.](../figures/figure_sig_H2_h2_negstruct_j_out_c_in_h2_negotiator_side_structure_n1_outgroup_n2_ingroup_ref_n1_control_label_hidden_n2_control.png){ width=6.4in }
 
-H3 shows that empathy is not merely additive with relational status. Instead, the empathy slope changes with judged-negotiator status, and that moderation is again subset-specific. In the victim subset, the leading H3 interactions were
-Emp x JN Out (A; b = -1.73, p = 0.028; more negative judgments), Emp x JN Ctl (A; b = -1.69, p = 0.043; more negative judgments), and EC x JN Out (B; b = -1.89, p = 0.053; more negative judgments).
+At the reporting threshold, H3 produced focal moderation effects only in the victim subset.
+In the victim subset, the leading H3 interactions were
+PT x N1-In (B; b = 2.01, p = 0.040; more positive judgments) and PT x N1-Out (B; b = 2.00, p = 0.050; more positive judgments).
 In the bystander subset, the leading H3 interactions were
-Emp x JN Ctl (A; b = 1.71, p = 0.015; more positive judgments) and PD x JN Out (B; b = 1.58, p = 0.021; more positive judgments).
-The interaction pattern therefore suggests that empathy-linked evaluation is conditional on who is being judged, not just on the participant's average empathy level.
+not available at the reporting threshold.
+The interaction summary below is generated from the currently saved focal coefficient rows rather than from a fixed template.
 
 | Subset | Model | Predictor | b [95% CI] | p |
 | --- | --- | --- | --- | --- |
-| Victim | A | Emp x JN Out | -1.73 [-3.27, -0.19] | 0.028* |
-| Victim | A | Emp x JN Ctl | -1.69 [-3.33, -0.05] | 0.043* |
-| Victim | B | EC x JN Out | -1.89 [-3.80, 0.02] | 0.053+ |
-| Bystander | A | Emp x JN Ctl | 1.71 [0.33, 3.08] | 0.015* |
-| Bystander | B | PD x JN Out | 1.58 [0.24, 2.91] | 0.021* |
+| Victim | B | PT x N1-In | 2.01 [0.09, 3.93] | 0.040* |
+| Victim | B | PT x N1-Out | 2.00 [-0.00, 4.00] | 0.050+ |
 
-_Note._ A = Model A (Emp); B = Model B (FS, EC, PT, PD). JN = judged negotiator; CN = counterpart negotiator; Acc = accepted harmful deal. Only focal H3 empathy-by-judged-status interactions are shown.
+_Note._ Active empathy specification = FS, EC, PT, PD. N1 = judged negotiator; N2 = counterpart negotiator; Acc = accepted harmful deal. Only focal H3 empathy-by-judged-status interactions are shown.
 
-![Figure 5. Selected H3 interaction effect (Emp x JN Ctl). Panels show Tobit-predicted judgments on the observed -9 to 9 scale with 95% confidence intervals.](../figures/figure_sig_H3_iri_total_judged_control_h3_empathy_x_judged_negotiator_control_label_hidden.png){ width=6.4in }
+![Figure 5. Selected H3 interaction effect (PT x N1-In). Panels show Tobit-predicted judgments on the observed -9 to 9 scale with 95% confidence intervals.](../figures/figure_sig_H3_iri_pt_judged_ingroup_h3_empathy_perspective_taking_x_n1_ingroup.png){ width=6.4in }
 
 Because the active configuration is Tobit-only, the results section reports the main censored-model estimates without a separate robustness table.
 

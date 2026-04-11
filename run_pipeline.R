@@ -3,7 +3,7 @@
 # Executes the function-oriented project pipeline sequentially.
 
 message("==========================================")
-message("Starting the TOBIT + Cluster-Aware Non-Parametric Robustness Analysis Pipeline")
+message("Starting the TOBIT Pipeline")
 message("--- Checking Environmental Requirements ---")
 
 # --- User Configuration ---
@@ -14,13 +14,12 @@ dataset_mode <- "BOTH"
 source("R/00_config.R")
 apply_pipeline_runtime_options(
   dataset_mode = dataset_mode,
-  pipeline_mode = "Tobit", 
-  skip_tobit_refit = FALSE
+  pipeline_mode = "Tobit",
+  skip_tobit_refit = FALSE,
+  active_model_suffixes = "B"
 )
-message(sprintf(
-  "Configured participant-level CLAD bootstrap replicates: %s",
-  resolve_clad_bootstrap_reps()
-))
+message(sprintf("Configured active empathy specification(s): %s", paste(resolve_active_model_suffixes(), collapse = ", ")))
+message("Configured estimator branch: Tobit only")
 message(sprintf(
   "Configured participant-level raw-data sample fraction: %.1f%% (seed %s)",
   100 * resolve_dataset_sample_fraction(),
@@ -65,7 +64,7 @@ hypothesis_scripts <- c(
 )
 
 message("\n==========================================")
-message("Starting Hypothesis Testing (Tobit + Cluster-Aware Non-Parametric Robustness)")
+message("Starting Hypothesis Testing (Tobit only, four empathy constructs)")
 message("==========================================")
 
 for (script in hypothesis_scripts) {

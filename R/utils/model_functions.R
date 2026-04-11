@@ -80,7 +80,7 @@ compact_h2_negotiator_structure_label <- function(structure_label) {
   judged_group <- sub("^J_", "", parts[1])
   counterpart_group <- sub("^C_", "", parts[2])
   sprintf(
-    "JN %s, CN %s",
+    "N1 %s, N2 %s",
     compact_relative_group_label(judged_group),
     compact_relative_group_label(counterpart_group)
   )
@@ -96,15 +96,15 @@ compact_h2_negotiator_structure_term <- function(term) {
 }
 
 get_predictor_abbreviation_dictionary <- function() {
-  data.frame(
+  abbrev_df <- data.frame(
     Abbrev = c(
       "Emp",
       "FS",
       "EC",
       "PT",
       "PD",
-      "JN",
-      "CN",
+      "N1",
+      "N2",
       "V",
       "Vic",
       "Obs",
@@ -135,146 +135,149 @@ get_predictor_abbreviation_dictionary <- function() {
     ),
     stringsAsFactors = FALSE
   )
+
+  if (!("A" %in% resolve_active_model_suffixes())) {
+    abbrev_df <- abbrev_df[abbrev_df$Abbrev != "Emp", , drop = FALSE]
+  }
+
+  abbrev_df
 }
 
 get_predictor_abbreviation_note <- function() {
-  paste(
-    "Emp = empathy composite;",
+  note_parts <- c(
+    if ("A" %in% resolve_active_model_suffixes()) "Emp = empathy composite;" else NULL,
     "FS / EC / PT / PD = IRI subscales;",
-    "JN = judged negotiator;",
-    "CN = counterpart negotiator;",
+    "N1 = judged negotiator;",
+    "N2 = counterpart negotiator;",
     "V = victim-side player-victim relation in observer models;",
     "Vic / Obs = victim / observer subset;",
     "In / Out / Ctl = ingroup / outgroup / control label hidden;",
     "Acc / Rej = accepted / rejected harmful deal;",
     "SES = economic status"
   )
+  paste(note_parts, collapse = " ")
 }
 
 #' Translates coefficient names to readable titles
 label_term <- function(term) {
   direct_map <- c(
-    "(Intercept)" = "Intercept",
-    "iri_total" = "Empathy composite (average)",
+    "(Intercept)" = "Baseline judgment",
+    "iri_total" = "Empathy composite",
     "iri_fs" = "Empathy: Fantasy scale",
     "iri_ec" = "Empathy: Empathic concern",
     "iri_pt" = "Empathy: Perspective taking",
     "iri_pd" = "Empathy: Personal distress",
-    "Log(scale)" = "Scale variance (log)",
-    "perp_outgroup" = "Outgroup perpetrator (ref = ingroup)",
-    "perp_control" = "Control label hidden (ref = ingroup)",
-    "victim_outgroup" = "Victim outgroup (ref = ingroup)",
-    "judged_outgroup" = "Judged negotiator outgroup (ref = ingroup)",
-    "judged_control" = "Judged negotiator control label hidden (ref = ingroup)",
-    "counterpart_outgroup" = "Counterpart negotiator outgroup (ref = ingroup)",
-    "counterpart_control" = "Counterpart negotiator control label hidden (ref = ingroup)",
-    "observer_victim_outgroup" = "Observer-side victim outgroup (ref = ingroup victim)",
-    "player_victim_outgroup" = "Player-victim outgroup (ref = ingroup victim)",
-    "iri_total:perp_outgroup" = "Empathy x outgroup perpetrator",
-    "iri_total:perp_control" = "Empathy x control label hidden",
-    "decision_accept:judged_outgroup" = "Accepted harmful deal x judged negotiator outgroup",
-    "decision_accept:judged_control" = "Accepted harmful deal x judged negotiator control label hidden",
-    "iri_total:judged_outgroup" = "Empathy x judged negotiator outgroup",
-    "iri_total:judged_control" = "Empathy x judged negotiator control label hidden",
-    "iri_fs:judged_outgroup" = "Fantasy x judged negotiator outgroup",
-    "iri_fs:judged_control" = "Fantasy x judged negotiator control label hidden",
-    "iri_ec:judged_outgroup" = "Empathic concern x judged negotiator outgroup",
-    "iri_ec:judged_control" = "Empathic concern x judged negotiator control label hidden",
-    "iri_pt:judged_outgroup" = "Perspective taking x judged negotiator outgroup",
-    "iri_pt:judged_control" = "Perspective taking x judged negotiator control label hidden",
-    "iri_pd:judged_outgroup" = "Personal distress x judged negotiator outgroup",
-    "iri_pd:judged_control" = "Personal distress x judged negotiator control label hidden",
-    "iri_fs:perp_outgroup" = "Fantasy x outgroup perpetrator",
-    "iri_fs:perp_control" = "Fantasy x control label hidden",
-    "iri_ec:perp_outgroup" = "Empathic concern x outgroup perpetrator",
-    "iri_ec:perp_control" = "Empathic concern x control label hidden",
-    "iri_pt:perp_outgroup" = "Perspective taking x outgroup perpetrator",
-    "iri_pt:perp_control" = "Perspective taking x control label hidden",
-    "iri_pd:perp_outgroup" = "Personal distress x outgroup perpetrator",
-    "iri_pd:perp_control" = "Personal distress x control label hidden",
-    "role_observer" = "Observer role (ref = victim)",
-    "participant_engineering" = "Engineering participant (ref = humanities)",
-    "sex_man" = "Man (ref = woman)",
+    "Log(scale)" = "Judgment variation (log)",
+    "judged_ingroup" = "N1 ingroup",
+    "judged_outgroup" = "N1 outgroup",
+    "judged_control" = "N1 control label",
+    "counterpart_ingroup" = "N2 ingroup",
+    "counterpart_outgroup" = "N2 outgroup",
+    "counterpart_control" = "N2 control label",
+    "observer_victim_outgroup" = "Observer-side victim outgroup",
+    "player_victim_outgroup" = "Player-victim outgroup",
+    "participant_engineering" = "Engineering participant",
+    "sex_man" = "Man participant",
+    "economic_status" = "Economic status",
+    "factor(negotiator_slot)2" = "Negotiator slot 2 (ref = slot 1)",
+    # N1 terms (judged negotiator)
+    "factor(group_target)Ingroup" = "N1 Ingroup (Reference)",
+    "factor(group_target)Outgroup" = "N1 Outgroup",
+    "factor(group_target)Control" = "N1 Control label",
+    "group_targetIngroup" = "N1 Ingroup",
+    "group_targetOutgroup" = "N1 Outgroup",
+    "group_targetControl" = "N1 Control",
+    # N2 terms (counterpart negotiator)
+    "factor(group_other)Ingroup" = "N2 Ingroup (Reference)",
+    "factor(group_other)Outgroup" = "N2 Outgroup",
+    "factor(group_other)Control" = "N2 Control label",
+    "group_otherIngroup" = "N2 Ingroup",
+    "group_otherOutgroup" = "N2 Outgroup",
+    "group_otherControl" = "N2 Control",
+    # Victim terms (in observer models)
+    "factor(obs_group)Ingroup" = "Victim Ingroup (Reference)",
+    "factor(obs_group)Outgroup" = "Victim Outgroup",
+    "factor(obs_group)Control"  = "Victim Control label",
+    "obs_groupIngroup" = "Victim Ingroup",
+    "obs_groupOutgroup" = "Victim Outgroup",
+    "obs_groupControl" = "Victim Control",
+    "decision_target" = "N1 Accepted Harm",
+    "decision_other" = "N2 Accepted Harm",
+    "decision_accept" = "Harm Accepted",
     "age" = "Age",
-    "economic_status" = "Socioeconomic status",
-    "same_group_harm" = "Negotiator and victim share faculty",
-    "decision_accept" = "Negotiator accepted harmful deal",
-    "counterpart_decision_accept" = "Counterpart negotiator accepted harmful deal",
-    "group_negotiator_judged" = "Judged negotiator alignment",
-    "group_negotiator_counterpart" = "Counterpart negotiator alignment",
-    "group_victim" = "Victim alignment for observer judgments",
-    "analytic_case_configuration" = "Role-dependent judgment configuration",
-    "analytic_case_configuration_decision" = "Role-dependent judgment configuration x decision context",
-    "analytic_case_configuration_context" = "Role-dependent judgment configuration x decision context",
-    "scenario_has_control" = "Scenario includes a control-labeled negotiator",
-    "case_configuration" = "Victim x negotiator case configuration",
-    "case_configuration_role" = "Case configuration x role",
-    "case_configuration_decision" = "Case configuration x decision context",
-    "case_configuration_context" = "Case configuration x role x decision context"
+    "ses" = "Socioeconomic status",
+    "sex_female" = "Female participant",
+    "faculty_player" = "Participant faculty",
+    "factor(target)N1" = "Subject: N1",
+    "factor(target)N2" = "Subject: N2"
   )
 
   term_key <- canonicalize_term_name(term)
   if (term_key %in% names(direct_map)) {
     return(unname(direct_map[[term_key]]))
   }
-  case_label <- label_case_configuration_term(term_key)
-  if (!identical(case_label, term_key)) {
-    return(case_label)
-  }
+
   h2_structure_label <- label_h2_negotiator_structure_term(term_key)
   if (!identical(h2_structure_label, term_key)) {
     return(h2_structure_label)
   }
+  
   if (grepl(":", term_key, fixed = TRUE)) {
     term_parts <- strsplit(term_key, ":", fixed = TRUE)[[1]]
     return(paste(vapply(term_parts, label_term, character(1)), collapse = " x "))
   }
-  if (grepl("^factor\\(stage\\)", term)) {
-    return(paste0("Stage ", sub("^factor\\(stage\\)", "", term), " (ref = stage 1)"))
+  
+  if (grepl("^factor\\\\(stage\\\\)", term)) {
+    return(paste0("Stage ", sub("^factor\\\\(stage\\\\)", "", term), " (ref = stage 1)"))
   }
-  if (grepl("^factor\\(negotiator_slot\\)", term)) {
-    return(paste0("Negotiator ", sub("^factor\\(negotiator_slot\\)", "", term), " (ref = negotiator 1)"))
+  if (grepl("^factor\\\\(negotiator_slot\\\\)", term)) {
+    return(paste0(
+      "Negotiator slot ",
+      sub("^factor\\\\(negotiator_slot\\\\)", "", term),
+      " (ref = slot 1)"
+    ))
+  }
+  if (grepl("^factor\\\\(target\\\\)", term)) {
+    return(paste0("Target ", sub("^factor\\\\(target\\\\)", "", term)))
   }
   term
 }
 
 label_term_compact <- function(term) {
   direct_map <- c(
-    "(Intercept)" = "Intercept",
+    "(Intercept)" = "Base",
     "iri_total" = "Emp",
     "iri_fs" = "FS",
     "iri_ec" = "EC",
     "iri_pt" = "PT",
     "iri_pd" = "PD",
-    "Log(scale)" = "Log(scale)",
-    "perp_outgroup" = "Neg Out",
-    "perp_control" = "Neg Ctl",
-    "victim_outgroup" = "V Out",
-    "judged_outgroup" = "JN Out",
-    "judged_control" = "JN Ctl",
-    "counterpart_outgroup" = "CN Out",
-    "counterpart_control" = "CN Ctl",
-    "observer_victim_outgroup" = "V Out (Obs)",
-    "player_victim_outgroup" = "V Out",
-    "role_observer" = "Obs",
+    "Log(scale)" = "Log(s)",
+    "judged_ingroup" = "N1-In",
+    "judged_outgroup" = "N1-Out",
+    "judged_control" = "N1-Ctl",
+    "counterpart_ingroup" = "N2-In",
+    "counterpart_outgroup" = "N2-Out",
+    "counterpart_control" = "N2-Ctl",
+    "observer_victim_outgroup" = "V-Out",
+    "player_victim_outgroup" = "V-Out",
     "participant_engineering" = "Eng part.",
     "sex_man" = "Man",
-    "age" = "Age",
     "economic_status" = "SES",
-    "same_group_harm" = "Same-faculty harm",
+    "factor(negotiator_slot)2" = "Slot 2",
+    "factor(group_target)Outgroup" = "N1-Out",
+    "factor(group_target)Control" = "N1-Ctl",
+    "factor(group_other)Outgroup" = "N2-Out",
+    "factor(group_other)Control" = "N2-Ctl",
+    "factor(obs_group)Outgroup" = "V-Out",
+    "factor(obs_group)Control"  = "V-Ctl",
+    "decision_target" = "N1-Acc",
+    "decision_other" = "N2-Acc",
     "decision_accept" = "Acc",
-    "counterpart_decision_accept" = "CN Acc",
-    "group_negotiator_judged" = "JN align.",
-    "group_negotiator_counterpart" = "CN align.",
-    "group_victim" = "V align.",
-    "analytic_case_configuration" = "Case cfg.",
-    "analytic_case_configuration_decision" = "Case cfg. x Acc/Rej",
-    "analytic_case_configuration_context" = "Case cfg. x context",
-    "scenario_has_control" = "Has Ctl",
-    "case_configuration" = "Victim x negotiator cfg.",
-    "case_configuration_role" = "Case cfg. x role",
-    "case_configuration_decision" = "Case cfg. x Acc/Rej",
-    "case_configuration_context" = "Case cfg. x context"
+    "age" = "Age",
+    "ses" = "SES",
+    "sex_female" = "Fem",
+    "faculty_player" = "Fac",
+    "factor(target)N2" = "T:N2"
   )
 
   term_key <- canonicalize_term_name(term)
@@ -292,11 +295,14 @@ label_term_compact <- function(term) {
     return(paste(vapply(term_parts, label_term_compact, character(1)), collapse = " x "))
   }
 
-  if (grepl("^factor\\(stage\\)", term)) {
-    return(paste0("Stage ", sub("^factor\\(stage\\)", "", term)))
+  if (grepl("^factor\\\\(stage\\\\)", term)) {
+    return(paste0("Stage ", sub("^factor\\\\(stage\\\\)", "", term)))
   }
-  if (grepl("^factor\\(negotiator_slot\\)", term)) {
-    return(paste0("Slot ", sub("^factor\\(negotiator_slot\\)", "", term)))
+  if (grepl("^factor\\\\(negotiator_slot\\\\)", term)) {
+    return(paste0("Slot ", sub("^factor\\\\(negotiator_slot\\\\)", "", term)))
+  }
+  if (grepl("^factor\\\\(target\\\\)", term)) {
+    return(paste0("T:", sub("^factor\\\\(target\\\\)", "", term)))
   }
 
   term
@@ -1221,6 +1227,15 @@ run_estimation_suite <- function(data, rhs_formula, output_prefix, model_label, 
     tobit_fit <- fit_clustered_tobit(data, rhs_formula)
     save_model_outputs(tobit_fit, data, output_prefix, paste0(model_label, "_Tobit"), model_dir)
     emit_pipeline_progress("Finished Tobit fit for ", model_label, ".")
+  }
+
+  if (!pipeline_includes_nonparametric()) {
+    emit_pipeline_progress(
+      "Skipping non-parametric robustness fit for ",
+      model_label,
+      " because the active pipeline mode is Tobit-only."
+    )
+    return(invisible(list(tobit = tobit_fit, clad = NULL)))
   }
 
   clad_prefix <- paste0(output_prefix, "_CLAD")

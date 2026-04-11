@@ -18,10 +18,12 @@ Because the Tobit likelihood relies on a Gaussian latent-error assumption, the p
 - Residual distributions remain classically normal (Gaussian) only for the Tobit branch; the non-parametric branch relaxes that assumption.
 
 ## Estimation Strategy
-The pipeline now estimates two complementary families:
+The repository keeps two complementary estimator families available in code:
 
 - **Tobit** via `survival::survreg()`, using interval bounds through `type = "interval2"`.
 - **Non-parametric robustness** via `ctqr::ctqr()` at `p = 0.5`, also using `type = "interval2"` after internally shifting the bounded response to a positive scale required by the censored quantile routine.
+
+In the active default workflow, only the Tobit branch is run, and empathy enters through the four IRI subscales rather than the aggregated composite.
 
 Both branches share the same endpoint preparation inside `R/utils/model_functions.R`:
 - Generates `lower_endpoint`
@@ -34,7 +36,7 @@ $$
 y^*_{isj,Victim} = \beta_0 + \beta_1 \text{Empathy}_i + \boldsymbol{\gamma}' \mathbf{S}^{(V)}_{isj} + \boldsymbol{\delta}' \mathbf{Z}_i + \epsilon_{isj}
 $$
 
-where `S^(V)` denotes the negotiator-side structure dummies built from the judged negotiator plus the counterpart negotiator, with `J_In__C_In` as the reference configuration.
+where `S^(V)` denotes the negotiator-side structure dummies built from the judged negotiator plus the counterpart negotiator, with `J_Cont__C_Cont` as the reference configuration.
 
 For the H2 bystander subset, the design matrix becomes
 
@@ -50,7 +52,7 @@ $$
 y^*_{isjr} = \beta_0 + \beta_1 \text{Empathy}_i + \boldsymbol{\beta}_2' G_{isjr} + \beta_3 A_{is} + \boldsymbol{\beta}_4' (G_{isjr} \times A_{is}) + \boldsymbol{\beta}_5' (\text{Empathy}_i \times G_{isjr}) + \boldsymbol{\beta}_6' C_{isjr} + \epsilon_{isjr}
 $$
 
-H1 remains the accepted-sample empathy specification with judged-negotiator, counterpart, and observer-side victim relational controls.
+H1 remains the empathy specification with judged-negotiator, counterpart, and observer-side victim relational controls, now treating the control-labeled negotiator condition as the omitted baseline whenever that level exists.
 
 ## Standard Errors 
 The Tobit branch natively adjusts parameter variance around clustered participant IDs (`robust = TRUE`). This corrects potential issues seen in repeated-measure evaluations stemming from one rater generating multiple subsequent evaluations.
@@ -76,6 +78,6 @@ The repository-wide bootstrap default is centralized in `R/00_config.R` and is c
 
 ## Model Output Specifications 
 - Tables evaluate statistical distinction using both conventional thresholds in coefficient tables and a concise hypothesis summary table that reports only hypothesis-relevant predictors reaching at least $p < 0.10$.
-- Figures are generated automatically only for hypothesis-relevant predictors that reach at least $p < 0.10$ in the Tobit model or the clustered non-parametric robustness model; continuous effects receive marginal prediction lines with confidence bands, judged-status contrasts receive grouped prediction plots, and interaction terms receive interaction plots.
-- For coefficient magnitude referencing, both Tobit and non-parametric models estimate coefficients using raw predictor values. Psychometric predictors such as `iri_total` and the IRI subscales remain on their original scale, so coefficients should be interpreted per one-unit change on those native measures.
-- Generated figures, regression matrices, estimator fit summaries, LaTeX tabular formats, `.rds` memory dumps, and the concise hypothesis summary table accommodate rigid publication while preserving the original Tobit results and adding the cluster-aware non-parametric robustness branch. In these figures, `id` is used only to account for within-participant dependence in inference and is never treated as a substantive explanatory variable.
+- Figures are generated automatically only for hypothesis-relevant predictors that reach at least $p < 0.10$ in the active Tobit workflow; continuous effects receive marginal prediction lines with confidence bands, judged-status contrasts receive grouped prediction plots, and interaction terms receive interaction plots.
+- For coefficient magnitude referencing, the active Tobit models estimate coefficients using raw predictor values. The four IRI subscales remain on their original scale, so coefficients should be interpreted per one-unit change on those native measures.
+- Generated figures, regression matrices, estimator fit summaries, LaTeX tabular formats, `.rds` memory dumps, and the concise hypothesis summary table accommodate rigid publication while preserving the original Tobit results. The archived non-parametric branch remains available in code. In these figures, `id` is used only to account for within-participant dependence in inference and is never treated as a substantive explanatory variable.

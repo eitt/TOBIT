@@ -326,16 +326,16 @@ After `R/04_generate_variables.R` reshapes the data to the negotiator-level long
   Observer-side victim relation to the participant (`In` or `Out`; not used for victim-role rows).
 - `judged_outgroup`
   Dummy equal to `1` when the judged negotiator is outgroup relative to the role-relevant reference actor.
-- `judged_control`
-  Dummy equal to `1` when the judged negotiator is in the control / unlabeled condition.
+- `judged_ingroup`
+  Dummy equal to `1` when the judged negotiator is ingroup relative to the role-relevant reference actor. In the active H1/H3 models, the omitted baseline is the control / unlabeled condition.
 - `counterpart_outgroup`
   Dummy equal to `1` when the counterpart negotiator is outgroup.
-- `counterpart_control`
-  Dummy equal to `1` when the counterpart negotiator is in the control / unlabeled condition.
+- `counterpart_ingroup`
+  Dummy equal to `1` when the counterpart negotiator is ingroup. In the active H1/H3 models, the omitted baseline is the control / unlabeled condition.
 - `observer_victim_outgroup`
   Dummy equal to `1` only for observer-role rows where the victim is outgroup relative to the participant.
 - `h2_negotiator_structure`
-  Joint H2 predictor encoding the judged negotiator and the counterpart negotiator within the same judgment row (reference `J_In__C_In`).
+  Joint H2 predictor encoding the judged negotiator and the counterpart negotiator within the same judgment row (reference `J_Cont__C_Cont`).
 - `player_victim_alignment`
   Observer-side victim relation to the player recoded explicitly for H2 (`In` or `Out`).
 - `player_victim_outgroup`
@@ -350,7 +350,7 @@ For H1 and descriptive summaries, the compact `case_configuration` shorthand rem
 The executable hypotheses in `docs/hypotheses.md` map onto the processed long-format datasets as follows:
 
 - **H1 (`R/hypotheses/H1_test.R`)**
-  Uses `data/processed/judgments_accept_only.csv`. The core modeled terms are `iri_total` in Model A or `iri_fs`, `iri_ec`, `iri_pt`, and `iri_pd` in Model B, plus the relational controls `judged_outgroup`, `judged_control`, `counterpart_outgroup`, `counterpart_control`, `observer_victim_outgroup`, and `role_observer`.
+  Uses the role-specific long files. The core modeled terms are `iri_total` in Model A or `iri_fs`, `iri_ec`, `iri_pt`, and `iri_pd` in Model B, plus the relational controls `judged_ingroup`, `judged_outgroup`, `counterpart_ingroup`, `counterpart_outgroup`, `observer_victim_outgroup` when applicable, and the participant controls.
 
 - **H2 (`R/hypotheses/H2_test.R`)**
   Uses `data/processed/judgments_victim.csv` and `data/processed/judgments_bystander.csv`. In the victim subset, the core modeled terms are the `h2_negstruct_*` dummies derived from the judged-plus-counterpart structure. In the bystander subset, the core modeled terms are the same `h2_negstruct_*` dummies, `player_victim_outgroup`, and the `player_victim_outgroup:h2_negstruct_*` interactions. Both H2 models retain empathy controls and the participant controls `participant_engineering`, `sex_man`, `age`, `economic_status`, and `factor(negotiator_slot)`.
