@@ -52,6 +52,18 @@ normalize_faculty_code <- function(x) {
   )
 }
 
+coerce_relative_group_factor <- function(x, levels = c("Cont", "In", "Out")) {
+  x_chr <- as.character(x)
+  x_chr[!(x_chr %in% levels)] <- NA_character_
+  factor(x_chr, levels = levels)
+}
+
+coerce_binary_relative_group_factor <- function(x, levels = c("In", "Out")) {
+  x_chr <- as.character(x)
+  x_chr[!(x_chr %in% levels)] <- NA_character_
+  factor(x_chr, levels = levels)
+}
+
 relative_group_to_alignment <- function(x) {
   ifelse(
     is.na(x),
@@ -147,6 +159,57 @@ df$faculty_victim <- ifelse(
   normalize_faculty_code(df$faculty_victim),
   df$participant_faculty
 )
+
+df$N1_N2_same_faculty <- ifelse(
+  is.na(df$faculty_negotiator1) | is.na(df$faculty_negotiator2),
+  NA_integer_,
+  as.integer(df$faculty_negotiator1 == df$faculty_negotiator2)
+)
+
+df$victim_N1_group <- build_relative_group(
+  actor_faculty = df$faculty_negotiator1,
+  reference_faculty = df$faculty_victim,
+  allow_control = TRUE
+)
+df$victim_N2_group <- build_relative_group(
+  actor_faculty = df$faculty_negotiator2,
+  reference_faculty = df$faculty_victim,
+  allow_control = TRUE
+)
+
+df$bystander_N1_group <- ifelse(
+  df$role_observer == 1L,
+  build_relative_group(
+    actor_faculty = df$faculty_negotiator1,
+    reference_faculty = df$participant_faculty,
+    allow_control = TRUE
+  ),
+  NA_character_
+)
+df$bystander_N2_group <- ifelse(
+  df$role_observer == 1L,
+  build_relative_group(
+    actor_faculty = df$faculty_negotiator2,
+    reference_faculty = df$participant_faculty,
+    allow_control = TRUE
+  ),
+  NA_character_
+)
+df$bystander_victim_group <- ifelse(
+  df$role_observer == 1L,
+  build_relative_group(
+    actor_faculty = df$faculty_victim,
+    reference_faculty = df$participant_faculty,
+    allow_control = FALSE
+  ),
+  NA_character_
+)
+
+df$victim_N1_group <- coerce_relative_group_factor(df$victim_N1_group)
+df$victim_N2_group <- coerce_relative_group_factor(df$victim_N2_group)
+df$bystander_N1_group <- coerce_relative_group_factor(df$bystander_N1_group)
+df$bystander_N2_group <- coerce_relative_group_factor(df$bystander_N2_group)
+df$bystander_victim_group <- coerce_binary_relative_group_factor(df$bystander_victim_group)
 
 df$decision_target <- suppressWarnings(as.integer(df$decision_target))
 df$decision_other <- suppressWarnings(as.integer(df$decision_other))

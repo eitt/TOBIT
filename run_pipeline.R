@@ -19,7 +19,7 @@ apply_pipeline_runtime_options(
   active_model_suffixes = "B"
 )
 message(sprintf("Configured active empathy specification(s): %s", paste(resolve_active_model_suffixes(), collapse = ", ")))
-message("Configured estimator branch: Tobit only")
+message("Configured estimator branch: mixed-effects primary model (Tobit slot in pipeline)")
 message(sprintf(
   "Configured participant-level raw-data sample fraction: %.1f%% (seed %s)",
   100 * resolve_dataset_sample_fraction(),
@@ -64,7 +64,7 @@ hypothesis_scripts <- c(
 )
 
 message("\n==========================================")
-message("Starting Hypothesis Testing (Tobit only, four empathy constructs)")
+message("Starting Hypothesis Testing (mixed-effects primary model, four empathy constructs)")
 message("==========================================")
 
 for (script in hypothesis_scripts) {

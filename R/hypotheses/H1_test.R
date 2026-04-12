@@ -1,22 +1,21 @@
 # R/hypotheses/H1_test.R
-# Hypothesis 1: Empathy Effect under relational controls
-# Statement: Higher empathy predicts lower moral-judgment scores for harmful
-# decisions after conditioning on judged-negotiator status, counterpart
-# status, decision outcome, and observer-side victim alignment when applicable.
+# Hypothesis 1: Empathy effect under role-specific relational controls
+# Statement: Empathy dimensions are associated with moral-judgment severity
+# after conditioning on role-specific N1/N2 relational predictors and the
+# N1_N2_same_faculty contextual term.
 # Dependent Variable: judgement (-9 to 9)
 # Empathy predictors: Active workflow uses iri_fs, iri_ec, iri_pt, and iri_pd
 # in both victim and bystander subsets
-# Relational predictors: judged_ingroup/judged_outgroup,
-# counterpart_ingroup/counterpart_outgroup, decision_accept, and
-# observer_victim_outgroup when applicable
+# Relational predictors: victim_N1_group, victim_N2_group, and
+# N1_N2_same_faculty in Victim; bystander_victim_group, bystander_N1_group,
+# bystander_N2_group, victim_N1_group, victim_N2_group, and N1_N2_same_faculty
+# in Bystander
 # Additional controls: participant_engineering, sex_man, age,
-# economic_status, and factor(negotiator_slot)
+# economic_status
 # Sample: Full role-specific samples (Victim and Bystander)
-# Subset-specific formulas: observer-side victim alignment is retained only in
-# the bystander subset so structurally fixed predictors are not carried into the
-# victim-only models.
-# Specification: Interval-censored clustered Tobit model in the active
-# workflow; archived non-parametric utilities remain available but are not run
+# Subset-specific formulas are resolved from hypothesis metadata.
+# Specification: Primary mixed-effects estimation with mandatory participant
+# random intercept (1 | id); id_case random intercept is added when identifiable.
 
 source("R/00_config.R")
 source("R/utils/model_functions.R")
@@ -31,7 +30,7 @@ model_label_suffix <- list(
 )
 
 message(sprintf(
-  "Testing H1: Empathy effect under judged/counterpart relational controls (active model suffixes: %s)",
+  "Testing H1: Empathy effect under role-specific N1/N2 relational controls (active model suffixes: %s)",
   paste(active_model_suffixes, collapse = ", ")
 ))
 

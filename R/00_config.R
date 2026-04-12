@@ -309,7 +309,7 @@ sample_pipeline_dataset <- function(data, sample_fraction = NULL, seed = NULL) {
 
 #' Install base dependencies if they are missing
 ensure_pipeline_dependencies <- function() {
-  packages <- c("survival", "readxl", "grDevices", "stats", "utils", "graphics", "ctqr", "pch")
+  packages <- c("survival", "readxl", "grDevices", "stats", "utils", "graphics", "ctqr", "pch", "lme4")
   success <- TRUE
 
   message("Checking project dependencies...")

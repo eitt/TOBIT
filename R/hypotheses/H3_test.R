@@ -1,21 +1,16 @@
 # R/hypotheses/H3_test.R
-# Hypothesis 3: Empathy x judged-negotiator status moderation
-# Statement: The empathy effect may vary according to whether the judged
-# negotiator is ingroup, outgroup, or control, while decision outcome,
-# judged-status x decision terms, the counterpart negotiator, and observer-side
-# victim alignment remain in the model when they are meaningful for the
-# subset-specific design.
+# Hypothesis 3: Empathy x relational-status moderation
+# Statement: Empathy slopes may vary across role-specific N1/N2 relational
+# status terms. Victim and bystander subsets retain their own relational blocks,
+# and empathy interactions are added for prioritized N1/N2 contrasts.
 # Dependent Variable: judgement (-9 to 9)
-# Independent Variable: empathy x judged-negotiator status interactions
-# Controls: main effects for empathy, judged-negotiator status, decision_accept,
-# judged-status x decision_accept, counterpart relational terms,
-# observer_victim_outgroup when applicable, participant_engineering, sex_man,
-# age, economic_status, slot
+# Independent Variables: empathy x role-specific N1/N2 relational interactions
+# Controls: main effects for empathy, role-specific relational terms,
+# N1_N2_same_faculty, participant_engineering, sex_man, age, and economic_status
 # Sample: Full role-specific samples
-# Subset-specific formulas: the victim subset excludes observer-only predictors
-# so structurally fixed terms are not carried into victim-only estimation.
-# Specification: Interval-censored clustered Tobit model in the active
-# workflow; archived non-parametric utilities remain available but are not run
+# Subset-specific formulas are resolved from hypothesis metadata.
+# Specification: Primary mixed-effects estimation with mandatory participant
+# random intercept (1 | id); id_case random intercept is added when identifiable.
 
 source("R/00_config.R")
 source("R/utils/model_functions.R")
@@ -30,7 +25,7 @@ model_label_suffix <- list(
 )
 
 message(sprintf(
-  "Testing H3: Empathy x judged-status moderation with decision context retained (active model suffixes: %s)",
+  "Testing H3: Empathy x role-specific relational-status moderation (active model suffixes: %s)",
   paste(active_model_suffixes, collapse = ", ")
 ))
 

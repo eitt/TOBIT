@@ -26,41 +26,41 @@ get_dataset_narration <- function(dataset_mode = "BOTH") {
   )
 }
 
-#' Get Mathematical Foundations (Tobit and Latent Variables)
+#' Get Mathematical Foundations (Tobit Random-Intercept Branch and Robustness Branch)
 get_math_foundations <- function() {
   c(
-    "The analysis employs two complementary estimators for bounded moral judgments. The primary specification is a Two-Limit Tobit model, which is theoretically appropriate for dependent variables that are ",
-    "strictly bounded within a known interval. In this context, moral judgments ($y_{isjr}$) are observed on a scale from -9 to 9. ",
-    "The Tobit model assumes the existence of a latent, unobserved preference index ($y^*_{isjr}$) that follows a linear relationship. ",
+    "The analysis employs two complementary estimators for bounded moral judgments. The primary inferential branch is labeled Tobit and estimated with random intercepts, separately by role subset. ",
+    "Observed moral judgments ($y_{isjr}$) remain on the original bounded scale from -9 to 9, where lower values indicate harsher condemnation and higher values indicate less severe condemnation. ",
+    "The primary model is:",
+    "",
+    "$$y_{isjr} = \\beta_0 + \\mathbf{x}_{isjr}'\\beta + u_i + v_{c(i,s)} + \\epsilon_{isjr}$$",
+    "",
+    "where $u_i$ is a participant random intercept and $v_{c(i,s)}$ is an optional case-level random intercept included when the case identifier supports repeated within-case judgments (otherwise the model keeps the participant random intercept only). In implementation terms this corresponds to $(1|id)$ and, when identifiable, $(1|id\\_case)$.",
     get_case_configuration_option_text(latex = TRUE),
-    " H1, H2, and H3 are all estimated separately in the victim and bystander subsets. H1 and H3 use subset-specific formulas so observer-only victim-alignment predictors are retained only where they vary, while H2 uses explicit subset-specific relational-structure blocks:",
+    " H1, H2, and H3 are all estimated separately in the victim and bystander subsets using role-specific relational predictors:",
     "",
     "Victim-subset H2:",
     "",
-    "$$y^*_{isj,Victim} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\gamma}' \\mathbf{S}^{(V)}_{isj} + \\boldsymbol{\\delta}' \\mathbf{Z}_i + \\epsilon_{isj}$$",
+    "$$y_{isj,Victim} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\gamma_1 \\text{Victim-N1}_{isj} + \\gamma_2 \\text{Victim-N2}_{isj} + \\gamma_3(\\text{Victim-N1}_{isj} \\times \\text{Victim-N2}_{isj}) + \\gamma_4\\text{SameFac}_{isj} + \\boldsymbol{\\delta}'\\mathbf{Z}_i + u_i + v_{c(i,s)} + \\epsilon_{isj}$$",
     "",
     "Bystander-subset H2:",
     "",
-    "$$y^*_{isj,Obs} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\gamma}' \\mathbf{S}^{(O)}_{isj} + \\eta V_{is} + \\boldsymbol{\\theta}' (\\mathbf{S}^{(O)}_{isj} \\times V_{is}) + \\boldsymbol{\\delta}' \\mathbf{Z}_i + \\epsilon_{isj}$$",
+    "$$y_{isj,Obs} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\eta\\text{Bystander-Victim}_{isj} + \\boldsymbol{\\kappa}'(\\text{Bystander-Victim}_{isj}\\times\\text{Bystander-N}_{isj}) + \\boldsymbol{\\gamma}'\\mathbf{R}_{isj} + \\gamma_4\\text{SameFac}_{isj} + \\boldsymbol{\\delta}'\\mathbf{Z}_i + u_i + v_{c(i,s)} + \\epsilon_{isj}$$",
     "",
     "H3:",
     "",
-    "$$y^*_{isjr} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\beta}_2' G_{isjr} + \\beta_3 A_{is} + \\boldsymbol{\\beta}_4' (G_{isjr} \\times A_{is}) + \\boldsymbol{\\beta}_5' (\\text{Empathy}_i \\times G_{isjr}) + \\boldsymbol{\\beta}_6' C_{isjr} + \\epsilon_{isjr}, \\quad \\epsilon_{isjr} \\sim N(0, \\sigma^2)$$",
+    "$$y_{isjr} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\beta}_2'\\mathbf{G}_{isjr} + \\boldsymbol{\\beta}_3'(\\text{Empathy}_i \\times \\mathbf{G}_{isjr}) + \\kappa_1(\\text{Bystander-Victim}_{isjr}\\times\\text{Bystander-N}_{isjr}) + \\kappa_2(\\text{Empathy}_i\\times\\text{Bystander-Victim}_{isjr}) + \\beta_4\\text{SameFac}_{isjr} + \\boldsymbol{\\delta}'\\mathbf{Z}_i + u_i + v_{c(i,s)} + \\epsilon_{isjr}$$",
     "",
-    "The actual observed judgment $y_{isjr}$ relates to this latent variable via the censoring transformation:",
-    "",
-    "$$y_{isjr} = \\max(-9, \\min(9, y^*_{isjr}))$$",
-    "",
-    "This approach prevents the 'ceiling' and 'floor' effects from biasing the linear coefficients, as would occur in standard OLS regression.",
+    "For the three-level relational factors (Victim-N1, Victim-N2, Bystander-N1, Bystander-N2), the control-labeled level is the reference category. For bystander-victim alignment, ingroup is the reference category.",
     if (report_includes_nonparametric()) {
       c(
         "",
-        "Because the Tobit model relies on a Gaussian latent-error assumption, the pipeline also fits a distribution-robust censored median specification implemented as interval-censored quantile regression ($p = 0.5$). ",
+        "As a robustness branch, the pipeline can also fit a distribution-robust censored median specification implemented as interval-censored quantile regression ($p = 0.5$). ",
         "This complementary estimator targets the conditional median of the latent bounded outcome and is less sensitive to heavy tails and non-normal disturbances:",
         "",
         "$$Q_{0.5}(y^*_{isjr} \\mid \\mathbf{x}_{isjr}) = \\mathbf{x}_{isjr}'\\beta_{0.5}$$",
         "",
-        "The non-parametric branch preserves the censoring structure while relaxing the parametric normality assumption. The Tobit and robustness results should therefore be interpreted jointly: Tobit provides the clustered parametric benchmark with participant-clustered standard errors by id, while the non-parametric branch first establishes a converged full-sample censored median fit and then, in the default pipeline, adds participant-level cluster bootstrap inference that resamples ids with replacement and retains all repeated observations from each sampled participant."
+        "The non-parametric branch preserves censoring structure while relaxing strong parametric assumptions. Primary-model and robustness results should therefore be interpreted jointly."
       )
     } else {
       ""
@@ -85,10 +85,10 @@ get_error_analysis_narration <- function() {
     "2. Determine the Effective Sample Size (ESS): The ESS represents the number of independent observations that would provide the same statistical power as our clustered sample.",
     "$$ESS = \\frac{n_{total}}{Deff}$$",
     "",
-    "3. Inference Impact: A higher ICC reduces the ESS, thereby increasing the Standard Error of our Tobit coefficients. ",
+    "3. Inference Impact: A higher ICC reduces the ESS, thereby increasing standard errors in our Tobit random-intercepts coefficients. ",
     "If the ESS is low, our models become 'conservative', increasing the risk of Type II errors (failing to support a hypothesis). ",
     sprintf(
-      "By using clustered robust standard errors for Tobit%s, we ensure that both sets of p-values acknowledge this reduced information density, protecting the integrity of our Type I error threshold ($\\alpha = 0.05$).",
+      "By using role-specific Tobit random-intercepts estimation%s, we ensure that inference acknowledges this reduced information density, protecting the integrity of our Type I error threshold ($\\alpha = 0.05$).",
       if (report_includes_nonparametric()) " and participant-level cluster bootstrap inference for the non-parametric robustness model after each converged full-sample fit" else ""
     )
   )
@@ -137,8 +137,7 @@ get_limitations_narration <- function() {
   c(
     "While the dual-estimator strategy strengthens the analysis, several limitations remain. First, both inference strategies assume ",
     "independence between participants, which may still be violated by broader shared institutional or contextual shocks. Second, we assume a ",
-    "normal distribution for the latent errors $\\epsilon_{ij}$ in the Tobit branch; departures from normality could affect the consistency of ",
-    "the maximum likelihood estimators. ",
+    "Gaussian residual structure in the primary mixed-effects branch; strong departures from that assumption can affect calibration of inferential summaries. ",
     if (report_includes_nonparametric()) {
       "The non-parametric robustness branch reduces dependence on that assumption and adds participant-level cluster bootstrap inference after converged full-sample fits, but bootstrap summaries still carry Monte Carlo error and can be sensitive to convergence problems in difficult specifications. "
     } else {

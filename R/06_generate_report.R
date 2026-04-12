@@ -82,6 +82,173 @@ format_sample_description <- function(fit_stats, subset_role = NULL) {
   )
 }
 
+format_missing_display <- function(x, missing_label = "--") {
+  x_chr <- as.character(x)
+  x_chr[is.na(x) | !nzchar(trimws(x_chr))] <- missing_label
+  x_chr
+}
+
+title_case_status <- function(x) {
+  x_chr <- gsub("_", " ", tolower(trimws(as.character(x))))
+  tools::toTitleCase(x_chr)
+}
+
+parse_fit_summary_model <- function(model_label) {
+  matches <- regexec("^(H[123])_([AB])_(Victim|Bystander)_Constructs(?:_(Tobit|CLAD))?$", model_label)
+  parts <- regmatches(model_label, matches)[[1]]
+  if (length(parts) == 0L) {
+    return(list(
+      hypothesis = model_label,
+      model = NA_character_,
+      subset = NA_character_
+    ))
+  }
+  list(
+    hypothesis = parts[2],
+    model = paste("Model", parts[3]),
+    subset = parts[4]
+  )
+}
+
+format_cluster_unit_label <- function(x) {
+  x_chr <- trimws(as.character(x))
+  if (!nzchar(x_chr) || is.na(x_chr)) return("--")
+  if (identical(x_chr, "id_case + id")) return("case + participant")
+  if (identical(x_chr, "id")) return("participant")
+  gsub("_", " ", x_chr, fixed = TRUE)
+}
+
+build_model_fit_summary_display <- function(fit_summary) {
+  if (is.null(fit_summary) || nrow(fit_summary) == 0L) return(NULL)
+
+  parsed_meta <- lapply(fit_summary$Model, parse_fit_summary_model)
+  display_df <- data.frame(
+    Hypothesis = vapply(parsed_meta, `[[`, character(1), "hypothesis"),
+    Subset = vapply(parsed_meta, `[[`, character(1), "subset"),
+    Specification = vapply(parsed_meta, `[[`, character(1), "model"),
+    Approach = fit_summary$Approach,
+    Status = title_case_status(fit_summary$Status),
+    Iterations = format_missing_display(fit_summary$Iterations),
+    Observations = format_missing_display(fit_summary$Observations),
+    Participants = format_missing_display(fit_summary$Participants),
+    `Cluster unit` = vapply(fit_summary$ClusterUnit, format_cluster_unit_label, character(1)),
+    stringsAsFactors = FALSE,
+    check.names = FALSE
+  )
+
+  if (report_includes_nonparametric()) {
+    display_df$`Bootstrap reps` <- format_missing_display(fit_summary$BootstrapReplicates)
+    display_df$`Bootstrap successful` <- format_missing_display(fit_summary$BootstrapSuccessful)
+  }
+
+  display_df[order(display_df$Hypothesis, display_df$Subset, display_df$Specification), , drop = FALSE]
+}
+
+build_model_fit_note_text <- function(fit_summary_display) {
+  if (is.null(fit_summary_display) || nrow(fit_summary_display) == 0L) {
+    return("Fit-summary note unavailable.")
+  }
+
+  note_parts <- c(
+    paste0(
+      "Reported approaches: ",
+      paste(unique(fit_summary_display$Approach), collapse = ", "),
+      "."
+    )
+  )
+
+  if (all(fit_summary_display$Iterations == "--")) {
+    note_parts <- c(
+      note_parts,
+      "Iterations are shown as -- when the saved estimator object does not report a comparable iteration count."
+    )
+  }
+
+  cluster_units <- unique(fit_summary_display$`Cluster unit`)
+  note_parts <- c(
+    note_parts,
+    paste0(
+      "Cluster unit entries used in this table: ",
+      paste(cluster_units, collapse = "; "),
+      "."
+    )
+  )
+
+  paste(note_parts, collapse = " ")
+}
+
+collect_table_text_values <- function(table_df) {
+  if (is.null(table_df) || !is.data.frame(table_df) || nrow(table_df) == 0L) return(character(0))
+  unlist(lapply(table_df, as.character), use.names = FALSE)
+}
+
+get_contextual_abbreviation_note_text <- function(text_values) {
+  text_values <- text_values[!is.na(text_values)]
+  if (length(text_values) == 0L) return("")
+  text_blob <- paste(text_values, collapse = " | ")
+
+  abbreviation_specs <- list(
+    list(pattern = "\\bFS\\b|Fantasy|iri_fs", text = "FS = fantasy"),
+    list(pattern = "\\bEC\\b|Empathic concern|Empathy: Empathic concern|iri_ec", text = "EC = empathic concern"),
+    list(pattern = "\\bPT\\b|Perspective taking|Empathy: Perspective taking|iri_pt", text = "PT = perspective taking"),
+    list(pattern = "\\bPD\\b|Personal distress|iri_pd", text = "PD = personal distress"),
+    list(pattern = "\\bN1\\b|Victim-N1|Bystander-N1", text = "N1 = judged negotiator"),
+    list(pattern = "\\bN2\\b|Victim-N2|Bystander-N2", text = "N2 = counterpart negotiator"),
+    list(pattern = "\\bB-V\\b|Bystander-victim", text = "B-V = bystander-victim relation"),
+    list(pattern = "\\bV-N1\\b|Victim-N1", text = "V-N1 = victim-negotiator 1 relation"),
+    list(pattern = "\\bV-N2\\b|Victim-N2", text = "V-N2 = victim-negotiator 2 relation"),
+    list(pattern = "\\bB-N1\\b|Bystander-N1", text = "B-N1 = bystander-negotiator 1 relation"),
+    list(pattern = "\\bB-N2\\b|Bystander-N2", text = "B-N2 = bystander-negotiator 2 relation"),
+    list(pattern = "Ingroup|Outgroup|Control|\\bCtl\\b", text = "In / Out / Ctl = ingroup / outgroup / control label hidden"),
+    list(pattern = "SameFac|same faculty", text = "SameFac = N1 and N2 same faculty"),
+    list(pattern = "\\bSES\\b|economic status", text = "SES = economic status")
+  )
+
+  matched_parts <- vapply(
+    Filter(function(spec) grepl(spec$pattern, text_blob, ignore.case = TRUE, perl = TRUE), abbreviation_specs),
+    `[[`,
+    character(1),
+    "text"
+  )
+
+  paste(unique(matched_parts), collapse = "; ")
+}
+
+summarize_displayed_predictors <- function(predictor_values, max_terms = 6L) {
+  predictor_values <- unique(trimws(as.character(predictor_values)))
+  predictor_values <- predictor_values[
+    nzchar(predictor_values) &
+      !is.na(predictor_values) &
+      !(predictor_values %in% c("Base", "(Intercept)"))
+  ]
+  if (length(predictor_values) == 0L) return(NULL)
+  if (length(predictor_values) <= max_terms) {
+    return(paste0("Displayed predictors: ", paste(predictor_values, collapse = ", "), "."))
+  }
+  paste0(
+    "Displayed predictors include ",
+    paste(predictor_values[seq_len(max_terms)], collapse = ", "),
+    ", and ",
+    length(predictor_values) - max_terms,
+    " additional terms."
+  )
+}
+
+build_dynamic_table_note_text <- function(table_df, prefix_parts = NULL, predictor_col = NULL) {
+  note_parts <- prefix_parts
+  if (!is.null(predictor_col) && predictor_col %in% names(table_df)) {
+    predictor_note <- summarize_displayed_predictors(table_df[[predictor_col]])
+    if (!is.null(predictor_note)) {
+      note_parts <- c(note_parts, predictor_note)
+    }
+  }
+  abbreviation_note <- get_contextual_abbreviation_note_text(collect_table_text_values(table_df))
+  if (nzchar(abbreviation_note)) {
+    note_parts <- c(note_parts, paste0("Abbrev.: ", abbreviation_note, "."))
+  }
+  paste(note_parts[nzchar(note_parts)], collapse = " ")
+}
+
 message("Generating Comprehensive Scientific Manuscript (LaTeX/PDF/Word)...")
 
 # 1. LOAD DATA & ASSETS
@@ -177,8 +344,9 @@ write_model_fit_summary <- function() {
   fit_summary <- fit_summary[fit_summary$Approach %in% get_report_approaches(), , drop = FALSE]
   if (nrow(fit_summary) == 0L) return(NULL)
   fit_summary <- fit_summary[order(fit_summary$Approach, fit_summary$Model), , drop = FALSE]
-  write.csv(fit_summary, file.path(paths$tables_dir, "model_fit_summary.csv"), row.names = FALSE)
-  fit_summary
+  fit_summary_display <- build_model_fit_summary_display(fit_summary)
+  write.csv(fit_summary_display, file.path(paths$tables_dir, "model_fit_summary.csv"), row.names = FALSE)
+  fit_summary_display
 }
 
 model_fit_summary <- write_model_fit_summary()
@@ -478,7 +646,7 @@ summarize_estimator_hypothesis_for_subset <- function(spec, approach, subset_rol
       }
       return("Non-parametric conclusion: no converged second-phase non-parametric model is available, so the robustness check is inconclusive for this hypothesis.")
     }
-    return("Tobit conclusion: Tobit outputs are unavailable for this hypothesis.")
+    return("Tobit (random intercepts) conclusion: outputs are unavailable for this hypothesis.")
   }
 
   available_statuses <- vapply(
@@ -486,7 +654,7 @@ summarize_estimator_hypothesis_for_subset <- function(spec, approach, subset_rol
     function(assessment) assessment$status,
     character(1)
   )
-  approach_label <- if (approach == "CLAD") "Non-parametric conclusion" else "Tobit conclusion"
+  approach_label <- if (approach == "CLAD") "Non-parametric conclusion" else "Tobit (random intercepts) conclusion"
   partial_availability_note <- if (approach == "CLAD" && sum(available_flags) < length(available_flags)) {
     "Only non-parametric specifications with available cluster-bootstrap inference are interpreted here."
   } else {
@@ -791,7 +959,7 @@ build_hypothesis_significance_summary_df <- function(subset_role, alpha = 0.10, 
   }
   summary_columns <- list(
     Hypothesis = vapply(hypothesis_specs, function(spec) spec$id, character(1)),
-    `Tobit support` = vapply(
+    `Tobit (random intercepts) support` = vapply(
       hypothesis_specs,
       function(spec) collect_hypothesis_family_signals(spec, "Tobit", alpha, signal_details = signal_details, subset_role = subset_role),
       character(1)
@@ -907,70 +1075,82 @@ build_predictor_glossary_df <- function() {
     `Code / pattern` = c(
       "iri_total",
       "iri_fs, iri_ec, iri_pt, iri_pd",
-      "judged_ingroup, judged_outgroup",
-      "counterpart_ingroup, counterpart_outgroup",
-      "decision_accept",
-      "observer_victim_outgroup",
-      "h2_negstruct_*",
-      "player_victim_outgroup",
-      "player_victim_outgroup:h2_negstruct_*",
-      "decision_accept:judged_*",
-      "iri_*:judged_*",
+      "victim_N1_groupIn, victim_N1_groupOut",
+      "victim_N2_groupIn, victim_N2_groupOut",
+      "bystander_N1_groupIn, bystander_N1_groupOut",
+      "bystander_N2_groupIn, bystander_N2_groupOut",
+      "bystander_victim_groupOut",
+      "N1_N2_same_faculty",
+      "victim_N1_group*:victim_N2_group*",
+      "bystander_N1_group*:bystander_N2_group*",
+      "bystander_victim_group*:bystander_N1_group*",
+      "bystander_victim_group*:bystander_N2_group*",
+      "iri_*:victim_N*_group*",
+      "iri_*:bystander_N*_group*",
+      "iri_*:bystander_victim_group*",
       "participant_engineering",
       "sex_man",
       "age",
-      "economic_status",
-      "factor(negotiator_slot)"
+      "economic_status"
     ),
     Compact = c(
       "Emp",
       "FS, EC, PT, PD",
-      "N1 In, N1 Out",
-      "N2 In, N2 Out",
-      "Acc",
-      "V Out (Obs)",
-      "N1 ..., N2 ...",
-      "V Out",
-      "V Out x N1 ..., N2 ...",
-      "Acc x N1 ...",
-      "Emp / FS / EC / PT / PD x N1 ...",
+      "V-N1 In, V-N1 Out",
+      "V-N2 In, V-N2 Out",
+      "B-N1 In, B-N1 Out",
+      "B-N2 In, B-N2 Out",
+      "B-V Out",
+      "SameFac",
+      "V-N1 x V-N2",
+      "B-N1 x B-N2",
+      "B-V x B-N1",
+      "B-V x B-N2",
+      "Emp / FS / EC / PT / PD x V-N1 or V-N2",
+      "Emp / FS / EC / PT / PD x B-N1 or B-N2",
+      "Emp / FS / EC / PT / PD x B-V",
       "Eng part.",
       "Man",
       "Age",
-      "SES",
-      "Slot 2"
+      "SES"
     ),
     Meaning = c(
       "Composite empathy predictor used in Model A.",
       "IRI subscales used in Model B: fantasy, empathic concern, perspective taking, and personal distress.",
-      "N1 contrasts relative to the N1 control-labeled baseline.",
-      "N2 contrasts relative to the N2 control-labeled baseline.",
-      "Accepted harmful deal relative to rejected harmful deal.",
-      "Observer-only victim outgroup contrast; excluded from victim-only formulas.",
-      "H2 joint N1/N2 structure dummies with reference N1 Ctl, N2 Ctl.",
-      "Observer-side player-victim outgroup contrast with player-victim ingroup as the reference.",
-      "Bystander-only H2 interaction: whether the negotiator-side structure changes when player and victim are outgroup-aligned.",
-      "H3 decision-by-judged-status interaction block.",
-      "H3 empathy-by-judged-status interaction block.",
+      "Victim-to-N1 contrasts relative to the control-labeled baseline.",
+      "Victim-to-N2 contrasts relative to the control-labeled baseline.",
+      "Bystander-to-N1 contrasts relative to the control-labeled baseline.",
+      "Bystander-to-N2 contrasts relative to the control-labeled baseline.",
+      "Bystander-victim outgroup contrast with bystander-victim ingroup as the reference.",
+      "Context indicator for whether N1 and N2 belong to the same faculty.",
+      "Victim-side N1-by-N2 interaction block.",
+      "Bystander-side N1-by-N2 interaction block.",
+      "Bystander-victim by bystander-N1 interaction block.",
+      "Bystander-victim by bystander-N2 interaction block.",
+      "Empathy-by-victim-side relational interaction block.",
+      "Empathy-by-bystander-side relational interaction block.",
+      "Empathy-by-bystander-victim interaction block.",
       "Participant faculty contrast.",
       "Sex contrast with woman as the reference.",
       "Participant age in original units.",
-      "Economic status in original units.",
-      "Negotiator slot contrast with slot 1 as the reference."
+      "Economic status in original units."
     ),
     `Used in` = c(
       "H1/H2/H3 Model A",
       "H1/H2/H3 Model B",
-      "H1/H3",
-      "H1/H3",
-      "H1/H3",
-      "H1/H3 Bystander only",
-      "H2 Victim and Bystander",
-      "H2 Bystander only",
-      "H2 Bystander only",
-      "H3",
-      "H3",
-      "H1/H2/H3",
+      "H1/H2/H3 Victim and Bystander",
+      "H1/H2/H3 Victim and Bystander",
+      "H1/H2/H3 Bystander",
+      "H1/H2/H3 Bystander",
+      "H1/H2/H3 Bystander",
+      "H1/H2/H3 Victim and Bystander",
+      "H2/H3 Victim and Bystander",
+      "H2/H3 Bystander",
+      "H2/H3 Bystander",
+      "H2/H3 Bystander",
+      "H3 Victim",
+      "H3 Bystander",
+      "H3 Bystander",
       "H1/H2/H3",
       "H1/H2/H3",
       "H1/H2/H3",
@@ -982,7 +1162,9 @@ build_predictor_glossary_df <- function() {
 
   if (!report_uses_composite_model()) {
     glossary_df <- glossary_df[glossary_df$`Code / pattern` != "iri_total", , drop = FALSE]
-    glossary_df$Compact[glossary_df$`Code / pattern` == "iri_*:judged_*"] <- "FS / EC / PT / PD x N1 ..."
+    glossary_df$Compact[glossary_df$`Code / pattern` == "iri_*:victim_N*_group*"] <- "FS / EC / PT / PD x V-N..."
+    glossary_df$Compact[glossary_df$`Code / pattern` == "iri_*:bystander_N*_group*"] <- "FS / EC / PT / PD x B-N..."
+    glossary_df$Compact[glossary_df$`Code / pattern` == "iri_*:bystander_victim_group*"] <- "FS / EC / PT / PD x B-V"
     glossary_df$Meaning[glossary_df$`Code / pattern` == "iri_fs, iri_ec, iri_pt, iri_pd"] <-
       "Active empathy predictors: fantasy, empathic concern, perspective taking, and personal distress."
     glossary_df$`Used in`[glossary_df$`Code / pattern` == "iri_fs, iri_ec, iri_pt, iri_pd"] <- "H1/H2/H3 active model"
@@ -1025,24 +1207,80 @@ build_markdown_predictor_glossary_list <- function() {
   }, character(1))
 }
 
+escape_formula_texttt <- function(x) {
+  x_chr <- as.character(x)
+  x_chr <- gsub("\\\\", "\\\\textbackslash{}", x_chr)
+  x_chr <- gsub("_", "\\_", x_chr, fixed = TRUE)
+  x_chr
+}
+
+split_formula_terms_for_display <- function(rhs_formula, max_terms_per_line = 4L) {
+  formula_terms <- strsplit(rhs_formula, " \\+ ", perl = TRUE)[[1]]
+  split(
+    formula_terms,
+    ceiling(seq_along(formula_terms) / max_terms_per_line)
+  )
+}
+
+build_formula_display_block <- function(lhs_label, rhs_formula) {
+  wrapped_terms <- split_formula_terms_for_display(rhs_formula)
+  aligned_lines <- character(length(wrapped_terms))
+
+  for (idx in seq_along(wrapped_terms)) {
+    rhs_chunk <- paste(vapply(wrapped_terms[[idx]], escape_formula_texttt, character(1)), collapse = " + ")
+    if (idx == 1L) {
+      aligned_lines[idx] <- paste0("\\texttt{", escape_formula_texttt(lhs_label), "} &\\sim ", rhs_chunk)
+    } else {
+      aligned_lines[idx] <- paste0("&\\quad + ", rhs_chunk)
+    }
+  }
+
+  c(
+    "\\[",
+    "\\begin{aligned}",
+    paste0(aligned_lines, ifelse(seq_along(aligned_lines) < length(aligned_lines), " \\\\", "")),
+    "\\end{aligned}",
+    "\\]"
+  )
+}
+
+build_aligned_equation_block <- function(title, lhs, rhs_lines) {
+  continuation_lines <- if (length(rhs_lines) > 1L) {
+    vapply(rhs_lines[-1], function(line) paste0("&\\quad ", line, " \\\\"), character(1))
+  } else {
+    character(0)
+  }
+  c(
+    paste0("\\textbf{", escape_latex(title), "}"),
+    "\\[",
+    "\\begin{aligned}",
+    paste0(lhs, " &= ", rhs_lines[1], if (length(rhs_lines) > 1L) " \\\\" else ""),
+    continuation_lines,
+    "\\end{aligned}",
+    "\\]",
+    ""
+  )
+}
+
 build_subset_formula_lines <- function(spec, model_suffix) {
   victim_rhs <- get_hypothesis_formula_rhs(spec, model_suffix, "Victim")
   bystander_rhs <- get_hypothesis_formula_rhs(spec, model_suffix, "Bystander")
 
   c(
     paste0("\\textit{Model ", model_suffix, " subset-specific formulas.}"),
-    "\\begin{quote}",
-    paste0("\\small ", escape_latex(sprintf("Victim: judgement ~ %s", victim_rhs))),
-    "",
-    paste0("\\small ", escape_latex(sprintf("Bystander: judgement ~ %s", bystander_rhs))),
-    "\\end{quote}",
+    "\\begin{flushleft}",
+    "\\textbf{Victim}",
+    build_formula_display_block("judgement", victim_rhs),
+    "\\textbf{Bystander}",
+    build_formula_display_block("judgement", bystander_rhs),
+    "\\end{flushleft}",
     ""
   )
 }
 
 format_support_phrase <- function(row) {
   estimator_label <- if (identical(row$approach, "Tobit")) {
-    "the Tobit model"
+    "the Tobit random-intercepts model"
   } else {
     "the clustered non-parametric model"
   }
@@ -1065,7 +1303,7 @@ build_significance_figure_artifacts <- function(signal_details) {
       Predictor = character(0),
       Figure = character(0),
       FigureType = character(0),
-      `Tobit support` = character(0)
+      `Tobit (random intercepts) support` = character(0)
     )
     if (report_includes_nonparametric()) {
       empty_catalog_columns$`Non-parametric support` <- character(0)
@@ -1196,7 +1434,7 @@ build_significance_figure_artifacts <- function(signal_details) {
       Predictor = label_term_compact(canonical_term),
       Figure = figure_file,
       FigureType = figure_type,
-      `Tobit support` = if (any(support_rows$approach == "Tobit")) {
+      `Tobit (random intercepts) support` = if (any(support_rows$approach == "Tobit")) {
         label_values <- if ("label_short" %in% names(support_rows)) support_rows$label_short else support_rows$label
         paste0(label_values[support_rows$approach == "Tobit"], support_rows$symbol[support_rows$approach == "Tobit"], collapse = "; ")
       } else {
@@ -1245,14 +1483,24 @@ format_support_model_rows <- function(rows, approach = NULL) {
 summarize_supporting_models <- function(rows) {
   label_col <- if ("hypothesis_family_label" %in% names(rows)) "hypothesis_family_label" else "short_label"
   rows <- rows[order(rows$p_value, rows[[label_col]], rows$model_suffix), , drop = FALSE]
-  descriptors <- paste0(rows[[label_col]], " Model ", rows$model_suffix, " (", rows$approach, ")")
+  approach_label <- ifelse(
+    rows$approach == "Tobit",
+    "Tobit random-intercepts",
+    ifelse(rows$approach == "CLAD", "Non-parametric", rows$approach)
+  )
+  descriptors <- paste0(rows[[label_col]], " Model ", rows$model_suffix, " (", approach_label, ")")
   collapse_with_and(unique(descriptors))
 }
 
 get_supporting_model_descriptors <- function(rows) {
   label_col <- if ("hypothesis_family_label" %in% names(rows)) "hypothesis_family_label" else "short_label"
   rows <- rows[order(rows$p_value, rows[[label_col]], rows$model_suffix), , drop = FALSE]
-  unique(paste0(rows[[label_col]], " Model ", rows$model_suffix, " (", rows$approach, ")"))
+  approach_label <- ifelse(
+    rows$approach == "Tobit",
+    "Tobit random-intercepts",
+    ifelse(rows$approach == "CLAD", "Non-parametric", rows$approach)
+  )
+  unique(paste0(rows[[label_col]], " Model ", rows$model_suffix, " (", approach_label, ")"))
 }
 
 format_supporting_models_latex <- function(descriptors) {
@@ -1299,7 +1547,7 @@ build_all_significant_predictor_figure_artifacts <- function(signal_details) {
       Predictor = character(0),
       Figure = character(0),
       FigureType = character(0),
-      `Tobit support` = character(0)
+      `Tobit (random intercepts) support` = character(0)
     )
     if (report_includes_nonparametric()) {
       empty_catalog_columns$`Non-parametric support` <- character(0)
@@ -1433,7 +1681,7 @@ build_all_significant_predictor_figure_artifacts <- function(signal_details) {
       Predictor = label_term_compact(canonical_term),
       Figure = figure_file,
       FigureType = figure_type,
-      `Tobit support` = format_support_model_rows(support_rows_all, approach = "Tobit")
+      `Tobit (random intercepts) support` = format_support_model_rows(support_rows_all, approach = "Tobit")
     )
     if (report_includes_nonparametric()) {
       catalog_row$`Non-parametric support` <- format_support_model_rows(support_rows_all, approach = "CLAD")
@@ -1477,13 +1725,13 @@ build_latex_all_significant_predictor_figure_section <- function(artifacts) {
       if (report_includes_nonparametric()) {
         paste(
           "The following figures extend beyond the hypothesis-target terms and visualize every predictor",
-          "that reaches p < 0.10 in the available H1-H3 Tobit or clustered non-parametric models.",
+          "that reaches p < 0.10 in the available H1-H3 Tobit random-intercepts or clustered non-parametric models.",
           "This includes significant controls such as age when they clear the threshold."
         )
       } else {
         paste(
           "The following figures extend beyond the hypothesis-target terms and visualize every predictor",
-          "that reaches p < 0.10 in the available H1-H3 Tobit models.",
+          "that reaches p < 0.10 in the available H1-H3 Tobit random-intercepts models.",
           "This includes significant controls such as age when they clear the threshold."
         )
       }
@@ -1520,9 +1768,9 @@ build_markdown_all_significant_predictor_figure_section <- function(artifacts) {
   section_lines <- c(
     "## All Significant Predictors (p < .10)",
     if (report_includes_nonparametric()) {
-      "The following figures extend beyond the hypothesis-target terms and visualize every predictor that reaches `p < .10` in the available H1-H3 Tobit or clustered non-parametric models. This includes significant controls such as age when they clear the threshold."
+      "The following figures extend beyond the hypothesis-target terms and visualize every predictor that reaches `p < .10` in the available H1-H3 Tobit random-intercepts or clustered non-parametric models. This includes significant controls such as age when they clear the threshold."
     } else {
-      "The following figures extend beyond the hypothesis-target terms and visualize every predictor that reaches `p < .10` in the available H1-H3 Tobit models. This includes significant controls such as age when they clear the threshold."
+      "The following figures extend beyond the hypothesis-target terms and visualize every predictor that reaches `p < .10` in the available H1-H3 Tobit random-intercepts models. This includes significant controls such as age when they clear the threshold."
     },
     ""
   )
@@ -1556,13 +1804,13 @@ build_latex_significance_figure_section <- function(artifacts) {
       if (report_includes_nonparametric()) {
         paste(
           "Only hypothesis-relevant predictors that reach p < 0.10 or better are visualized automatically.",
-          "These dynamic figures use the saved Tobit and clustered non-parametric outputs,",
+          "These dynamic figures use the saved Tobit random-intercepts and clustered non-parametric outputs,",
           "and participant id remains only an inference-level clustering unit rather than a substantive explanatory variable."
         )
       } else {
         paste(
           "Only hypothesis-relevant predictors that reach p < 0.10 or better are visualized automatically.",
-          "These dynamic figures use the saved Tobit outputs,",
+          "These dynamic figures use the saved Tobit random-intercepts outputs,",
           "and participant id remains only an inference-level clustering unit rather than a substantive explanatory variable."
         )
       }
@@ -1599,9 +1847,9 @@ build_markdown_significance_figure_section <- function(artifacts) {
   section_lines <- c(
     "## Significance-Driven Figures",
     if (report_includes_nonparametric()) {
-      "Only hypothesis-relevant predictors that reach at least `p < .10` are visualized automatically. These figures rely on the saved Tobit and clustered non-parametric fits, and `id` remains only an inference-level clustering unit."
+      "Only hypothesis-relevant predictors that reach at least `p < .10` are visualized automatically. These figures rely on the saved Tobit random-intercepts and clustered non-parametric fits, and `id` remains only an inference-level clustering unit."
     } else {
-      "Only hypothesis-relevant predictors that reach at least `p < .10` are visualized automatically. These figures rely on the saved Tobit fits, and `id` remains only an inference-level clustering unit."
+      "Only hypothesis-relevant predictors that reach at least `p < .10` are visualized automatically. These figures rely on the saved Tobit random-intercepts fits, and `id` remains only an inference-level clustering unit."
     },
     ""
   )
@@ -1665,13 +1913,13 @@ build_latex_hypothesis_significance_tables <- function(summary_tables) {
       to_latex_wrapped_hypothesis_summary(
         subset_df,
         if (report_includes_nonparametric()) {
-          sprintf("Hypothesis-level significance summary for the %s subset across Tobit and cluster-aware non-parametric models.", tolower(subset_role))
+          sprintf("Hypothesis-level significance summary for the %s subset across Tobit random-intercepts and cluster-aware non-parametric models.", tolower(subset_role))
         } else {
-          sprintf("Hypothesis-level significance summary for the %s subset across Tobit models.", tolower(subset_role))
+          sprintf("Hypothesis-level significance summary for the %s subset across Tobit random-intercepts models.", tolower(subset_role))
         },
         sprintf("tab:hypothesis_summary_%s", tolower(subset_role))
       ),
-      build_latex_note_block(get_abbreviation_note_text()),
+      build_latex_note_block(build_dynamic_table_note_text(subset_df)),
       ""
     )
   }), use.names = FALSE)
@@ -1689,7 +1937,7 @@ build_markdown_hypothesis_significance_tables <- function(summary_tables) {
     c(
       paste0("### ", subset_role, " subset"),
       to_markdown_table(subset_df),
-      build_markdown_note_line(get_abbreviation_note_text()),
+      build_markdown_note_line(build_dynamic_table_note_text(subset_df)),
       ""
     )
   }), use.names = FALSE)
@@ -1776,7 +2024,14 @@ build_estimator_block <- function(output_prefix, estimator_name, table_caption, 
     paste0("\\paragraph{", estimator_name, "}"),
     "",
     table_latex,
-    build_latex_note_block(get_abbreviation_note_text()),
+    build_latex_note_block(build_dynamic_table_note_text(
+      table_df,
+      prefix_parts = c(
+        sprintf("Estimator: %s.", estimator_name),
+        sprintf("%s.", format_sample_description(fit_stats, subset_role = subset_role))
+      ),
+      predictor_col = "Predictor"
+    )),
     note_lines,
     "",
     "Interpretation:",
@@ -1790,7 +2045,7 @@ build_estimator_block <- function(output_prefix, estimator_name, table_caption, 
   )
 }
 
-# Helper for rendering Tobit plus non-parametric robustness sections.
+# Helper for rendering Tobit-random-intercepts plus non-parametric robustness sections.
 build_model_section <- function(hypothesis_id, model_suffix, table_caption) {
   clean_caption <- sub("\\.$", "", table_caption)
   subset_blocks <- lapply(c("Victim", "Bystander"), function(subset_role) {
@@ -1800,7 +2055,7 @@ build_model_section <- function(hypothesis_id, model_suffix, table_caption) {
       "",
       build_estimator_block(
         output_prefix,
-        "Tobit estimator",
+        "Tobit estimator with random intercepts",
         clean_caption,
         subset_role = subset_role
       )
@@ -1837,9 +2092,9 @@ latex_lines <- c(
   "\\usepackage{float}",
   "\\usepackage{hyperref}",
   if (report_includes_nonparametric()) {
-    "\\title{Scientific Analysis of Moral Judgments using Tobit and Cluster-Aware Non-Parametric Robustness Models}"
+    "\\title{Scientific Analysis of Moral Judgments using Tobit Models with Random Intercepts and Cluster-Aware Non-Parametric Robustness Models}"
   } else {
-    "\\title{Scientific Analysis of Moral Judgments using Tobit Models with Four Empathy Constructs}"
+    "\\title{Scientific Analysis of Moral Judgments using Tobit Models with Random Intercepts and Four Empathy Constructs}"
   },
   "\\author{Automated Research Pipeline}",
   paste0("\\date{", format(Sys.Date(), "%B %d, %Y"), "}"),
@@ -1849,12 +2104,15 @@ latex_lines <- c(
   "\\section{Dataset and Sample Description}",
   escape_latex(paste(get_dataset_narration(paths$dataset_mode), collapse = " ")),
   "",
+  "\\section{Primary Estimator in This Run}",
+  "The primary inferential branch is the Tobit slot with random intercepts. In practice, each fitted model includes (1 | id), and when id\\_case is identifiable as a repeated grouping level the model also includes (1 | id\\_case).",
+  "",
   "\\section{Datacard and Variable Definitions}",
   "The following table defines the primary symbols and variables used in the mathematical specifications and hypothesis tests.",
   to_latex_table(get_symbols_dictionary(), "Symbols and Variable Dictionary.", "tab:symbols", escape_math = FALSE),
   escape_latex(paste(
     get_case_configuration_option_label(),
-    "retains a victim x judged-negotiator shorthand for descriptive summaries, while the executable hypotheses use explicit negotiator-level structure terms. H2 now uses the judged-plus-counterpart structure directly, and in observer rows it adds the player-victim alignment term and its interaction with that structure."
+    "retains a compact relational shorthand for descriptive summaries, while the executable hypotheses use explicit role-specific N1/N2 predictors and N1_N2_same_faculty as a contextual main effect."
   )),
   "",
   "\\subsection{Predictor Glossary and Abbreviations}",
@@ -1865,8 +2123,8 @@ latex_lines <- c(
   "The models herein employ several predefined predictors. It is important to note how interaction terms are interpreted in the context of this behavioral experiment:",
   "\\begin{enumerate}",
   "  \\item \\textbf{Interaction Subsumption:} When an interaction term is statistically significant, it indicates that the effect of one variable depends on the level of the other. Crucially, if the interaction is significant but the constituent main effects are not explicitly significant, their effects are fully subsumed and contextualized by the interaction.",
-  "  \\item \\textbf{Continuous by Discrete Interactions:} For terms like \\texttt{iri\\_total:judged\\_outgroup}, a negative coefficient implies that the severity of moral judgment (lower score) induced by higher empathy is steeper (magnified) when evaluating an outgroup negotiator relative to the control-labeled baseline. A positive coefficient would mean empathy makes judgments less severe for that outgroup condition.",
-  "  \\item \\textbf{Discrete by Discrete Interactions:} For terms like \\texttt{judged\\_outgroup:decision\\_accept}, a positive coefficient implies that the change in moral judgment when moving from rejecting a deal to accepting a deal is more positive (less morally condemned) for an outgroup negotiator than for the control-labeled baseline condition.",
+  "  \\item \\textbf{Continuous by Discrete Interactions:} For terms like \\texttt{iri\\_pt:victim\\_N1\\_groupOut}, a negative coefficient implies that the empathy slope becomes more negative (more severe judgments) under that relational outgroup condition relative to the control-labeled baseline.",
+  "  \\item \\textbf{Discrete by Discrete Interactions:} For terms like \\texttt{bystander\\_N1\\_groupOut:bystander\\_N2\\_groupOut}, a positive coefficient implies that the joint relational condition is associated with less severe condemnation than expected from the baseline profile.",
   "\\end{enumerate}",
   "",
   "\\section{Hypotheses to Test}",
@@ -1904,26 +2162,26 @@ latex_lines <- c(
   paste0(
     "Figure \\ref{fig:severity_panels} shows severity distributions pooled across the full analytical sample, ",
     "broken down by N1 group membership (\\textit{group\\_target}: Ingroup, Outgroup, Control). ",
-    "Figures \\ref{fig:victim_case_panels} and \\ref{fig:bystander_case_panels} replicate this breakdown ",
-    "separately within the victim and bystander subsets. Figure \\ref{fig:accepted_case_panels} adds the ",
-    "bystander-subset view by observer\u2013victim group alignment (\\textit{obs\\_group}), and ",
-    "Figure \\ref{fig:rejected_case_panels} shows the N2 group panels (\\textit{group\\_other}) ",
-    "for the full sample."
+    "Figures \\ref{fig:victim_case_panels} and \\ref{fig:bystander_case_panels} expand the descriptive view ",
+    "to the six explicit victim x negotiator faculty configurations, with separate panel rows for accepted ",
+    "and rejected harmful deals inside each role subset. Figures \\ref{fig:accepted_case_panels} and ",
+    "\\ref{fig:rejected_case_panels} then pool the full analytical sample and show the accepted- and ",
+    "rejected-decision distributions across those same six case configurations."
   ),
   latex_include_graphic(file.path("../figures", figure_severity_panels_file),
     "Judgment severity by N1 group (\\textit{group\\_target}: Ingroup, Outgroup, Control) --- full analytical sample, scale $-9$ to $9$.",
     "fig:severity_panels", escape = FALSE),
   latex_include_graphic(file.path("../figures", figure_victim_case_panels_file),
-    "Victim-subset severity by N1 group (\\textit{group\\_target}), scale $-9$ to $9$.",
+    "Victim-subset judgment distributions across the six explicit victim x negotiator faculty configurations, with separate rows for accepted and rejected harmful deals, scale $-9$ to $9$.",
     "fig:victim_case_panels", escape = FALSE),
   latex_include_graphic(file.path("../figures", figure_bystander_case_panels_file),
-    "Bystander-subset severity by N1 group (\\textit{group\\_target}), scale $-9$ to $9$.",
+    "Bystander-subset judgment distributions across the six explicit victim x negotiator faculty configurations, with separate rows for accepted and rejected harmful deals, scale $-9$ to $9$.",
     "fig:bystander_case_panels", escape = FALSE),
   latex_include_graphic(file.path("../figures", figure_accepted_case_panels_file),
-    "Bystander-subset severity by observer--victim group alignment (\\textit{obs\\_group}: Ingroup, Outgroup), scale $-9$ to $9$.",
+    "Accepted harmful-deal judgments across the six explicit victim x negotiator faculty configurations in the full analytical sample, scale $-9$ to $9$.",
     "fig:accepted_case_panels", escape = FALSE),
   latex_include_graphic(file.path("../figures", figure_rejected_case_panels_file),
-    "Judgment severity by N2 group (\\textit{group\\_other}: Ingroup, Outgroup, Control) --- full analytical sample, scale $-9$ to $9$.",
+    "Rejected harmful-deal judgments across the six explicit victim x negotiator faculty configurations in the full analytical sample, scale $-9$ to $9$.",
     "fig:rejected_case_panels", escape = FALSE),
   paste0(
     "When a control-labeled negotiator condition exists, the active hypothesis models treat that control level as the reference category. ",
@@ -1931,14 +2189,17 @@ latex_lines <- c(
   ),
   "",
   "\\section{Bi-variate Statistics}",
-  "The correlation matrix between the psychometric subscales and the mean moral judgment is presented below.",
+  "The correlation matrix between the psychometric subscales and the mean moral judgment is presented below. Figure \\ref{fig:bivariate_scatters} complements that matrix with participant-level scatterplots, fitted lines, and 95\\% confidence bands on the observed judgment scale.",
   to_latex_table(bivar_cor, "Correlation Matrix: IRI Subscales and Moral Judgment.", "tab:bivar"),
+  latex_include_graphic(file.path("../figures", figure_bivariate_scatters_file),
+    "Bivariate scatters of participant-level IRI scales versus mean judgment, with fitted lines and 95\\% confidence bands. The judgment axis is fixed at $-9$ to $9$.",
+    "fig:bivariate_scatters", escape = FALSE),
   "",
   "\\section{Estimator Fit Summary}",
   if (report_includes_nonparametric()) {
-    "The following table consolidates the fit-status information for the primary Tobit models and the non-parametric robustness branch. In the default pipeline, participant-level cluster bootstrap launches immediately after a converged full-sample non-parametric fit is available; if bootstrap is disabled manually or too few bootstrap refits converge, that status is shown explicitly."
+    "The following table consolidates fit-status information for the Tobit models with random intercepts and the non-parametric robustness branch. In the default pipeline, participant-level cluster bootstrap launches immediately after a converged full-sample non-parametric fit is available; if bootstrap is disabled manually or too few bootstrap refits converge, that status is shown explicitly."
   } else {
-    "The following table consolidates the fit-status information for the primary Tobit models used in this report."
+    "The following table consolidates fit-status information for the Tobit models with random intercepts used in this report."
   },
   if (report_includes_nonparametric()) {
     escape_latex(sprintf(
@@ -1950,18 +2211,22 @@ latex_lines <- c(
     NULL
   },
   if (!is.null(model_fit_summary)) {
-    to_latex_table(
-      model_fit_summary[, if (report_includes_nonparametric()) {
-        c("Model", "Approach", "Status", "Converged", "Iterations", "BootstrapReplicates", "BootstrapSuccessful", "Observations", "Participants", "ClusterUnit")
-      } else {
-        c("Model", "Approach", "Status", "Iterations", "Observations", "Participants", "ClusterUnit")
-      }],
-      if (report_includes_nonparametric()) {
-        "Estimator fit summary across Tobit and cluster-aware non-parametric specifications."
-      } else {
-        "Estimator fit summary across Tobit specifications."
-      },
-      "tab:model_fit_summary"
+    c(
+      to_latex_table(
+        model_fit_summary[, if (report_includes_nonparametric()) {
+          c("Hypothesis", "Subset", "Specification", "Approach", "Status", "Iterations", "Bootstrap reps", "Bootstrap successful", "Observations", "Participants", "Cluster unit")
+        } else {
+          c("Hypothesis", "Subset", "Specification", "Approach", "Status", "Iterations", "Observations", "Participants", "Cluster unit")
+        }],
+        if (report_includes_nonparametric()) {
+          "Estimator fit summary across Tobit-random-intercepts and cluster-aware non-parametric specifications."
+        } else {
+          "Estimator fit summary across Tobit-random-intercepts specifications."
+        },
+        "tab:model_fit_summary",
+        preserve_font_size = TRUE
+      ),
+      build_latex_note_block(build_model_fit_note_text(model_fit_summary))
     )
   } else {
     "Model fit summary unavailable."
@@ -1969,9 +2234,9 @@ latex_lines <- c(
   "",
   "\\subsection{Hypothesis Significance Summary}",
   if (report_includes_nonparametric()) {
-    "The following concise tables list only hypothesis-relevant predictors that reached at least p < 0.10, split by victim and bystander subsets, using conventional symbols to indicate strength of evidence (+ p < 0.10, * p < 0.05, ** p < 0.01, *** p < 0.001). If the non-parametric bootstrap is disabled, too sparse, or the censored median fit does not converge, the non-parametric column reports that status instead of inferential symbols. Dynamic figures are generated only for predictors that appear in these tables with at least one significance symbol."
+    "The following concise tables list only hypothesis-relevant predictors that reached at least p < 0.10, split by victim and bystander subsets, using conventional symbols to indicate strength of evidence (plus for p < 0.10, one-star for p < 0.05, two-star for p < 0.01, and three-star for p < 0.001). If the non-parametric bootstrap is disabled, too sparse, or the censored median fit does not converge, the non-parametric column reports that status instead of inferential symbols. Dynamic figures are generated only for predictors that appear in these tables with at least one significance symbol."
   } else {
-    "The following concise tables list only hypothesis-relevant predictors that reached at least p < 0.10 in the available Tobit models, split by victim and bystander subsets, using conventional symbols to indicate strength of evidence (+ p < 0.10, * p < 0.05, ** p < 0.01, *** p < 0.001). Dynamic figures are generated only for predictors that appear in these tables with at least one significance symbol."
+    "The following concise tables list only hypothesis-relevant predictors that reached at least p < 0.10 in the available Tobit models with random intercepts, split by victim and bystander subsets, using conventional symbols to indicate strength of evidence (plus for p < 0.10, one-star for p < 0.05, two-star for p < 0.01, and three-star for p < 0.001). Dynamic figures are generated only for predictors that appear in these tables with at least one significance symbol."
   },
   if (!is.null(hypothesis_significance_summary)) {
     build_latex_hypothesis_significance_tables(hypothesis_significance_summary)
@@ -1983,9 +2248,9 @@ latex_lines <- c(
   "",
   "\\subsection{Integrated Hypothesis Conclusions}",
   if (report_includes_nonparametric()) {
-    "The following summary restates each original hypothesis and indicates whether the available Tobit estimates and the cluster-aware non-parametric models support it in the current data. Non-parametric conclusions are drawn when the participant-level bootstrap inference is available and are otherwise labeled explicitly."
+    "The following summary restates each original hypothesis and indicates whether the available Tobit-random-intercepts estimates and the cluster-aware non-parametric models support it in the current data. Non-parametric conclusions are drawn when the participant-level bootstrap inference is available and are otherwise labeled explicitly."
   } else {
-    "The following summary restates each original hypothesis and indicates whether the available Tobit estimates support it in the current data."
+    "The following summary restates each original hypothesis and indicates whether the available Tobit-random-intercepts estimates support it in the current data."
   },
   "\\begin{itemize}",
   paste0("\\item ", escape_latex(hypothesis_conclusion_items)),
@@ -1993,36 +2258,61 @@ latex_lines <- c(
   "",
   "\\section{Hypothesis Validation and Results}",
   if (report_includes_nonparametric()) {
-    "Detailed coefficient tables for each Tobit model, coupled with non-parametric robustness outputs, natural language interpretive narratives, and estimator-specific diagnostics, are provided below. In the default pipeline, converged non-parametric fits immediately attempt participant-level cluster-bootstrap inference; the report labels deferred and sparse-bootstrap cases explicitly when full inference is not available."
+    "Detailed coefficient tables for each Tobit model with random intercepts, coupled with non-parametric robustness outputs, natural language interpretive narratives, and estimator-specific diagnostics, are provided below. In the default pipeline, converged non-parametric fits immediately attempt participant-level cluster-bootstrap inference; the report labels deferred and sparse-bootstrap cases explicitly when full inference is not available."
   } else {
-    "Detailed coefficient tables for each Tobit model, including predictor estimates, standard errors, p-values with conventional significance symbols, and estimator diagnostics for the victim and bystander subsets, are provided below."
+    "Detailed coefficient tables for each Tobit model with random intercepts, including predictor estimates, standard errors, p-values with conventional significance symbols, and estimator diagnostics for the victim and bystander subsets, are provided below."
   },
   "",
   "\\subsection{H1: Empathy Effect}",
-  "This section evaluates H1 separately in the victim and bystander subsets using the four IRI subscales as the active empathy specification: fantasy, empathic concern, perspective taking, and personal distress. The formula retains judged-negotiator status, counterpart status, decision outcome, and participant controls for sex, age, and economic status, while the bystander subset additionally includes the observer-side victim-alignment predictor because it is meaningful only in that subset.",
+  "This section evaluates H1 separately in the victim and bystander subsets using the four IRI subscales as the active empathy specification: fantasy, empathic concern, perspective taking, and personal distress. The formula retains role-specific relational predictors for N1 and N2, the contextual same-faculty indicator between N1 and N2, and participant controls for sex, age, and economic status.",
   "\\subsubsection{Active Empathy-Construct Specification}",
   build_subset_formula_lines(report_h1_spec, "B"),
-  build_model_section("H1", "B", "H1 active model: empathy-construct Tobit coefficients."),
+  build_model_section("H1", "B", "H1 active model: empathy-construct mixed-effects coefficients."),
   "",
   "\\subsection{H2: Negotiator-Side Relational Structure}",
-  "This section estimates H2 separately in the victim and bystander subsets. The dependent variable remains negotiator-specific judgment severity, so each participant contributes two judgment rows per scenario, one for each negotiator. In the victim subset, H2 uses the joint judged-plus-counterpart negotiator structure relative to the victim-player, with the control-labeled N1 plus control-labeled N2 condition as the reference structure. In the bystander subset, the same negotiator-side structure is defined relative to the observing player's faculty, and the model additionally includes the player-victim outgroup term and its interaction with the negotiator-side structure dummies.",
-  "Victim-subset equation: $y^*_{isj,Victim} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\gamma}' \\mathbf{S}^{(V)}_{isj} + \\boldsymbol{\\delta}' \\mathbf{Z}_i + \\epsilon_{isj}$, where $\\mathbf{S}^{(V)}_{isj}$ indexes the judged-plus-counterpart structure dummies and $\\mathbf{Z}_i$ collects participant controls.",
-  "Bystander-subset equation: $y^*_{isj,Obs} = \\beta_0 + \\beta_1 \\text{Empathy}_i + \\boldsymbol{\\gamma}' \\mathbf{S}^{(O)}_{isj} + \\eta V_{is} + \\boldsymbol{\\theta}' (\\mathbf{S}^{(O)}_{isj} \\times V_{is}) + \\boldsymbol{\\delta}' \\mathbf{Z}_i + \\epsilon_{isj}$, where $V_{is}$ is the player-victim outgroup indicator.",
+  "This section estimates H2 separately in the victim and bystander subsets. In the victim subset, H2 evaluates the joint victim-N1 and victim-N2 structure through their interaction, while retaining the N1-N2 same-faculty context term. In the bystander subset, H2 retains bystander-victim alignment, bystander-victim x bystander-N1/N2 interactions, selective N1-by-N2 and victim-by-negotiator interaction blocks, and N1-N2 same-faculty as a contextual main effect.",
+  build_aligned_equation_block(
+    "Victim-subset H2",
+    "y_{isj,\\mathrm{Victim}}",
+    c(
+      "\\beta_0 + \\beta_1\\,\\mathrm{Empathy}_i + \\gamma_1\\,\\mathrm{Victim\\text{-}N1}_{isj} + \\gamma_2\\,\\mathrm{Victim\\text{-}N2}_{isj}",
+      "+\\ \\gamma_3\\,(\\mathrm{Victim\\text{-}N1}_{isj}\\times\\mathrm{Victim\\text{-}N2}_{isj}) + \\gamma_4\\,\\mathrm{SameFac}_{isj} + \\boldsymbol{\\delta}'\\mathbf{Z}_i",
+      "+\\ u_i + v_{\\mathrm{case}(i,s,j)} + \\epsilon_{isj}"
+    )
+  ),
+  build_aligned_equation_block(
+    "Bystander-subset H2",
+    "y_{isj,\\mathrm{Obs}}",
+    c(
+      "\\beta_0 + \\beta_1\\,\\mathrm{Empathy}_i + \\eta\\,\\mathrm{Bystander\\text{-}Victim}_{isj}",
+      "+\\ \\boldsymbol{\\kappa}'\\bigl(\\mathrm{Bystander\\text{-}Victim}_{isj}\\times\\mathrm{Bystander\\text{-}N}_{isj}\\bigr) + \\boldsymbol{\\gamma}'\\mathbf{R}_{isj}",
+      "+\\ \\boldsymbol{\\delta}'\\mathbf{Z}_i + u_i + v_{\\mathrm{case}(i,s,j)} + \\epsilon_{isj}"
+    )
+  ),
   "\\subsubsection{Active Empathy-Construct Specification}",
   build_subset_formula_lines(report_h2_spec, "B"),
-  build_model_section("H2", "B", "H2 active model: empathy-construct Tobit coefficients."),
+  build_model_section("H2", "B", "H2 active model: empathy-construct mixed-effects coefficients."),
   "",
-  "\\subsection{H3: Empathy x Judged-Status Moderation}",
-  "This section tests whether empathy slopes differ across judged-negotiator status categories after retaining decision outcome, judged-status x decision terms, counterpart status, and observer-side victim alignment when that predictor is meaningful. As in H1, the victim and bystander subsets use different formulas only where observer-only predictors would otherwise be structurally fixed.",
+  "\\subsection{H3: Empathy x Relational-Status Moderation}",
+  "This section tests whether empathy slopes differ across relational N1/N2 status contrasts within each role-specific model. Victim and bystander subsets keep their own relational blocks; in the bystander subset, the model also retains bystander-victim x bystander-N1/N2 terms and empathy x bystander-victim when identifiable.",
+  build_aligned_equation_block(
+    "Role-specific H3",
+    "y_{isjr}",
+    c(
+      "\\beta_0 + \\beta_1\\,\\mathrm{Empathy}_i + \\beta_2'\\mathbf{G}_{isjr} + \\beta_3'\\bigl(\\mathrm{Empathy}_i\\times\\mathbf{G}_{isjr}\\bigr)",
+      "+\\ \\kappa_1\\bigl(\\mathrm{Bystander\\text{-}Victim}_{isjr}\\times\\mathrm{Bystander\\text{-}N}_{isjr}\\bigr) + \\kappa_2\\bigl(\\mathrm{Empathy}_i\\times\\mathrm{Bystander\\text{-}Victim}_{isjr}\\bigr)",
+      "+\\ \\phi'\\mathbf{C}_{isjr} + \\boldsymbol{\\delta}'\\mathbf{Z}_i + u_i + v_{\\mathrm{case}(i,s,j)} + \\epsilon_{isjr}"
+    )
+  ),
   "\\subsubsection{Active Empathy-Construct Specification}",
   build_subset_formula_lines(report_h3_spec, "B"),
-  build_model_section("H3", "B", "H3 active model: empathy-construct Tobit coefficients."),
+  build_model_section("H3", "B", "H3 active model: empathy-construct mixed-effects coefficients."),
   "",
   "\\section{Discussion and Limitations}",
   paste(get_limitations_narration(), collapse = " "),
   "",
   "\\section{Conclusion}",
-  "Based on the interval-censored Tobit estimations using the four empathy constructs, empathy and relational judgment structure have been documented together under Option 2 through negotiator-level relational predictors rather than descriptive case labels.",
+  "Based on the Tobit-random-intercepts estimations using the four empathy constructs, empathy and relational judgment structure have been documented together under Option 2 through negotiator-level relational predictors rather than descriptive case labels.",
   "\\end{document}"
 )
 
@@ -2032,13 +2322,16 @@ write_text_file(latex_lines, tex_path)
 # Rendering Markdown is temporarily simplified to focus on standardizing the LaTeX/PDF engine.
 md_lines <- c(
   if (report_includes_nonparametric()) {
-    "# Scientific Analysis of Moral Judgments with Tobit and Cluster-Aware Non-Parametric Robustness Checks"
+    "# Scientific Analysis of Moral Judgments with Tobit Random-Intercept Models and Cluster-Aware Non-Parametric Robustness Checks"
   } else {
-    "# Scientific Analysis of Moral Judgments with Tobit Models and Four Empathy Constructs"
+    "# Scientific Analysis of Moral Judgments with Tobit Random-Intercept Models and Four Empathy Constructs"
   },
   "",
   "## Dataset Description",
   paste(get_dataset_narration(paths$dataset_mode), collapse = " "),
+  "",
+  "## Primary Estimator in This Run",
+  "The primary inferential branch is the Tobit slot with random intercepts: each model includes `(1 | id)`, and when `id_case` is identifiable it also includes `(1 | id_case)`.",
   "",
   "## Option 2 Relational Case Configuration",
   paste(
@@ -2052,15 +2345,15 @@ md_lines <- c(
   "## Interpretation of Interaction Terms",
   "The models herein employ several predefined predictors. It is important to note how interaction terms are interpreted in the context of this behavioral experiment:",
   "",
-  "1. **Interaction Subsumption:** When an interaction term is statistically significant, it indicates that the effect of one variable depends on the level of the other. Crucially, if the interaction is significant but the constituent main effects are not explicitly significant, their effects are fully subsumed and contextualized by the interaction.",
-  "2. **Continuous by Discrete Interactions:** For terms like `iri_pt:judged_outgroup`, a negative coefficient implies that the severity of moral judgment (lower score) induced by higher empathy is steeper (magnified) when evaluating an outgroup negotiator relative to the control-labeled baseline. A positive coefficient would mean empathy makes judgments less severe for that outgroup condition.",
-  "3. **Discrete by Discrete Interactions:** For terms like `judged_outgroup:decision_accept`, a positive coefficient implies that the change in moral judgment when moving from rejecting a deal to accepting a deal is more positive (less morally condemned) for an outgroup negotiator than for the control-labeled baseline condition.",
+  "1. Interaction subsumption: when an interaction term is statistically significant, the effect of one variable depends on the other.",
+  "2. Continuous-by-discrete interactions: for terms like `iri_pt:victim_N1_groupOut`, a negative coefficient means the empathy slope is more negative under that outgroup condition than under the control-labeled baseline.",
+  "3. Discrete-by-discrete interactions: for terms like `bystander_N1_groupOut:bystander_N2_groupOut`, a positive coefficient means the joint relational condition is associated with less severe condemnation than expected from the baseline profile.",
   "",
   "## Hypothesis Significance Summary",
   if (report_includes_nonparametric()) {
-    "Only hypothesis-relevant predictors with p < 0.10 are shown below, split into victim and bystander subset tables. Symbols follow the rule `+` for p < 0.10, `*` for p < 0.05, `**` for p < 0.01, and `***` for p < 0.001. If bootstrap is disabled for a run, too few non-parametric bootstrap refits succeed, or the non-parametric fit does not converge, the non-parametric column reports that status explicitly. Dynamic figures are generated only for predictors that appear here with at least one significance symbol."
+    "Only hypothesis-relevant predictors with p < 0.10 are shown below, split into victim and bystander subset tables. Significance symbols follow plus, one-star, two-star, and three-star thresholds. If bootstrap is disabled for a run, too few non-parametric bootstrap refits succeed, or the non-parametric fit does not converge, the non-parametric column reports that status explicitly. Dynamic figures are generated only for predictors that appear here with at least one significance symbol."
   } else {
-    "Only hypothesis-relevant predictors with p < 0.10 in the available Tobit models are shown below, split into victim and bystander subset tables. Symbols follow the rule `+` for p < 0.10, `*` for p < 0.05, `**` for p < 0.01, and `***` for p < 0.001. Dynamic figures are generated only for predictors that appear here with at least one significance symbol."
+    "Only hypothesis-relevant predictors with p < 0.10 in the available Tobit random-intercept models are shown below, split into victim and bystander subset tables. Significance symbols follow plus, one-star, two-star, and three-star thresholds. Dynamic figures are generated only for predictors that appear here with at least one significance symbol."
   },
   build_markdown_hypothesis_significance_tables(hypothesis_significance_summary),
   "",
@@ -2072,12 +2365,12 @@ md_lines <- c(
   if (report_includes_nonparametric()) {
     "Each conclusion below is generated from the current coefficient outputs. Non-parametric statements are interpreted when participant-level cluster-bootstrap inference is available and are otherwise labeled explicitly."
   } else {
-    "Each conclusion below is generated from the current Tobit coefficient outputs."
+    "Each conclusion below is generated from the current Tobit random-intercept coefficient outputs."
   },
   paste0("- ", hypothesis_conclusion_items),
   "",
   "## PDF Comprehensive Report Generated",
-  "Please check `tobit_analysis_report.pdf` in the `outputs/report/` folder for the fully documented Tobit and cluster-aware non-parametric mathematical formulations, the Option 2 relational-variable logic, dual-estimator hypothesis testing, and the algorithmically interpreted natural language coefficients. When the run is dataset-specific, a matching alias such as `tobit_analysis_report_Buca.pdf` is also refreshed.",
+  "Please check `tobit_analysis_report.pdf` in the `outputs/report/` folder for the fully documented Tobit random-intercept and cluster-aware non-parametric mathematical formulations, the Option 2 relational-variable logic, dual-estimator hypothesis testing, and the algorithmically interpreted natural language coefficients. When the run is dataset-specific, a matching alias such as `tobit_analysis_report_Buca.pdf` is also refreshed.",
   ""
 )
 write_text_file(md_lines, file.path(paths$report_dir, "tobit_analysis_report.md"))

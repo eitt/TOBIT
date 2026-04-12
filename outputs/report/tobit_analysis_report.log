@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.3.4)  11 APR 2026 09:04
+This is pdfTeX, Version 3.141592653-2.6-1.40.29 (MiKTeX 26.2) (preloaded format=pdflatex 2026.3.4)  11 APR 2026 22:01
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -442,383 +442,592 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 [1
 
 {C:/Users/LEONA/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}]
-Overfull \hbox (0.78728pt too wide) in paragraph at lines 57--58
-[]\T1/cmtt/m/n/10.95 player_victim_outgroup \T1/cmr/m/n/10.95 [V Out]: Observer
--side player-victim out-group con-trast with player-
+Overfull \hbox (0.20734pt too wide) in paragraph at lines 59--60
+[]\T1/cmtt/m/n/10.95 bystander_victim_groupOut \T1/cmr/m/n/10.95 [B-V Out]: Bys
+tander-victim out-group con-trast with bystander-
+ []
+
+
+Overfull \hbox (20.47763pt too wide) in paragraph at lines 63--64
+[]\T1/cmtt/m/n/10.95 bystander_victim_group*:bystander_N1_group* \T1/cmr/m/n/10
+.95 [B-V x B-N1]: Bystander-victim by bystander-
+ []
+
+
+Overfull \hbox (20.47763pt too wide) in paragraph at lines 64--65
+[]\T1/cmtt/m/n/10.95 bystander_victim_group*:bystander_N2_group* \T1/cmr/m/n/10
+.95 [B-V x B-N2]: Bystander-victim by bystander-
  []
 
 [2]
-Overfull \hbox (18.83034pt too wide) in paragraph at lines 79--80
-[]\T1/cmr/bx/n/10.95 H2 (Negotiator-Side Struc-ture): \T1/cmr/m/n/10.95 Moral j
-udg-ments vary with the joint judged-plus-counterpart
+Overfull \hbox (54.43582pt too wide) in paragraph at lines 79--80
+[]\T1/cmr/bx/n/10.95 Discrete by Dis-crete In-ter-ac-tions: \T1/cmr/m/n/10.95 F
+or terms like \T1/cmtt/m/n/10.95 bystander_N1_groupOut:bystander_N2_groupOut\T1
+/cmr/m/n/10.95 ,
+ []
+
+
+Overfull \hbox (3.42195pt too wide) in paragraph at lines 86--87
+\T1/cmr/m/n/10.95 tus in-di-ca-tors within each role-specific model while re-ta
+in-ing re-la-tional con-trols and participant-
  []
 
 [3]
-Overfull \hbox (71.58398pt too wide) detected at line 100
+Overfull \hbox (161.5842pt too wide) detected at line 102
 \OML/cmm/m/it/10.95 y[] \OT1/cmr/m/n/10.95 = \OML/cmm/m/it/10.95 ^^L[] \OT1/cmr
-/m/n/10.95 + \OML/cmm/m/it/10.95 ^^L[][][] \OT1/cmr/m/n/10.95 + [][]\OML/cmm/m/
-it/10.95 G[] \OT1/cmr/m/n/10.95 + \OML/cmm/m/it/10.95 ^^L[]A[] \OT1/cmr/m/n/10.
-95 + [][](\OML/cmm/m/it/10.95 G[] \OMS/cmsy/m/n/10.95 ^^B \OML/cmm/m/it/10.95 A
-[]\OT1/cmr/m/n/10.95 ) + [][]([][] \OMS/cmsy/m/n/10.95 ^^B \OML/cmm/m/it/10.95 
-G[]\OT1/cmr/m/n/10.95 ) + [][]\OML/cmm/m/it/10.95 C[] \OT1/cmr/m/n/10.95 + \OML
-/cmm/m/it/10.95 ^^O[];  ^^O[] \OMS/cmsy/m/n/10.95 ^^X \OML/cmm/m/it/10.95 N\OT1
-/cmr/m/n/10.95 (0\OML/cmm/m/it/10.95 ; ^^[[]\OT1/cmr/m/n/10.95 )
+/m/n/10.95 + \OML/cmm/m/it/10.95 ^^L[][][] \OT1/cmr/m/n/10.95 + \OML/cmm/m/it/1
+0.95 ^^M[][][] \OT1/cmr/m/n/10.95 + \OML/cmm/m/it/10.95 ^^M[][][] \OT1/cmr/m/n/
+10.95 + \OML/cmm/m/it/10.95 ^^M[]\OT1/cmr/m/n/10.95 ([][] \OMS/cmsy/m/n/10.95 ^
+^B [][]\OT1/cmr/m/n/10.95 ) + \OML/cmm/m/it/10.95 ^^M[][][] \OT1/cmr/m/n/10.95 
++ [][]\OT1/cmr/bx/n/10.95 Z[] \OT1/cmr/m/n/10.95 + \OML/cmm/m/it/10.95 u[] \OT1
+/cmr/m/n/10.95 + \OML/cmm/m/it/10.95 v[] \OT1/cmr/m/n/10.95 + \OML/cmm/m/it/10.
+95 ^^O[]
+ []
+
+
+Overfull \hbox (184.23506pt too wide) detected at line 106
+\OML/cmm/m/it/10.95 y[] \OT1/cmr/m/n/10.95 = \OML/cmm/m/it/10.95 ^^L[] \OT1/cmr
+/m/n/10.95 + \OML/cmm/m/it/10.95 ^^L[][][] \OT1/cmr/m/n/10.95 + \OML/cmm/m/it/1
+0.95 ^^Q[][] \OT1/cmr/m/n/10.95 + [][]([][] \OMS/cmsy/m/n/10.95 ^^B [][]\OT1/cm
+r/m/n/10.95 ) + [][]\OT1/cmr/bx/n/10.95 R[] \OT1/cmr/m/n/10.95 + \OML/cmm/m/it/
+10.95 ^^M[][][] \OT1/cmr/m/n/10.95 + [][]\OT1/cmr/bx/n/10.95 Z[] \OT1/cmr/m/n/1
+0.95 + \OML/cmm/m/it/10.95 u[] \OT1/cmr/m/n/10.95 + \OML/cmm/m/it/10.95 v[] \OT
+1/cmr/m/n/10.95 + \OML/cmm/m/it/10.95 ^^O[]
+ []
+
+
+Overfull \hbox (380.43826pt too wide) detected at line 110
+\OML/cmm/m/it/10.95 y[] \OT1/cmr/m/n/10.95 = \OML/cmm/m/it/10.95 ^^L[] \OT1/cmr
+/m/n/10.95 + \OML/cmm/m/it/10.95 ^^L[][][] \OT1/cmr/m/n/10.95 + [][]\OT1/cmr/bx
+/n/10.95 G[] \OT1/cmr/m/n/10.95 + [][]([][] \OMS/cmsy/m/n/10.95 ^^B \OT1/cmr/bx
+/n/10.95 G[]\OT1/cmr/m/n/10.95 ) + \OML/cmm/m/it/10.95 ^^T[]\OT1/cmr/m/n/10.95 
+([][] \OMS/cmsy/m/n/10.95 ^^B [][]\OT1/cmr/m/n/10.95 ) + \OML/cmm/m/it/10.95 ^^
+T[]\OT1/cmr/m/n/10.95 ([][] \OMS/cmsy/m/n/10.95 ^^B [][]\OT1/cmr/m/n/10.95 ) + 
+\OML/cmm/m/it/10.95 ^^L[][][] \OT1/cmr/m/n/10.95 + [][]\OT1/cmr/bx/n/10.95 Z[] 
+\OT1/cmr/m/n/10.95 + \OML/cmm/m/it/10.95 u[] \OT1/cmr/m/n/10.95 + \OML/cmm/m/it
+/10.95 v[] \OT1/cmr/m/n/10.95 + \OML/cmm/m/it/10.95 ^^O[]
  []
 
 
 Package hyperref Warning: Difference (2) between bookmark levels is greater 
-(hyperref)                than one, level fixed on input line 114.
+(hyperref)                than one, level fixed on input line 120.
 
-<../figures/figure_03_iri_latent_variable_averages.png, id=132, 578.16pt x 361.
+<../figures/figure_03_iri_latent_variable_averages.png, id=135, 578.16pt x 361.
 35pt>
 File: ../figures/figure_03_iri_latent_variable_averages.png Graphic file (type 
 png)
 <use ../figures/figure_03_iri_latent_variable_averages.png>
 Package pdftex.def Info: ../figures/figure_03_iri_latent_variable_averages.png 
- used on input line 134.
+ used on input line 140.
 (pdftex.def)             Requested size: 432.17375pt x 270.10757pt.
 [4]
-<../figures/figure_04_judgment_distributions_by_n1_status.png, id=144, 722.7pt 
+<../figures/figure_04_judgment_distributions_by_n1_status.png, id=147, 722.7pt 
 x 433.62pt>
 File: ../figures/figure_04_judgment_distributions_by_n1_status.png Graphic file
  (type png)
 <use ../figures/figure_04_judgment_distributions_by_n1_status.png>
 Package pdftex.def Info: ../figures/figure_04_judgment_distributions_by_n1_stat
-us.png  used on input line 141.
+us.png  used on input line 147.
 (pdftex.def)             Requested size: 432.17375pt x 259.30724pt.
 <../figures/figure_06_victim_subset_judgment_distributions_across_six_case_conf
-igurations.png, id=145, 722.7pt x 433.62pt>
+igurations.png, id=148, 1084.05pt x 578.16pt>
 File: ../figures/figure_06_victim_subset_judgment_distributions_across_six_case
 _configurations.png Graphic file (type png)
 <use ../figures/figure_06_victim_subset_judgment_distributions_across_six_case_
 configurations.png>
 Package pdftex.def Info: ../figures/figure_06_victim_subset_judgment_distributi
-ons_across_six_case_configurations.png  used on input line 147.
-(pdftex.def)             Requested size: 432.17375pt x 259.30724pt.
+ons_across_six_case_configurations.png  used on input line 153.
+(pdftex.def)             Requested size: 432.17375pt x 230.49239pt.
  [5 <../figures/figure_03_iri_latent_variable_averages.png>]
 <../figures/figure_07_bystander_subset_judgment_distributions_across_six_case_c
-onfigurations.png, id=157, 722.7pt x 433.62pt>
+onfigurations.png, id=161, 1084.05pt x 578.16pt>
 File: ../figures/figure_07_bystander_subset_judgment_distributions_across_six_c
 ase_configurations.png Graphic file (type png)
 <use ../figures/figure_07_bystander_subset_judgment_distributions_across_six_ca
 se_configurations.png>
 Package pdftex.def Info: ../figures/figure_07_bystander_subset_judgment_distrib
-utions_across_six_case_configurations.png  used on input line 153.
-(pdftex.def)             Requested size: 432.17375pt x 259.30724pt.
-<../figures/figure_08_agreement_judgment_distributions_across_six_case_configur
-ations.png, id=158, 578.16pt x 433.62pt>
-File: ../figures/figure_08_agreement_judgment_distributions_across_six_case_con
-figurations.png Graphic file (type png)
-<use ../figures/figure_08_agreement_judgment_distributions_across_six_case_conf
-igurations.png>
-Package pdftex.def Info: ../figures/figure_08_agreement_judgment_distributions_
-across_six_case_configurations.png  used on input line 159.
-(pdftex.def)             Requested size: 432.17375pt x 324.12909pt.
+utions_across_six_case_configurations.png  used on input line 159.
+(pdftex.def)             Requested size: 432.17375pt x 230.49239pt.
+<../figures/figure_08_accepted_harmful_deal_judgment_distributions_across_six_c
+ase_configurations.png, id=162, 1084.05pt x 303.534pt>
+File: ../figures/figure_08_accepted_harmful_deal_judgment_distributions_across_
+six_case_configurations.png Graphic file (type png)
+<use ../figures/figure_08_accepted_harmful_deal_judgment_distributions_across_s
+ix_case_configurations.png>
+Package pdftex.def Info: ../figures/figure_08_accepted_harmful_deal_judgment_di
+stributions_across_six_case_configurations.png  used on input line 165.
+(pdftex.def)             Requested size: 432.17375pt x 121.0085pt.
  [6 <../figures/figure_04_judgment_distributions_by_n1_status.png> <../figures/
 figure_06_victim_subset_judgment_distributions_across_six_case_configurations.p
 ng>]
-<../figures/figure_09_disagreement_judgment_distributions_across_six_case_confi
-gurations.png, id=165, 722.7pt x 433.62pt>
-File: ../figures/figure_09_disagreement_judgment_distributions_across_six_case_
-configurations.png Graphic file (type png)
-<use ../figures/figure_09_disagreement_judgment_distributions_across_six_case_c
-onfigurations.png>
-Package pdftex.def Info: ../figures/figure_09_disagreement_judgment_distributio
-ns_across_six_case_configurations.png  used on input line 165.
-(pdftex.def)             Requested size: 432.17375pt x 259.30724pt.
+<../figures/figure_09_rejected_harmful_deal_judgment_distributions_across_six_c
+ase_configurations.png, id=169, 1084.05pt x 303.534pt>
+File: ../figures/figure_09_rejected_harmful_deal_judgment_distributions_across_
+six_case_configurations.png Graphic file (type png)
+<use ../figures/figure_09_rejected_harmful_deal_judgment_distributions_across_s
+ix_case_configurations.png>
+Package pdftex.def Info: ../figures/figure_09_rejected_harmful_deal_judgment_di
+stributions_across_six_case_configurations.png  used on input line 171.
+(pdftex.def)             Requested size: 432.17375pt x 121.0085pt.
  [7 <../figures/figure_07_bystander_subset_judgment_distributions_across_six_ca
-se_configurations.png>] [8 <../figures/figure_08_agreement_judgment_distributio
-ns_across_six_case_configurations.png>] [9 <../figures/figure_09_disagreement_j
-udgment_distributions_across_six_case_configurations.png>]
-LaTeX Font Info:    Calculating math sizes for size <11> on input line 223.
+se_configurations.png> <../figures/figure_08_accepted_harmful_deal_judgment_dis
+tributions_across_six_case_configurations.png> <../figures/figure_09_rejected_h
+armful_deal_judgment_distributions_across_six_case_configurations.png>]
+<../figures/figure_05_bivariate_scatters_iri_scales_vs_mean_judgment.png, id=17
+9, 867.24pt x 303.534pt>
+File: ../figures/figure_05_bivariate_scatters_iri_scales_vs_mean_judgment.png G
+raphic file (type png)
+<use ../figures/figure_05_bivariate_scatters_iri_scales_vs_mean_judgment.png>
+Package pdftex.def Info: ../figures/figure_05_bivariate_scatters_iri_scales_vs_
+mean_judgment.png  used on input line 199.
+(pdftex.def)             Requested size: 432.17375pt x 151.26178pt.
 
 
-LaTeX Font Warning: Font shape `OT1/cmr/m/n' in size <5.5> not available
-(Font)              size <5> substituted on input line 223.
+Package tabularx Warning: X Columns too narrow (table too wide)
+(tabularx)                 on input line 223.
 
 
-LaTeX Font Warning: Font shape `OML/cmm/m/it' in size <5.5> not available
-(Font)              size <5> substituted on input line 223.
+Overfull \hbox (41.55377pt too wide) in paragraph at lines 223--223
+[]|\T1/cmr/m/n/10.95 Hypothesis|  
+ []
 
 
-LaTeX Font Warning: Font shape `OMS/cmsy/m/n' in size <5.5> not available
-(Font)              size <5> substituted on input line 223.
+Overfull \hbox (2.7171pt too wide) in paragraph at lines 223--223
+[]|\T1/cmr/m/n/10.95 H1|  
+ []
 
 
-LaTeX Font Warning: Font shape `OT1/cmr/bx/n' in size <5.5> not available
-(Font)              size <5> substituted on input line 223.
+Overfull \hbox (2.7171pt too wide) in paragraph at lines 223--223
+[]|\T1/cmr/m/n/10.95 H1|  
+ []
 
-[10]
-<../figures/figure_sig_H1_iri_pt_h1_empathy_perspective_taking.png, id=195, 635
+
+Overfull \hbox (2.7171pt too wide) in paragraph at lines 223--223
+[]|\T1/cmr/m/n/10.95 H2|  
+ []
+
+
+Overfull \hbox (2.7171pt too wide) in paragraph at lines 223--223
+[]|\T1/cmr/m/n/10.95 H2|  
+ []
+
+
+Overfull \hbox (2.7171pt too wide) in paragraph at lines 223--223
+[]|\T1/cmr/m/n/10.95 H3|  
+ []
+
+
+Overfull \hbox (2.7171pt too wide) in paragraph at lines 223--223
+[]|\T1/cmr/m/n/10.95 H3|  
+ []
+
+
+Overfull \hbox (107.71033pt too wide) in alignment at lines 223--223
+[][][][][][][][][] 
+ []
+
+[8 <../figures/figure_05_bivariate_scatters_iri_scales_vs_mean_judgment.png>]
+[9]
+<../figures/figure_sig_H1_iri_pt_h1_empathy_perspective_taking.png, id=197, 635
 .976pt x 448.074pt>
 File: ../figures/figure_sig_H1_iri_pt_h1_empathy_perspective_taking.png Graphic
  file (type png)
 <use ../figures/figure_sig_H1_iri_pt_h1_empathy_perspective_taking.png>
 Package pdftex.def Info: ../figures/figure_sig_H1_iri_pt_h1_empathy_perspective
-_taking.png  used on input line 270.
+_taking.png  used on input line 286.
 (pdftex.def)             Requested size: 432.17375pt x 304.488pt.
-<../figures/figure_sig_H2_h2_negstruct_j_out_c_in_h2_negotiator_side_structure_
-n1_outgroup_n2_ingroup_ref_n1_control_label_hidden_n2_control.png, id=197, 635.
-976pt x 448.074pt>
-File: ../figures/figure_sig_H2_h2_negstruct_j_out_c_in_h2_negotiator_side_struc
-ture_n1_outgroup_n2_ingroup_ref_n1_control_label_hidden_n2_control.png Graphic 
-file (type png)
-<use ../figures/figure_sig_H2_h2_negstruct_j_out_c_in_h2_negotiator_side_struct
-ure_n1_outgroup_n2_ingroup_ref_n1_control_label_hidden_n2_control.png>
-Package pdftex.def Info: ../figures/figure_sig_H2_h2_negstruct_j_out_c_in_h2_ne
-gotiator_side_structure_n1_outgroup_n2_ingroup_ref_n1_control_label_hidden_n2_c
-ontrol.png  used on input line 281.
+ [10]
+<../figures/figure_sig_H2_bystander_victim_groupout_h2_bystander_victim_outgrou
+p_ref_ingroup.png, id=207, 635.976pt x 448.074pt>
+File: ../figures/figure_sig_H2_bystander_victim_groupout_h2_bystander_victim_ou
+tgroup_ref_ingroup.png Graphic file (type png)
+<use ../figures/figure_sig_H2_bystander_victim_groupout_h2_bystander_victim_out
+group_ref_ingroup.png>
+Package pdftex.def Info: ../figures/figure_sig_H2_bystander_victim_groupout_h2_
+bystander_victim_outgroup_ref_ingroup.png  used on input line 297.
 (pdftex.def)             Requested size: 432.17375pt x 304.488pt.
  [11 <../figures/figure_sig_H1_iri_pt_h1_empathy_perspective_taking.png>]
-<../figures/figure_sig_H3_iri_pt_judged_ingroup_h3_empathy_perspective_taking_x
-_n1_ingroup.png, id=208, 635.976pt x 534.798pt>
-File: ../figures/figure_sig_H3_iri_pt_judged_ingroup_h3_empathy_perspective_tak
-ing_x_n1_ingroup.png Graphic file (type png)
-<use ../figures/figure_sig_H3_iri_pt_judged_ingroup_h3_empathy_perspective_taki
-ng_x_n1_ingroup.png>
-Package pdftex.def Info: ../figures/figure_sig_H3_iri_pt_judged_ingroup_h3_empa
-thy_perspective_taking_x_n1_ingroup.png  used on input line 292.
-(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
-
-[12 <../figures/figure_sig_H2_h2_negstruct_j_out_c_in_h2_negotiator_side_struct
-ure_n1_outgroup_n2_ingroup_ref_n1_control_label_hidden_n2_control.png>]
-<../figures/figure_sig_H3_iri_pt_judged_outgroup_h3_empathy_perspective_taking_
-x_n1_outgroup.png, id=217, 635.976pt x 534.798pt>
-File: ../figures/figure_sig_H3_iri_pt_judged_outgroup_h3_empathy_perspective_ta
-king_x_n1_outgroup.png Graphic file (type png)
-<use ../figures/figure_sig_H3_iri_pt_judged_outgroup_h3_empathy_perspective_tak
-ing_x_n1_outgroup.png>
-Package pdftex.def Info: ../figures/figure_sig_H3_iri_pt_judged_outgroup_h3_emp
-athy_perspective_taking_x_n1_outgroup.png  used on input line 301.
-(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
-
-[13 <../figures/figure_sig_H3_iri_pt_judged_ingroup_h3_empathy_perspective_taki
-ng_x_n1_ingroup.png>]
-<../figures/figure_sig_all_judgments_bystander_decision_accept_judgments_bystan
-der_harm_accepted.png, id=226, 635.976pt x 448.074pt>
-File: ../figures/figure_sig_all_judgments_bystander_decision_accept_judgments_b
-ystander_harm_accepted.png Graphic file (type png)
-<use ../figures/figure_sig_all_judgments_bystander_decision_accept_judgments_by
-stander_harm_accepted.png>
-Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_decision
-_accept_judgments_bystander_harm_accepted.png  used on input line 321.
+<../figures/figure_sig_H2_victim_n2_groupin_h2_victim_n2_ingroup_ref_control.pn
+g, id=216, 635.976pt x 448.074pt>
+File: ../figures/figure_sig_H2_victim_n2_groupin_h2_victim_n2_ingroup_ref_contr
+ol.png Graphic file (type png)
+<use ../figures/figure_sig_H2_victim_n2_groupin_h2_victim_n2_ingroup_ref_contro
+l.png>
+Package pdftex.def Info: ../figures/figure_sig_H2_victim_n2_groupin_h2_victim_n
+2_ingroup_ref_control.png  used on input line 306.
 (pdftex.def)             Requested size: 432.17375pt x 304.488pt.
- [14 <../figures/figure_sig_H3_iri_pt_judged_outgroup_h3_empathy_perspective_ta
-king_x_n1_outgroup.png>]
+ [12 <../figures/figure_sig_H2_bystander_victim_groupout_h2_bystander_victim_ou
+tgroup_ref_ingroup.png>]
+Overfull \hbox (2.37755pt too wide) in paragraph at lines 311--312
+[]\T1/cmr/m/n/10.95 Bystander-N2: Out-group (ref = Con-trol) is sta-tis-ti-call
+y sig-nif-i-cant in the To-bit random-intercepts
+ []
+
+<../figures/figure_sig_H2_bystander_n2_groupout_h2_bystander_n2_outgroup_ref_co
+ntrol.png, id=224, 635.976pt x 448.074pt>
+File: ../figures/figure_sig_H2_bystander_n2_groupout_h2_bystander_n2_outgroup_r
+ef_control.png Graphic file (type png)
+<use ../figures/figure_sig_H2_bystander_n2_groupout_h2_bystander_n2_outgroup_re
+f_control.png>
+Package pdftex.def Info: ../figures/figure_sig_H2_bystander_n2_groupout_h2_byst
+ander_n2_outgroup_ref_control.png  used on input line 315.
+(pdftex.def)             Requested size: 432.17375pt x 304.488pt.
+[13 <../figures/figure_sig_H2_victim_n2_groupin_h2_victim_n2_ingroup_ref_contro
+l.png>]
+<../figures/figure_sig_H2_bystander_n2_groupin_h2_bystander_n2_ingroup_ref_cont
+rol.png, id=233, 635.976pt x 448.074pt>
+File: ../figures/figure_sig_H2_bystander_n2_groupin_h2_bystander_n2_ingroup_ref
+_control.png Graphic file (type png)
+<use ../figures/figure_sig_H2_bystander_n2_groupin_h2_bystander_n2_ingroup_ref_
+control.png>
+Package pdftex.def Info: ../figures/figure_sig_H2_bystander_n2_groupin_h2_bysta
+nder_n2_ingroup_ref_control.png  used on input line 324.
+(pdftex.def)             Requested size: 432.17375pt x 304.488pt.
+ [14 <../figures/figure_sig_H2_bystander_n2_groupout_h2_bystander_n2_outgroup_r
+ef_control.png>]
+<../figures/figure_sig_H2_bystander_n1_groupin_bystander_n2_groupin_h2_bystande
+r_n1_ingroup_ref_control_x_bystander_n2_ingroup_ref_control.png, id=241, 635.97
+6pt x 534.798pt>
+File: ../figures/figure_sig_H2_bystander_n1_groupin_bystander_n2_groupin_h2_bys
+tander_n1_ingroup_ref_control_x_bystander_n2_ingroup_ref_control.png Graphic fi
+le (type png)
+<use ../figures/figure_sig_H2_bystander_n1_groupin_bystander_n2_groupin_h2_byst
+ander_n1_ingroup_ref_control_x_bystander_n2_ingroup_ref_control.png>
+Package pdftex.def Info: ../figures/figure_sig_H2_bystander_n1_groupin_bystande
+r_n2_groupin_h2_bystander_n1_ingroup_ref_control_x_bystander_n2_ingroup_ref_con
+trol.png  used on input line 333.
+(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
+ [15 <../figures/figure_sig_H2_bystander_n2_groupin_h2_bystander_n2_ingroup_ref
+_control.png>]
+<../figures/figure_sig_H3_iri_pt_victim_n1_groupout_h3_empathy_perspective_taki
+ng_x_victim_n1_outgroup_ref_control.png, id=249, 635.976pt x 534.798pt>
+File: ../figures/figure_sig_H3_iri_pt_victim_n1_groupout_h3_empathy_perspective
+_taking_x_victim_n1_outgroup_ref_control.png Graphic file (type png)
+<use ../figures/figure_sig_H3_iri_pt_victim_n1_groupout_h3_empathy_perspective_
+taking_x_victim_n1_outgroup_ref_control.png>
+Package pdftex.def Info: ../figures/figure_sig_H3_iri_pt_victim_n1_groupout_h3_
+empathy_perspective_taking_x_victim_n1_outgroup_ref_control.png  used on input 
+line 344.
+(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
+ [16 <../figures/figure_sig_H2_bystander_n1_groupin_bystander_n2_groupin_h2_bys
+tander_n1_ingroup_ref_control_x_bystander_n2_ingroup_ref_control.png>]
+<../figures/figure_sig_H3_iri_ec_victim_n1_groupout_h3_empathy_empathic_concern
+_x_victim_n1_outgroup_ref_control.png, id=258, 635.976pt x 534.798pt>
+File: ../figures/figure_sig_H3_iri_ec_victim_n1_groupout_h3_empathy_empathic_co
+ncern_x_victim_n1_outgroup_ref_control.png Graphic file (type png)
+<use ../figures/figure_sig_H3_iri_ec_victim_n1_groupout_h3_empathy_empathic_con
+cern_x_victim_n1_outgroup_ref_control.png>
+Package pdftex.def Info: ../figures/figure_sig_H3_iri_ec_victim_n1_groupout_h3_
+empathy_empathic_concern_x_victim_n1_outgroup_ref_control.png  used on input li
+ne 353.
+(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
+ [17 <../figures/figure_sig_H3_iri_pt_victim_n1_groupout_h3_empathy_perspective
+_taking_x_victim_n1_outgroup_ref_control.png>]
+<../figures/figure_sig_H3_bystander_n1_groupout_iri_fs_h3_bystander_n1_outgroup
+_ref_control_x_empathy_fantasy_scale.png, id=266, 635.976pt x 534.798pt>
+File: ../figures/figure_sig_H3_bystander_n1_groupout_iri_fs_h3_bystander_n1_out
+group_ref_control_x_empathy_fantasy_scale.png Graphic file (type png)
+<use ../figures/figure_sig_H3_bystander_n1_groupout_iri_fs_h3_bystander_n1_outg
+roup_ref_control_x_empathy_fantasy_scale.png>
+Package pdftex.def Info: ../figures/figure_sig_H3_bystander_n1_groupout_iri_fs_
+h3_bystander_n1_outgroup_ref_control_x_empathy_fantasy_scale.png  used on input
+ line 362.
+(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
+
+[18 <../figures/figure_sig_H3_iri_ec_victim_n1_groupout_h3_empathy_empathic_con
+cern_x_victim_n1_outgroup_ref_control.png>]
+<../figures/figure_sig_H3_bystander_victim_groupout_iri_pd_h3_bystander_victim_
+outgroup_ref_ingroup_x_empathy_personal_distress.png, id=274, 635.976pt x 534.7
+98pt>
+File: ../figures/figure_sig_H3_bystander_victim_groupout_iri_pd_h3_bystander_vi
+ctim_outgroup_ref_ingroup_x_empathy_personal_distress.png Graphic file (type pn
+g)
+<use ../figures/figure_sig_H3_bystander_victim_groupout_iri_pd_h3_bystander_vic
+tim_outgroup_ref_ingroup_x_empathy_personal_distress.png>
+Package pdftex.def Info: ../figures/figure_sig_H3_bystander_victim_groupout_iri
+_pd_h3_bystander_victim_outgroup_ref_ingroup_x_empathy_personal_distress.png  u
+sed on input line 371.
+(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
+ [19 <../figures/figure_sig_H3_bystander_n1_groupout_iri_fs_h3_bystander_n1_out
+group_ref_control_x_empathy_fantasy_scale.png>]
+<../figures/figure_sig_H3_bystander_n2_groupout_iri_pt_h3_bystander_n2_outgroup
+_ref_control_x_empathy_perspective_taking.png, id=283, 635.976pt x 534.798pt>
+File: ../figures/figure_sig_H3_bystander_n2_groupout_iri_pt_h3_bystander_n2_out
+group_ref_control_x_empathy_perspective_taking.png Graphic file (type png)
+<use ../figures/figure_sig_H3_bystander_n2_groupout_iri_pt_h3_bystander_n2_outg
+roup_ref_control_x_empathy_perspective_taking.png>
+Package pdftex.def Info: ../figures/figure_sig_H3_bystander_n2_groupout_iri_pt_
+h3_bystander_n2_outgroup_ref_control_x_empathy_perspective_taking.png  used on 
+input line 380.
+(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
+ [20 <../figures/figure_sig_H3_bystander_victim_groupout_iri_pd_h3_bystander_vi
+ctim_outgroup_ref_ingroup_x_empathy_personal_distress.png>]
 <../figures/figure_sig_all_judgments_bystander_age_judgments_bystander_age.png,
- id=235, 635.976pt x 448.074pt>
+ id=291, 635.976pt x 448.074pt>
 File: ../figures/figure_sig_all_judgments_bystander_age_judgments_bystander_age
 .png Graphic file (type png)
 <use ../figures/figure_sig_all_judgments_bystander_age_judgments_bystander_age.
 png>
 Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_age_judg
-ments_bystander_age.png  used on input line 336.
+ments_bystander_age.png  used on input line 401.
 (pdftex.def)             Requested size: 432.17375pt x 304.488pt.
- [15 <../figures/figure_sig_all_judgments_bystander_decision_accept_judgments_b
-ystander_harm_accepted.png>]
-<../figures/figure_sig_all_judgments_bystander_judged_outgroup_judgments_bystan
-der_n1_outgroup.png, id=243, 635.976pt x 448.074pt>
-File: ../figures/figure_sig_all_judgments_bystander_judged_outgroup_judgments_b
-ystander_n1_outgroup.png Graphic file (type png)
-<use ../figures/figure_sig_all_judgments_bystander_judged_outgroup_judgments_by
-stander_n1_outgroup.png>
-Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_judged_o
-utgroup_judgments_bystander_n1_outgroup.png  used on input line 349.
+ [21 <../figures/figure_sig_H3_bystander_n2_groupout_iri_pt_h3_bystander_n2_out
+group_ref_control_x_empathy_perspective_taking.png>]
+<../figures/figure_sig_all_judgments_bystander_bystander_victim_groupout_judgme
+nts_bystander_bystander_victim_outgroup_ref_ingroup.png, id=299, 635.976pt x 44
+8.074pt>
+File: ../figures/figure_sig_all_judgments_bystander_bystander_victim_groupout_j
+udgments_bystander_bystander_victim_outgroup_ref_ingroup.png Graphic file (type
+ png)
+<use ../figures/figure_sig_all_judgments_bystander_bystander_victim_groupout_ju
+dgments_bystander_bystander_victim_outgroup_ref_ingroup.png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_bystande
+r_victim_groupout_judgments_bystander_bystander_victim_outgroup_ref_ingroup.png
+  used on input line 414.
 (pdftex.def)             Requested size: 432.17375pt x 304.488pt.
-
-[16 <../figures/figure_sig_all_judgments_bystander_age_judgments_bystander_age.
-png>]
-<../figures/figure_sig_all_judgments_bystander_judged_ingroup_judgments_bystand
-er_n1_ingroup.png, id=251, 635.976pt x 448.074pt>
-File: ../figures/figure_sig_all_judgments_bystander_judged_ingroup_judgments_by
-stander_n1_ingroup.png Graphic file (type png)
-<use ../figures/figure_sig_all_judgments_bystander_judged_ingroup_judgments_bys
-tander_n1_ingroup.png>
-Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_judged_i
-ngroup_judgments_bystander_n1_ingroup.png  used on input line 362.
-(pdftex.def)             Requested size: 432.17375pt x 304.488pt.
- [17 <../figures/figure_sig_all_judgments_bystander_judged_outgroup_judgments_b
-ystander_n1_outgroup.png>]
-<../figures/figure_sig_all_judgments_bystander_h2_negstruct_j_out_c_in_judgment
-s_bystander_negotiator_side_structure_n1_outgroup_n2_ingroup_ref_n1_control_lab
-el.png, id=259, 635.976pt x 448.074pt>
-File: ../figures/figure_sig_all_judgments_bystander_h2_negstruct_j_out_c_in_jud
-gments_bystander_negotiator_side_structure_n1_outgroup_n2_ingroup_ref_n1_contro
-l_label.png Graphic file (type png)
-<use ../figures/figure_sig_all_judgments_bystander_h2_negstruct_j_out_c_in_judg
-ments_bystander_negotiator_side_structure_n1_outgroup_n2_ingroup_ref_n1_control
-_label.png>
-Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_h2_negst
-ruct_j_out_c_in_judgments_bystander_negotiator_side_structure_n1_outgroup_n2_in
-group_ref_n1_control_label.png  used on input line 375.
-(pdftex.def)             Requested size: 432.17375pt x 304.488pt.
- [18 <../figures/figure_sig_all_judgments_bystander_judged_ingroup_judgments_by
-stander_n1_ingroup.png>]
-<../figures/figure_sig_all_judgments_bystander_participant_engineering_judgment
-s_bystander_engineering_participant.png, id=267, 635.976pt x 448.074pt>
-File: ../figures/figure_sig_all_judgments_bystander_participant_engineering_jud
-gments_bystander_engineering_participant.png Graphic file (type png)
-<use ../figures/figure_sig_all_judgments_bystander_participant_engineering_judg
-ments_bystander_engineering_participant.png>
-Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_particip
-ant_engineering_judgments_bystander_engineering_participant.png  used on input 
-line 390.
-(pdftex.def)             Requested size: 432.17375pt x 304.488pt.
- [19 <../figures/figure_sig_all_judgments_bystander_h2_negstruct_j_out_c_in_jud
-gments_bystander_negotiator_side_structure_n1_outgroup_n2_ingroup_ref_n1_contro
-l_label.png>]
+ [22 <../figures/figure_sig_all_judgments_bystander_age_judgments_bystander_age
+.png>]
+<../figures/figure_sig_all_judgments_bystander_bystander_n1_groupout_iri_fs_jud
+gments_bystander_bystander_n1_outgroup_ref_control_x_empathy_fantasy_scale.png,
+ id=308, 635.976pt x 534.798pt>
+File: ../figures/figure_sig_all_judgments_bystander_bystander_n1_groupout_iri_f
+s_judgments_bystander_bystander_n1_outgroup_ref_control_x_empathy_fantasy_scale
+.png Graphic file (type png)
+<use ../figures/figure_sig_all_judgments_bystander_bystander_n1_groupout_iri_fs
+_judgments_bystander_bystander_n1_outgroup_ref_control_x_empathy_fantasy_scale.
+png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_bystande
+r_n1_groupout_iri_fs_judgments_bystander_bystander_n1_outgroup_ref_control_x_em
+pathy_fantasy_scale.png  used on input line 427.
+(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
+ [23 <../figures/figure_sig_all_judgments_bystander_bystander_victim_groupout_j
+udgments_bystander_bystander_victim_outgroup_ref_ingroup.png>]
 <../figures/figure_sig_all_judgments_bystander_iri_pt_judgments_bystander_empat
-hy_perspective_taking.png, id=276, 635.976pt x 448.074pt>
+hy_perspective_taking.png, id=316, 635.976pt x 448.074pt>
 File: ../figures/figure_sig_all_judgments_bystander_iri_pt_judgments_bystander_
 empathy_perspective_taking.png Graphic file (type png)
 <use ../figures/figure_sig_all_judgments_bystander_iri_pt_judgments_bystander_e
 mpathy_perspective_taking.png>
 Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_iri_pt_j
-udgments_bystander_empathy_perspective_taking.png  used on input line 403.
+udgments_bystander_empathy_perspective_taking.png  used on input line 440.
 (pdftex.def)             Requested size: 432.17375pt x 304.488pt.
- [20 <../figures/figure_sig_all_judgments_bystander_participant_engineering_jud
-gments_bystander_engineering_participant.png>]
-<../figures/figure_sig_all_judgments_victim_decision_accept_judgments_victim_ha
-rm_accepted.png, id=284, 635.976pt x 448.074pt>
-File: ../figures/figure_sig_all_judgments_victim_decision_accept_judgments_vict
-im_harm_accepted.png Graphic file (type png)
-<use ../figures/figure_sig_all_judgments_victim_decision_accept_judgments_victi
-m_harm_accepted.png>
-Package pdftex.def Info: ../figures/figure_sig_all_judgments_victim_decision_ac
-cept_judgments_victim_harm_accepted.png  used on input line 419.
+ [24 <../figures/figure_sig_all_judgments_bystander_bystander_n1_groupout_iri_f
+s_judgments_bystander_bystander_n1_outgroup_ref_control_x_empathy_fantasy_scale
+.png>]
+<../figures/figure_sig_all_judgments_bystander_bystander_n2_groupin_judgments_b
+ystander_bystander_n2_ingroup_ref_control.png, id=324, 635.976pt x 448.074pt>
+File: ../figures/figure_sig_all_judgments_bystander_bystander_n2_groupin_judgme
+nts_bystander_bystander_n2_ingroup_ref_control.png Graphic file (type png)
+<use ../figures/figure_sig_all_judgments_bystander_bystander_n2_groupin_judgmen
+ts_bystander_bystander_n2_ingroup_ref_control.png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_bystande
+r_n2_groupin_judgments_bystander_bystander_n2_ingroup_ref_control.png  used on 
+input line 454.
 (pdftex.def)             Requested size: 432.17375pt x 304.488pt.
- [21 <../figures/figure_sig_all_judgments_bystander_iri_pt_judgments_bystander_
+ [25 <../figures/figure_sig_all_judgments_bystander_iri_pt_judgments_bystander_
 empathy_perspective_taking.png>]
+<../figures/figure_sig_all_judgments_bystander_bystander_n1_groupin_judgments_b
+ystander_bystander_n1_ingroup_ref_control.png, id=333, 635.976pt x 448.074pt>
+File: ../figures/figure_sig_all_judgments_bystander_bystander_n1_groupin_judgme
+nts_bystander_bystander_n1_ingroup_ref_control.png Graphic file (type png)
+<use ../figures/figure_sig_all_judgments_bystander_bystander_n1_groupin_judgmen
+ts_bystander_bystander_n1_ingroup_ref_control.png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_bystande
+r_n1_groupin_judgments_bystander_bystander_n1_ingroup_ref_control.png  used on 
+input line 468.
+(pdftex.def)             Requested size: 432.17375pt x 304.488pt.
+ [26 <../figures/figure_sig_all_judgments_bystander_bystander_n2_groupin_judgme
+nts_bystander_bystander_n2_ingroup_ref_control.png>]
+<../figures/figure_sig_all_judgments_bystander_victim_n2_groupin_judgments_byst
+ander_victim_n2_ingroup_ref_control.png, id=341, 635.976pt x 448.074pt>
+File: ../figures/figure_sig_all_judgments_bystander_victim_n2_groupin_judgments
+_bystander_victim_n2_ingroup_ref_control.png Graphic file (type png)
+<use ../figures/figure_sig_all_judgments_bystander_victim_n2_groupin_judgments_
+bystander_victim_n2_ingroup_ref_control.png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_victim_n
+2_groupin_judgments_bystander_victim_n2_ingroup_ref_control.png  used on input 
+line 482.
+(pdftex.def)             Requested size: 432.17375pt x 304.488pt.
+ [27 <../figures/figure_sig_all_judgments_bystander_bystander_n1_groupin_judgme
+nts_bystander_bystander_n1_ingroup_ref_control.png>]
+<../figures/figure_sig_all_judgments_bystander_bystander_victim_groupout_iri_pd
+_judgments_bystander_bystander_victim_outgroup_ref_ingroup_x_empathy_personal_d
+istress.png, id=349, 635.976pt x 534.798pt>
+File: ../figures/figure_sig_all_judgments_bystander_bystander_victim_groupout_i
+ri_pd_judgments_bystander_bystander_victim_outgroup_ref_ingroup_x_empathy_perso
+nal_distress.png Graphic file (type png)
+<use ../figures/figure_sig_all_judgments_bystander_bystander_victim_groupout_ir
+i_pd_judgments_bystander_bystander_victim_outgroup_ref_ingroup_x_empathy_person
+al_distress.png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_bystande
+r_victim_groupout_iri_pd_judgments_bystander_bystander_victim_outgroup_ref_ingr
+oup_x_empathy_personal_distress.png  used on input line 495.
+(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
+ [28 <../figures/figure_sig_all_judgments_bystander_victim_n2_groupin_judgments
+_bystander_victim_n2_ingroup_ref_control.png>]
+<../figures/figure_sig_all_judgments_bystander_bystander_n2_groupout_judgments_
+bystander_bystander_n2_outgroup_ref_control.png, id=357, 635.976pt x 448.074pt>
+
+File: ../figures/figure_sig_all_judgments_bystander_bystander_n2_groupout_judgm
+ents_bystander_bystander_n2_outgroup_ref_control.png Graphic file (type png)
+<use ../figures/figure_sig_all_judgments_bystander_bystander_n2_groupout_judgme
+nts_bystander_bystander_n2_outgroup_ref_control.png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_bystande
+r_n2_groupout_judgments_bystander_bystander_n2_outgroup_ref_control.png  used o
+n input line 509.
+(pdftex.def)             Requested size: 432.17375pt x 304.488pt.
+ [29 <../figures/figure_sig_all_judgments_bystander_bystander_victim_groupout_i
+ri_pd_judgments_bystander_bystander_victim_outgroup_ref_ingroup_x_empathy_perso
+nal_distress.png>]
+<../figures/figure_sig_all_judgments_bystander_bystander_n2_groupout_iri_pt_jud
+gments_bystander_bystander_n2_outgroup_ref_control_x_empathy_perspective_taking
+.png, id=365, 635.976pt x 534.798pt>
+File: ../figures/figure_sig_all_judgments_bystander_bystander_n2_groupout_iri_p
+t_judgments_bystander_bystander_n2_outgroup_ref_control_x_empathy_perspective_t
+aking.png Graphic file (type png)
+<use ../figures/figure_sig_all_judgments_bystander_bystander_n2_groupout_iri_pt
+_judgments_bystander_bystander_n2_outgroup_ref_control_x_empathy_perspective_ta
+king.png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_bystande
+r_n2_groupout_iri_pt_judgments_bystander_bystander_n2_outgroup_ref_control_x_em
+pathy_perspective_taking.png  used on input line 522.
+(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
+ [30 <../figures/figure_sig_all_judgments_bystander_bystander_n2_groupout_judgm
+ents_bystander_bystander_n2_outgroup_ref_control.png>]
+<../figures/figure_sig_all_judgments_bystander_bystander_n1_groupout_bystander_
+n2_groupin_judgments_bystander_bystander_n1_outgroup_ref_control_x_bystander_n2
+_ingroup_ref_control.png, id=373, 635.976pt x 534.798pt>
+File: ../figures/figure_sig_all_judgments_bystander_bystander_n1_groupout_bysta
+nder_n2_groupin_judgments_bystander_bystander_n1_outgroup_ref_control_x_bystand
+er_n2_ingroup_ref_control.png Graphic file (type png)
+<use ../figures/figure_sig_all_judgments_bystander_bystander_n1_groupout_bystan
+der_n2_groupin_judgments_bystander_bystander_n1_outgroup_ref_control_x_bystande
+r_n2_ingroup_ref_control.png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_bystande
+r_n1_groupout_bystander_n2_groupin_judgments_bystander_bystander_n1_outgroup_re
+f_control_x_bystander_n2_ingroup_ref_control.png  used on input line 535.
+(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
+ [31 <../figures/figure_sig_all_judgments_bystander_bystander_n2_groupout_iri_p
+t_judgments_bystander_bystander_n2_outgroup_ref_control_x_empathy_perspective_t
+aking.png>]
+<../figures/figure_sig_all_judgments_bystander_bystander_n1_groupout_judgments_
+bystander_bystander_n1_outgroup_ref_control.png, id=382, 635.976pt x 448.074pt>
+
+File: ../figures/figure_sig_all_judgments_bystander_bystander_n1_groupout_judgm
+ents_bystander_bystander_n1_outgroup_ref_control.png Graphic file (type png)
+<use ../figures/figure_sig_all_judgments_bystander_bystander_n1_groupout_judgme
+nts_bystander_bystander_n1_outgroup_ref_control.png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_bystande
+r_n1_groupout_judgments_bystander_bystander_n1_outgroup_ref_control.png  used o
+n input line 548.
+(pdftex.def)             Requested size: 432.17375pt x 304.488pt.
+ [32 <../figures/figure_sig_all_judgments_bystander_bystander_n1_groupout_bysta
+nder_n2_groupin_judgments_bystander_bystander_n1_outgroup_ref_control_x_bystand
+er_n2_ingroup_ref_control.png>]
+<../figures/figure_sig_all_judgments_bystander_bystander_n1_groupin_bystander_n
+2_groupin_judgments_bystander_bystander_n1_ingroup_ref_control_x_bystander_n2_i
+ngroup_ref_control.png, id=390, 635.976pt x 534.798pt>
+File: ../figures/figure_sig_all_judgments_bystander_bystander_n1_groupin_bystan
+der_n2_groupin_judgments_bystander_bystander_n1_ingroup_ref_control_x_bystander
+_n2_ingroup_ref_control.png Graphic file (type png)
+<use ../figures/figure_sig_all_judgments_bystander_bystander_n1_groupin_bystand
+er_n2_groupin_judgments_bystander_bystander_n1_ingroup_ref_control_x_bystander_
+n2_ingroup_ref_control.png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_bystander_bystande
+r_n1_groupin_bystander_n2_groupin_judgments_bystander_bystander_n1_ingroup_ref_
+control_x_bystander_n2_ingroup_ref_control.png  used on input line 561.
+(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
+ [33 <../figures/figure_sig_all_judgments_bystander_bystander_n1_groupout_judgm
+ents_bystander_bystander_n1_outgroup_ref_control.png>]
+<../figures/figure_sig_all_judgments_victim_iri_pt_victim_n1_groupout_judgments
+_victim_empathy_perspective_taking_x_victim_n1_outgroup_ref_control.png, id=398
+, 635.976pt x 534.798pt>
+File: ../figures/figure_sig_all_judgments_victim_iri_pt_victim_n1_groupout_judg
+ments_victim_empathy_perspective_taking_x_victim_n1_outgroup_ref_control.png Gr
+aphic file (type png)
+<use ../figures/figure_sig_all_judgments_victim_iri_pt_victim_n1_groupout_judgm
+ents_victim_empathy_perspective_taking_x_victim_n1_outgroup_ref_control.png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_victim_iri_pt_vict
+im_n1_groupout_judgments_victim_empathy_perspective_taking_x_victim_n1_outgroup
+_ref_control.png  used on input line 576.
+(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
+
+[34 <../figures/figure_sig_all_judgments_bystander_bystander_n1_groupin_bystand
+er_n2_groupin_judgments_bystander_bystander_n1_ingroup_ref_control_x_bystander_
+n2_ingroup_ref_control.png>]
 <../figures/figure_sig_all_judgments_victim_iri_pt_judgments_victim_empathy_per
-spective_taking.png, id=293, 635.976pt x 448.074pt>
+spective_taking.png, id=407, 635.976pt x 448.074pt>
 File: ../figures/figure_sig_all_judgments_victim_iri_pt_judgments_victim_empath
 y_perspective_taking.png Graphic file (type png)
 <use ../figures/figure_sig_all_judgments_victim_iri_pt_judgments_victim_empathy
 _perspective_taking.png>
 Package pdftex.def Info: ../figures/figure_sig_all_judgments_victim_iri_pt_judg
-ments_victim_empathy_perspective_taking.png  used on input line 433.
+ments_victim_empathy_perspective_taking.png  used on input line 590.
 (pdftex.def)             Requested size: 432.17375pt x 304.488pt.
- [22 <../figures/figure_sig_all_judgments_victim_decision_accept_judgments_vict
-im_harm_accepted.png>]
-<../figures/figure_sig_all_judgments_victim_iri_pt_judged_ingroup_judgments_vic
-tim_empathy_perspective_taking_x_n1_ingroup.png, id=301, 635.976pt x 534.798pt>
-
-File: ../figures/figure_sig_all_judgments_victim_iri_pt_judged_ingroup_judgment
-s_victim_empathy_perspective_taking_x_n1_ingroup.png Graphic file (type png)
-<use ../figures/figure_sig_all_judgments_victim_iri_pt_judged_ingroup_judgments
-_victim_empathy_perspective_taking_x_n1_ingroup.png>
-Package pdftex.def Info: ../figures/figure_sig_all_judgments_victim_iri_pt_judg
-ed_ingroup_judgments_victim_empathy_perspective_taking_x_n1_ingroup.png  used o
-n input line 446.
+ [35 <../figures/figure_sig_all_judgments_victim_iri_pt_victim_n1_groupout_judg
+ments_victim_empathy_perspective_taking_x_victim_n1_outgroup_ref_control.png>]
+<../figures/figure_sig_all_judgments_victim_iri_ec_victim_n1_groupout_judgments
+_victim_empathy_empathic_concern_x_victim_n1_outgroup_ref_control.png, id=415, 
+635.976pt x 534.798pt>
+File: ../figures/figure_sig_all_judgments_victim_iri_ec_victim_n1_groupout_judg
+ments_victim_empathy_empathic_concern_x_victim_n1_outgroup_ref_control.png Grap
+hic file (type png)
+<use ../figures/figure_sig_all_judgments_victim_iri_ec_victim_n1_groupout_judgm
+ents_victim_empathy_empathic_concern_x_victim_n1_outgroup_ref_control.png>
+Package pdftex.def Info: ../figures/figure_sig_all_judgments_victim_iri_ec_vict
+im_n1_groupout_judgments_victim_empathy_empathic_concern_x_victim_n1_outgroup_r
+ef_control.png  used on input line 603.
 (pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
- [23 <../figures/figure_sig_all_judgments_victim_iri_pt_judgments_victim_empath
+ [36 <../figures/figure_sig_all_judgments_victim_iri_pt_judgments_victim_empath
 y_perspective_taking.png>]
-<../figures/figure_sig_all_judgments_victim_iri_pt_judged_outgroup_judgments_vi
-ctim_empathy_perspective_taking_x_n1_outgroup.png, id=309, 635.976pt x 534.798p
-t>
-File: ../figures/figure_sig_all_judgments_victim_iri_pt_judged_outgroup_judgmen
-ts_victim_empathy_perspective_taking_x_n1_outgroup.png Graphic file (type png)
-<use ../figures/figure_sig_all_judgments_victim_iri_pt_judged_outgroup_judgment
-s_victim_empathy_perspective_taking_x_n1_outgroup.png>
-Package pdftex.def Info: ../figures/figure_sig_all_judgments_victim_iri_pt_judg
-ed_outgroup_judgments_victim_empathy_perspective_taking_x_n1_outgroup.png  used
- on input line 459.
-(pdftex.def)             Requested size: 432.17375pt x 363.42117pt.
- [24 <../figures/figure_sig_all_judgments_victim_iri_pt_judged_ingroup_judgment
-s_victim_empathy_perspective_taking_x_n1_ingroup.png>]
 <../figures/figure_sig_all_judgments_victim_participant_engineering_judgments_v
-ictim_engineering_participant.png, id=317, 635.976pt x 448.074pt>
+ictim_engineering_participant.png, id=423, 635.976pt x 448.074pt>
 File: ../figures/figure_sig_all_judgments_victim_participant_engineering_judgme
 nts_victim_engineering_participant.png Graphic file (type png)
 <use ../figures/figure_sig_all_judgments_victim_participant_engineering_judgmen
 ts_victim_engineering_participant.png>
 Package pdftex.def Info: ../figures/figure_sig_all_judgments_victim_participant
-_engineering_judgments_victim_engineering_participant.png  used on input line 4
-72.
+_engineering_judgments_victim_engineering_participant.png  used on input line 6
+18.
 (pdftex.def)             Requested size: 432.17375pt x 304.488pt.
- [25 <../figures/figure_sig_all_judgments_victim_iri_pt_judged_outgroup_judgmen
-ts_victim_empathy_perspective_taking_x_n1_outgroup.png>] [26 <../figures/figure
-_sig_all_judgments_victim_participant_engineering_judgments_victim_engineering_
-participant.png>] [27] [28] [29] [30] [31]
-Overfull \hbox (44.43846pt too wide) in paragraph at lines 602--603
-\T1/cmr/m/n/10 textasciitilde iri_fs + iri_ec + iri_pt + iri_pd + h2_negstruct_
-j_in_c_in + h2_negstruct_j_out_c_in
+ [37 <../figures/figure_sig_all_judgments_victim_iri_ec_victim_n1_groupout_judg
+ments_victim_empathy_empathic_concern_x_victim_n1_outgroup_ref_control.png>] [3
+8 <../figures/figure_sig_all_judgments_victim_participant_engineering_judgments
+_victim_engineering_participant.png>] [39]
+Overfull \hbox (69.98845pt too wide) detected at line 647
+[][]
  []
 
 
-Overfull \hbox (5.1425pt too wide) in paragraph at lines 602--603
-\T1/cmr/m/n/10 + h2_negstruct_j_cont_c_out + h2_negstruct_j_in_c_cont + h2_negs
-truct_j_out_c_cont
+Overfull \hbox (78.46022pt too wide) detected at line 656
+[][]
  []
 
-[32]
-Overfull \hbox (44.43846pt too wide) in paragraph at lines 604--605
-\T1/cmr/m/n/10 textasciitilde iri_fs + iri_ec + iri_pt + iri_pd + h2_negstruct_
-j_in_c_in + h2_negstruct_j_out_c_in
- []
-
-
-Overfull \hbox (5.1425pt too wide) in paragraph at lines 604--605
-\T1/cmr/m/n/10 + h2_negstruct_j_cont_c_out + h2_negstruct_j_in_c_cont + h2_negs
-truct_j_out_c_cont
+[40] [41] [42] [43] [44]
+Overfull \hbox (127.26076pt too wide) detected at line 783
+[][]
  []
 
 
-Overfull \hbox (186.29271pt too wide) in paragraph at lines 604--605
-\T1/cmr/m/n/10 + player_victim_outgroup + player_victim_outgroup:h2_negstruct_j
-_in_c_in + player_victim_outgroup:h2_negstruct_j_out_c_in
+Overfull \hbox (480.50719pt too wide) detected at line 792
+[][]
  []
 
-
-Overfull \hbox (75.4309pt too wide) in paragraph at lines 604--605
-\T1/cmr/m/n/10 + player_victim_outgroup:h2_negstruct_j_cont_c_in + player_victi
-m_outgroup:h2_negstruct_j_in_c_out
+[45] [46] [47] [48] [49] [50] [51]
+Overfull \hbox (176.88289pt too wide) detected at line 922
+[][]
  []
 
-
-Overfull \hbox (87.65013pt too wide) in paragraph at lines 604--605
-\T1/cmr/m/n/10 + player_victim_outgroup:h2_negstruct_j_out_c_out + player_victi
-m_outgroup:h2_negstruct_j_cont_c_out
+[52]
+Overfull \hbox (446.80666pt too wide) detected at line 935
+[][]
  []
 
-
-Overfull \hbox (85.70616pt too wide) in paragraph at lines 604--605
-\T1/cmr/m/n/10 + player_victim_outgroup:h2_negstruct_j_in_c_cont + player_victi
-m_outgroup:h2_negstruct_j_out_c_cont
- []
-
-[33] [34] [35] [36] [37] [38] [39]
-Overfull \hbox (64.10033pt too wide) in paragraph at lines 722--723
-\T1/cmr/m/n/10 sion_accept + de-ci-sion_accept:judged_ingroup + de-ci-sion_acce
-pt:judged_outgroup + iri_fs:judged_ingroup
- []
+[53] [54] [55] [56] [57] [58] [59]
+Overfull \vbox (41.80489pt too high) has occurred while \output is active []
 
 
-Overfull \hbox (35.71837pt too wide) in paragraph at lines 722--723
-\T1/cmr/m/n/10 + iri_ec:judged_ingroup + iri_pt:judged_ingroup + iri_pd:judged_
-ingroup + iri_fs:judged_outgroup
- []
-
-
-Overfull \hbox (64.10033pt too wide) in paragraph at lines 724--725
-\T1/cmr/m/n/10 sion_accept + de-ci-sion_accept:judged_ingroup + de-ci-sion_acce
-pt:judged_outgroup + iri_fs:judged_ingroup
- []
-
-
-Overfull \hbox (35.71837pt too wide) in paragraph at lines 724--725
-\T1/cmr/m/n/10 + iri_ec:judged_ingroup + iri_pt:judged_ingroup + iri_pd:judged_
-ingroup + iri_fs:judged_outgroup
- []
-
-
-Overfull \hbox (3.28185pt too wide) in paragraph at lines 724--725
-\T1/cmr/m/n/10 part_ingroup + coun-ter-part_outgroup + ob-server_victim_outgrou
-p + par-tic-i-pant_engineering
- []
-
-[40] [41] [42] [43] [44] [45] [46] [47] [48] [49]
-(tobit_analysis_report_build.aux)
+[60] [61] [62] [63] [64] [65] [66] [67] (tobit_analysis_report_build.aux)
  ***********
 LaTeX2e <2025-11-01>
 L3 programming layer <2026-01-19>
@@ -830,41 +1039,41 @@ LaTeX Font Warning: Size substitutions with differences
 
 Package rerunfilecheck Info: File `tobit_analysis_report_build.out' has not cha
 nged.
-(rerunfilecheck)             Checksum: 2AFE11CC9C8C5B12B7615433696F9EB9;5121.
+(rerunfilecheck)             Checksum: 425452BB46C755AA7B5FC665A86F3ABA;5355.
  ) 
 Here is how much of TeX's memory you used:
- 11030 strings out of 467867
- 181403 string characters out of 5418335
- 613532 words of memory out of 5000000
- 39636 multiletter control sequences out of 15000+600000
- 649403 words of font info for 98 fonts, out of 8000000 for 9000
+ 11170 strings out of 467867
+ 195818 string characters out of 5418335
+ 667408 words of memory out of 5000000
+ 39744 multiletter control sequences out of 15000+600000
+ 649266 words of font info for 99 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,14n,79p,15691b,554s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,14n,79p,26477b,522s stack positions out of 10000i,1000n,20000p,200000b,200000s
  <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm
-1000.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi60
-0\ecrm0900.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec
-/dpi600\ecti0900.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour/jknap
-pen/ec/dpi600\ecti1095.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour
-/jknappen/ec/dpi600\ecbx1095.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/
-ljfour/jknappen/ec/dpi600\ectt1095.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fon
-ts/pk/ljfour/jknappen/ec/dpi600\tcrm1095.pk> <C:\Users\LEONA\AppData\Local\MiKT
-eX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1200.pk> <C:\Users\LEONA\AppData\Loca
-l\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1095.pk> <C:\Users\LEONA\AppDat
-a\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1440.pk> <C:\Users\LEONA\
-AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1200.pk> <C:\Users\
-LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1728.pk><C:/U
-sers/LEONA/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx10.
-pfb><C:/Users/LEONA/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/c
-m/cmmi10.pfb><C:/Users/LEONA/AppData/Local/Programs/MiKTeX/fonts/type1/public/a
-msfonts/cm/cmmi8.pfb><C:/Users/LEONA/AppData/Local/Programs/MiKTeX/fonts/type1/
-public/amsfonts/cm/cmmib10.pfb><C:/Users/LEONA/AppData/Local/Programs/MiKTeX/fo
-nts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/LEONA/AppData/Local/Programs/M
-iKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/LEONA/AppData/Local/Pro
-grams/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/LEONA/AppData/
-Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy8.pfb>
-Output written on tobit_analysis_report_build.pdf (49 pages, 799358 bytes).
+0900.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi60
+0\ecti0900.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec
+/dpi600\ecti1095.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour/jknap
+pen/ec/dpi600\ecbx1095.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/ljfour
+/jknappen/ec/dpi600\ectt1095.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fonts/pk/
+ljfour/jknappen/ec/dpi600\tcrm1095.pk> <C:\Users\LEONA\AppData\Local\MiKTeX\fon
+ts/pk/ljfour/jknappen/ec/dpi600\ecbx1200.pk> <C:\Users\LEONA\AppData\Local\MiKT
+eX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1095.pk> <C:\Users\LEONA\AppData\Loca
+l\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecbx1440.pk> <C:\Users\LEONA\AppDat
+a\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1200.pk> <C:\Users\LEONA\
+AppData\Local\MiKTeX\fonts/pk/ljfour/jknappen/ec/dpi600\ecrm1728.pk><C:/Users/L
+EONA/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmbx10.pfb><C
+:/Users/LEONA/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmex
+10.pfb><C:/Users/LEONA/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfont
+s/cm/cmmi10.pfb><C:/Users/LEONA/AppData/Local/Programs/MiKTeX/fonts/type1/publi
+c/amsfonts/cm/cmmi8.pfb><C:/Users/LEONA/AppData/Local/Programs/MiKTeX/fonts/typ
+e1/public/amsfonts/cm/cmmib10.pfb><C:/Users/LEONA/AppData/Local/Programs/MiKTeX
+/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Users/LEONA/AppData/Local/Program
+s/MiKTeX/fonts/type1/public/amsfonts/cm/cmr8.pfb><C:/Users/LEONA/AppData/Local/
+Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/LEONA/AppDa
+ta/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy8.pfb>
+Output written on tobit_analysis_report_build.pdf (67 pages, 1276369 bytes).
 PDF statistics:
- 954 PDF objects out of 1000 (max. 8388607)
- 129 named destinations out of 1000 (max. 500000)
- 303 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 1072 PDF objects out of 1200 (max. 8388607)
+ 161 named destinations out of 1000 (max. 500000)
+ 376 words of extra memory for PDF output out of 10000 (max. 10000000)
 

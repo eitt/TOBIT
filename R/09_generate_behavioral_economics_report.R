@@ -174,6 +174,93 @@ build_markdown_table_block <- function(df, note = NULL, digits = 3L) {
   c(block, "")
 }
 
+build_markdown_aligned_equation <- function(lhs, rhs_lines) {
+  continuation <- if (length(rhs_lines) > 1L) {
+    paste0("&\\quad ", rhs_lines[-1], collapse = " \\\\\n")
+  } else {
+    NULL
+  }
+  c(
+    "$$",
+    "\\begin{aligned}",
+    paste0(lhs, " &= ", rhs_lines[1], if (length(rhs_lines) > 1L) " \\\\" else ""),
+    continuation,
+    "\\end{aligned}",
+    "$$",
+    ""
+  )
+}
+
+get_behavioral_abbreviation_note <- function(text_values) {
+  text_blob <- paste(text_values, collapse = " | ")
+  specs <- list(
+    list(pattern = "\\bFS\\b|Fantasy", text = "FS = fantasy"),
+    list(pattern = "\\bEC\\b|Empathic", text = "EC = empathic concern"),
+    list(pattern = "\\bPT\\b|Perspective", text = "PT = perspective taking"),
+    list(pattern = "\\bPD\\b|Personal distress", text = "PD = personal distress"),
+    list(pattern = "\\bN1\\b|V-N1|B-N1", text = "N1 = judged negotiator"),
+    list(pattern = "\\bN2\\b|V-N2|B-N2", text = "N2 = counterpart negotiator"),
+    list(pattern = "\\bB-V\\b|Bystander-victim", text = "B-V = bystander-victim relation"),
+    list(pattern = "\\bV-N1\\b|Victim-N1", text = "V-N1 = victim-negotiator 1 relation"),
+    list(pattern = "\\bV-N2\\b|Victim-N2", text = "V-N2 = victim-negotiator 2 relation"),
+    list(pattern = "\\bB-N1\\b|Bystander-N1", text = "B-N1 = bystander-negotiator 1 relation"),
+    list(pattern = "\\bB-N2\\b|Bystander-N2", text = "B-N2 = bystander-negotiator 2 relation"),
+    list(pattern = "Ingroup|Outgroup|Control|\\bCtl\\b", text = "In / Out / Ctl = ingroup / outgroup / control label hidden")
+  )
+  matched <- vapply(
+    Filter(function(spec) grepl(spec$pattern, text_blob, perl = TRUE, ignore.case = TRUE), specs),
+    `[[`,
+    character(1),
+    "text"
+  )
+  paste(unique(matched), collapse = "; ")
+}
+
+summarize_behavioral_predictors <- function(rows, max_terms = 5L) {
+  if (is.null(rows) || nrow(rows) == 0L) return("No focal predictors reached the reporting threshold.")
+  predictors <- unique(rows$label_short)
+  if (length(predictors) <= max_terms) {
+    return(paste0("Displayed predictors: ", paste(predictors, collapse = ", "), "."))
+  }
+  paste0(
+    "Displayed predictors include ",
+    paste(predictors[seq_len(max_terms)], collapse = ", "),
+    ", and ",
+    length(predictors) - max_terms,
+    " additional terms."
+  )
+}
+
+build_behavioral_result_note <- function(rows, focus_text) {
+  if (is.null(rows) || nrow(rows) == 0L) {
+    return(paste(focus_text, "No focal estimates reached the reporting threshold in this table."))
+  }
+  subsets <- paste(unique(rows$subset_role), collapse = ", ")
+  models <- paste(unique(rows$model_suffix), collapse = ", ")
+  abbreviation_note <- get_behavioral_abbreviation_note(unique(rows$label_short))
+  paste(
+    c(
+      focus_text,
+      paste0("Subset(s) shown: ", subsets, "."),
+      paste0("Model suffix(es) shown: ", models, "."),
+      summarize_behavioral_predictors(rows),
+      if (nzchar(abbreviation_note)) paste0("Abbrev.: ", abbreviation_note, ".") else NULL
+    ),
+    collapse = " "
+  )
+}
+
+build_behavioral_sample_note <- function(sample_table) {
+  if (is.null(sample_table) || nrow(sample_table) == 0L) {
+    return("Sample summary unavailable.")
+  }
+  paste0(
+    "Displayed samples: ",
+    paste(sample_table$Sample, collapse = ", "),
+    ". Each scenario contributes two judgment observations per participant, one per negotiator. Outcome bounds are the observed censoring points used by the Tobit estimator."
+  )
+}
+
 build_figure_markdown <- function(file_name, caption, width = "6.7in") {
   figure_path <- file.path("../figures", file_name)
   c(
@@ -580,25 +667,54 @@ md_lines <- c(
     format_count_value(bystander_participant_n)
   ),
   "",
-  "To respect journal space constraints, the report uses four compact tables and five figures, with a fifth table added only when the non-parametric robustness branch is enabled. The figure plan prioritizes the two six-panel descriptive subset figures plus one focal figure each for H1, H2, and H3, selected from the dynamic figure catalog by the lowest Tobit p-value among focal predictors. The table plan prioritizes one design table and one compact results table for each hypothesis family.",
+  "To respect journal space constraints, the report uses four compact tables and five figures, with a fifth table added only when the non-parametric robustness branch is enabled. The figure plan prioritizes the two role-specific descriptive figures, each split into accepted-versus-rejected rows across the six explicit case configurations, plus one focal figure each for H1, H2, and H3, selected from the dynamic figure catalog by the lowest Tobit p-value among focal predictors. The table plan prioritizes one design table and one compact results table for each hypothesis family.",
   "",
   "The bounded outcome is observed judgment severity on the original -9 to 9 scale. The main estimator is a Tobit model with censoring at the observed bounds and cluster-robust inference by participant id. The robustness branch is included only when the active configuration requests both estimators.",
   "",
-  "$$y_{isn}^{obs} = \\min\\{9,\\max[-9, y_{isn}^{*}]\\}$$",
+  build_markdown_aligned_equation(
+    "y_{isn}^{obs}",
+    c("\\min\\{9,\\max[-9, y_{isn}^{*}]\\}")
+  ),
   "",
   "For H1, empathy enters through the four IRI dimensions (`iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`), together with judged-negotiator status, counterpart status, decision outcome, subset-relevant victim alignment, and participant controls.",
   "",
-  "$$y_{isn}^{*} = \\alpha_r + \\mathbf{E}_i\\beta_r + \\mathbf{R}_{isn}\\gamma_r + \\mathbf{X}_i\\delta_r + \\varepsilon_{isn}$$",
+  build_markdown_aligned_equation(
+    "y_{isn}^{*}",
+    c(
+      "\\alpha_r + \\mathbf{E}_i\\beta_r + \\mathbf{R}_{isn}\\gamma_r",
+      "+\\ \\mathbf{X}_i\\delta_r + \\varepsilon_{isn}"
+    )
+  ),
   "",
   "For H2, the victim subset uses the joint judged-counterpart structure directly, whereas the bystander subset augments that structure with the observer-victim relation and their interaction.",
   "",
-  "$$y_{isn,V}^{*} = \\alpha_V + \\mathbf{S}_{isn}\\theta_V + \\mathbf{E}_i\\beta_V + \\mathbf{X}_i\\delta_V + \\varepsilon_{isn}$$",
+  build_markdown_aligned_equation(
+    "y_{isn,V}^{*}",
+    c(
+      "\\alpha_V + \\mathbf{S}_{isn}\\theta_V + \\mathbf{E}_i\\beta_V",
+      "+\\ \\mathbf{X}_i\\delta_V + \\varepsilon_{isn}"
+    )
+  ),
   "",
-  "$$y_{isn,O}^{*} = \\alpha_O + \\mathbf{S}_{isn}\\theta_O + V_{isn}\\lambda_O + (\\mathbf{S}_{isn}\\times V_{isn})\\kappa_O + \\mathbf{E}_i\\beta_O + \\mathbf{X}_i\\delta_O + \\varepsilon_{isn}$$",
+  build_markdown_aligned_equation(
+    "y_{isn,O}^{*}",
+    c(
+      "\\alpha_O + \\mathbf{S}_{isn}\\theta_O + V_{isn}\\lambda_O",
+      "+\\ (\\mathbf{S}_{isn}\\times V_{isn})\\kappa_O + \\mathbf{E}_i\\beta_O",
+      "+\\ \\mathbf{X}_i\\delta_O + \\varepsilon_{isn}"
+    )
+  ),
   "",
   "For H3, empathy is allowed to interact with judged-negotiator status while decision outcome, judged-status-by-decision terms, counterpart structure, and subset-relevant controls remain in the model.",
   "",
-  "$$y_{isn}^{*} = \\alpha_r + \\mathbf{E}_i\\beta_r + \\mathbf{J}_{isn}\\eta_r + A_{isn}\\pi_r + (\\mathbf{E}_i \\times \\mathbf{J}_{isn})\\rho_r + (A_{isn} \\times \\mathbf{J}_{isn})\\tau_r + \\mathbf{C}_{isn}\\phi_r + \\mathbf{X}_i\\delta_r + \\varepsilon_{isn}$$",
+  build_markdown_aligned_equation(
+    "y_{isn}^{*}",
+    c(
+      "\\alpha_r + \\mathbf{E}_i\\beta_r + \\mathbf{J}_{isn}\\eta_r + A_{isn}\\pi_r",
+      "+\\ (\\mathbf{E}_i \\times \\mathbf{J}_{isn})\\rho_r + (A_{isn} \\times \\mathbf{J}_{isn})\\tau_r",
+      "+\\ \\mathbf{C}_{isn}\\phi_r + \\mathbf{X}_i\\delta_r + \\varepsilon_{isn}"
+    )
+  ),
   "",
   robustness_sentence,
   "",
@@ -606,25 +722,21 @@ md_lines <- c(
   "",
   build_markdown_table_block(
     sample_table,
-    note = paste(
-      "Pooled = full analytical long file.",
-      "Each scenario contributes two judgment observations per participant, one per negotiator.",
-      "Outcome bounds are the observed censoring points used by the Tobit estimator."
-    ),
+    note = build_behavioral_sample_note(sample_table),
     digits = 2L
   ),
   "## Results",
   "",
-  "The descriptive distributions already show why subset-specific estimation matters: the victim and bystander judgment profiles are not identical across the six scenario configurations, even though both are evaluated on the same bounded scale. Figures 1 and 2 therefore retain the subset split at the descriptive level while keeping the narrative pooled and compact.",
+  "The descriptive distributions already show why subset-specific estimation matters: the victim and bystander judgment profiles are not identical across the six scenario configurations, and the accept-versus-reject split adds another visible layer of structure even though both subsets are evaluated on the same bounded scale. Figures 1 and 2 therefore retain both the subset split and the decision split at the descriptive level while keeping the narrative pooled and compact.",
   "",
   build_figure_markdown(
     figure_victim_case_panels_file,
-    "Figure 1. Victim-subset judgment distributions across the six explicit case configurations. The histogram scale is fixed at -9 to 9 to match the observed judgment bounds.",
+    "Figure 1. Victim-subset judgment distributions across the six explicit case configurations, with separate rows for accepted and rejected harmful deals. The histogram scale is fixed at -9 to 9 to match the observed judgment bounds.",
     width = "6.7in"
   ),
   build_figure_markdown(
     figure_bystander_case_panels_file,
-    "Figure 2. Bystander-subset judgment distributions across the six explicit case configurations. The histogram scale is fixed at -9 to 9 to match the observed judgment bounds.",
+    "Figure 2. Bystander-subset judgment distributions across the six explicit case configurations, with separate rows for accepted and rejected harmful deals. The histogram scale is fixed at -9 to 9 to match the observed judgment bounds.",
     width = "6.7in"
   ),
   h1_intro_text,
@@ -636,9 +748,8 @@ md_lines <- c(
   "",
   build_markdown_table_block(
     h1_table,
-    note = paste(
-      "Active empathy specification = FS, EC, PT, PD.",
-      "N1 = judged negotiator; N2 = counterpart negotiator; V = observer-victim relation; In = ingroup; Out = outgroup; Ctl = control label hidden; Acc = accepted harmful deal.",
+    note = build_behavioral_result_note(
+      h1_rows,
       "The table is intentionally restricted to focal empathy estimates reported by the dynamic pipeline."
     ),
     digits = 2L
@@ -660,9 +771,8 @@ md_lines <- c(
   "",
   build_markdown_table_block(
     h2_table,
-    note = paste(
-      "Active empathy specification = FS, EC, PT, PD.",
-      "N1 = judged negotiator; N2 = counterpart negotiator; V = observer-victim relation.",
+    note = build_behavioral_result_note(
+      h2_rows,
       "Only focal H2 structure and observer-side interaction terms are shown."
     ),
     digits = 2L
@@ -684,9 +794,8 @@ md_lines <- c(
   "",
   build_markdown_table_block(
     h3_table,
-    note = paste(
-      "Active empathy specification = FS, EC, PT, PD.",
-      "N1 = judged negotiator; N2 = counterpart negotiator; Acc = accepted harmful deal.",
+    note = build_behavioral_result_note(
+      h3_rows,
       "Only focal H3 empathy-by-judged-status interactions are shown."
     ),
     digits = 2L
@@ -704,8 +813,10 @@ md_lines <- c(
   if (!is.null(robustness_table)) build_markdown_table_block(
     robustness_table,
     note = paste(
-      "NP = non-parametric robustness branch.",
-      "Entries summarize hypothesis-level support rather than duplicating coefficient tables."
+      "Entries summarize hypothesis-level support rather than duplicating coefficient tables.",
+      "Displayed hypotheses:",
+      paste(robustness_table$Hypothesis, collapse = ", "),
+      ". NP = non-parametric robustness branch."
     ),
     digits = 2L
   ) else character(0),

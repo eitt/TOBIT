@@ -1,14 +1,15 @@
 # R/hypotheses/H2_test.R
-# Hypothesis 2: Negotiator-side relational structure
-# Statement: Moral judgments vary with the joint ingroup/outgroup/control
-# structure of the judged negotiator and the counterpart negotiator. In the
-# bystander subset, that judgment-level structure also interacts with the
-# player-victim ingroup/outgroup relation.
+# Hypothesis 2: Relational N1/N2 structure by role
+# Statement: Moral judgments vary with explicit role-specific N1/N2 relational
+# blocks. Victim models include victim_N1_group * victim_N2_group; bystander
+# models include bystander_victim_group plus selective
+# bystander_N1_group * bystander_N2_group and victim_N1_group * victim_N2_group
+# interactions, with N1_N2_same_faculty as a contextual main effect.
 # Dependent Variable: judgement (-9 to 9) at the judgment-by-negotiator level
 # Unit note: each participant evaluates two negotiators per scenario, so each
 # vignette contributes two judgment observations.
-# Specification: Interval-censored clustered Tobit model in the active
-# workflow; archived non-parametric utilities remain available but are not run
+# Specification: Primary mixed-effects estimation with mandatory participant
+# random intercept (1 | id); id_case random intercept is added when identifiable.
 
 source("R/00_config.R")
 source("R/utils/model_functions.R")

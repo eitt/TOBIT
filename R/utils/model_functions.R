@@ -1,6 +1,6 @@
 # R/utils/model_functions.R
-# Purpose: Translation of terms and implementation of interval-censored Tobit
-# and cluster-aware non-parametric censored robustness behavior.
+# Purpose: Translation of terms and implementation of the primary mixed-effects
+# model plus cluster-aware non-parametric censored robustness behavior.
 # Dependencies: survival, ctqr
 
 source("R/utils/case_configuration_functions.R")
@@ -105,14 +105,17 @@ get_predictor_abbreviation_dictionary <- function() {
       "PD",
       "N1",
       "N2",
-      "V",
+      "B-V",
+      "V-N1",
+      "V-N2",
+      "B-N1",
+      "B-N2",
       "Vic",
       "Obs",
       "In",
       "Out",
       "Ctl",
-      "Acc",
-      "Rej",
+      "SameFac",
       "SES"
     ),
     Meaning = c(
@@ -121,16 +124,19 @@ get_predictor_abbreviation_dictionary <- function() {
       "Empathic concern subscale",
       "Perspective taking subscale",
       "Personal distress subscale",
-      "Judged negotiator",
-      "Counterpart negotiator",
-      "Victim-side player-victim relation in observer models",
+      "Negotiator 1",
+      "Negotiator 2",
+      "Bystander-victim relation",
+      "Victim-N1 relation",
+      "Victim-N2 relation",
+      "Bystander-N1 relation",
+      "Bystander-N2 relation",
       "Victim-role subset",
       "Observer / bystander subset",
       "Ingroup",
       "Outgroup",
       "Control label hidden",
-      "Accepted harmful deal",
-      "Rejected harmful deal",
+      "N1 and N2 same faculty",
       "Economic status"
     ),
     stringsAsFactors = FALSE
@@ -147,12 +153,13 @@ get_predictor_abbreviation_note <- function() {
   note_parts <- c(
     if ("A" %in% resolve_active_model_suffixes()) "Emp = empathy composite;" else NULL,
     "FS / EC / PT / PD = IRI subscales;",
-    "N1 = judged negotiator;",
-    "N2 = counterpart negotiator;",
-    "V = victim-side player-victim relation in observer models;",
+    "N1 / N2 = negotiator 1 / negotiator 2;",
+    "B-V = bystander-victim relation;",
+    "V-N1 / V-N2 = victim-negotiator relations;",
+    "B-N1 / B-N2 = bystander-negotiator relations;",
     "Vic / Obs = victim / observer subset;",
     "In / Out / Ctl = ingroup / outgroup / control label hidden;",
-    "Acc / Rej = accepted / rejected harmful deal;",
+    "SameFac = N1 and N2 same faculty;",
     "SES = economic status"
   )
   paste(note_parts, collapse = " ")
@@ -168,6 +175,16 @@ label_term <- function(term) {
     "iri_pt" = "Empathy: Perspective taking",
     "iri_pd" = "Empathy: Personal distress",
     "Log(scale)" = "Judgment variation (log)",
+    "N1_N2_same_faculty" = "N1 and N2 same faculty",
+    "victim_N1_groupIn" = "Victim-N1: Ingroup (ref = Control)",
+    "victim_N1_groupOut" = "Victim-N1: Outgroup (ref = Control)",
+    "victim_N2_groupIn" = "Victim-N2: Ingroup (ref = Control)",
+    "victim_N2_groupOut" = "Victim-N2: Outgroup (ref = Control)",
+    "bystander_N1_groupIn" = "Bystander-N1: Ingroup (ref = Control)",
+    "bystander_N1_groupOut" = "Bystander-N1: Outgroup (ref = Control)",
+    "bystander_N2_groupIn" = "Bystander-N2: Ingroup (ref = Control)",
+    "bystander_N2_groupOut" = "Bystander-N2: Outgroup (ref = Control)",
+    "bystander_victim_groupOut" = "Bystander-victim: Outgroup (ref = Ingroup)",
     "judged_ingroup" = "N1 ingroup",
     "judged_outgroup" = "N1 outgroup",
     "judged_control" = "N1 control label",
@@ -252,6 +269,16 @@ label_term_compact <- function(term) {
     "iri_pt" = "PT",
     "iri_pd" = "PD",
     "Log(scale)" = "Log(s)",
+    "N1_N2_same_faculty" = "SameFac",
+    "victim_N1_groupIn" = "V-N1 In",
+    "victim_N1_groupOut" = "V-N1 Out",
+    "victim_N2_groupIn" = "V-N2 In",
+    "victim_N2_groupOut" = "V-N2 Out",
+    "bystander_N1_groupIn" = "B-N1 In",
+    "bystander_N1_groupOut" = "B-N1 Out",
+    "bystander_N2_groupIn" = "B-N2 In",
+    "bystander_N2_groupOut" = "B-N2 Out",
+    "bystander_victim_groupOut" = "B-V Out",
     "judged_ingroup" = "N1-In",
     "judged_outgroup" = "N1-Out",
     "judged_control" = "N1-Ctl",
@@ -338,6 +365,85 @@ format_formula_for_progress <- function(rhs_formula) {
 
 should_skip_tobit_refit <- function() {
   isTRUE(getOption("tobit.skip_tobit_refit", FALSE))
+}
+
+coerce_group_factor <- function(x, levels) {
+  x_chr <- as.character(x)
+  x_chr[!(x_chr %in% levels)] <- NA_character_
+  factor(x_chr, levels = levels)
+}
+
+format_random_effect_formula <- function(grouping_terms) {
+  grouping_terms <- unique(trimws(as.character(grouping_terms)))
+  grouping_terms <- grouping_terms[nzchar(grouping_terms)]
+  if (length(grouping_terms) == 0L) {
+    return("(1 | id)")
+  }
+  paste0("(1 | ", grouping_terms, ")", collapse = " + ")
+}
+
+get_primary_random_effect_grouping <- function(model_data) {
+  grouping <- "id"
+  if ("id_case" %in% names(model_data)) {
+    id_case_values <- model_data$id_case
+    valid_case <- !is.na(id_case_values) & nzchar(as.character(id_case_values))
+    if (sum(valid_case) > 0L) {
+      case_counts <- table(as.character(id_case_values[valid_case]))
+      if (any(case_counts > 1L)) {
+        grouping <- c(grouping, "id_case")
+      }
+    }
+  }
+  grouping
+}
+
+get_model_random_effect_grouping <- function(model_fit) {
+  if (!inherits(model_fit, "lmerMod")) {
+    return(character(0))
+  }
+  grouping <- tryCatch(
+    names(lme4::VarCorr(model_fit)),
+    error = function(e) character(0)
+  )
+  unique(grouping[nzchar(grouping)])
+}
+
+build_mixed_inference_text <- function(grouping_terms) {
+  sprintf(
+    "Tobit branch with random intercepts %s",
+    format_random_effect_formula(grouping_terms)
+  )
+}
+
+prepare_mixed_model_data <- function(data) {
+  model_data <- data
+
+  if ("id" %in% names(model_data)) {
+    model_data$id <- factor(model_data$id)
+  }
+  if ("id_case" %in% names(model_data)) {
+    model_data$id_case <- factor(model_data$id_case)
+  }
+  if ("victim_N1_group" %in% names(model_data)) {
+    model_data$victim_N1_group <- coerce_group_factor(model_data$victim_N1_group, c("Cont", "In", "Out"))
+  }
+  if ("victim_N2_group" %in% names(model_data)) {
+    model_data$victim_N2_group <- coerce_group_factor(model_data$victim_N2_group, c("Cont", "In", "Out"))
+  }
+  if ("bystander_N1_group" %in% names(model_data)) {
+    model_data$bystander_N1_group <- coerce_group_factor(model_data$bystander_N1_group, c("Cont", "In", "Out"))
+  }
+  if ("bystander_N2_group" %in% names(model_data)) {
+    model_data$bystander_N2_group <- coerce_group_factor(model_data$bystander_N2_group, c("Cont", "In", "Out"))
+  }
+  if ("bystander_victim_group" %in% names(model_data)) {
+    model_data$bystander_victim_group <- coerce_group_factor(model_data$bystander_victim_group, c("In", "Out"))
+  }
+  if ("N1_N2_same_faculty" %in% names(model_data)) {
+    model_data$N1_N2_same_faculty <- suppressWarnings(as.integer(model_data$N1_N2_same_faculty))
+  }
+
+  model_data
 }
 
 #' Prepare interval-censored endpoints for bounded judgement outcomes.
@@ -661,6 +767,31 @@ fit_ctqr_core <- function(model_data, rhs_formula, quantile = 0.5, maxit = 2000)
 
 #' Pull coefficients and CI bounds from a survreg Tobit object.
 extract_tobit_model_table <- function(model_fit) {
+  if (inherits(model_fit, "lmerMod")) {
+    summary_obj <- summary(model_fit)
+    coef_matrix <- as.matrix(summary_obj$coefficients)
+    t_column <- if ("t value" %in% colnames(coef_matrix)) "t value" else colnames(coef_matrix)[ncol(coef_matrix)]
+    z_value <- coef_matrix[, t_column]
+    p_value <- 2 * stats::pnorm(abs(z_value), lower.tail = FALSE)
+
+    model_df <- data.frame(
+      term = rownames(coef_matrix),
+      estimate = coef_matrix[, "Estimate"],
+      std_error = coef_matrix[, "Std. Error"],
+      naive_se = NA_real_,
+      z_value = z_value,
+      p_value = p_value,
+      stringsAsFactors = FALSE
+    )
+    model_df$conf_low <- model_df$estimate - 1.96 * model_df$std_error
+    model_df$conf_high <- model_df$estimate + 1.96 * model_df$std_error
+    model_df$label <- vapply(model_df$term, label_term, character(1))
+    model_df$label_short <- vapply(model_df$term, label_term_compact, character(1))
+    model_df$approach <- "Tobit"
+    model_df$inference <- build_mixed_inference_text(get_model_random_effect_grouping(model_fit))
+    return(add_p_value_display_columns(model_df))
+  }
+
   summary_obj <- summary(model_fit)
   table_matrix <- summary_obj$table
   model_df <- data.frame(
@@ -783,6 +914,49 @@ build_model_stats_row <- function(
 
 #' Model-level fit information for Tobit.
 extract_tobit_model_stats <- function(model_fit, model_data, model_label) {
+  if (inherits(model_fit, "lmerMod")) {
+    grouping_terms <- get_model_random_effect_grouping(model_fit)
+    if (length(grouping_terms) == 0L) {
+      grouping_terms <- "id"
+    }
+    convergence_messages <- tryCatch(
+      model_fit@optinfo$conv$lme4$messages,
+      error = function(e) NULL
+    )
+    converged_flag <- length(convergence_messages) == 0L
+    convergence_note <- if (converged_flag) {
+      build_mixed_inference_text(grouping_terms)
+    } else {
+      paste(
+        paste0(build_mixed_inference_text(grouping_terms), ";"),
+        paste(as.character(convergence_messages), collapse = "; ")
+      )
+    }
+
+    return(
+      build_model_stats_row(
+        model_label = model_label,
+        approach = "Tobit",
+        model_data = model_data,
+        loglik = as.numeric(stats::logLik(model_fit)),
+        aic = stats::AIC(model_fit),
+        pseudo_r2 = NA_real_,
+        quantile = NA_real_,
+        converged = converged_flag,
+        iterations = NA_integer_,
+        status = if (converged_flag) "completed" else "not_converged",
+        error_message = NA_character_,
+        inference = convergence_note,
+        cluster_unit = paste(grouping_terms, collapse = " + "),
+        bootstrap_replicates = NA_integer_,
+        bootstrap_successful = NA_integer_,
+        bootstrap_failed = NA_integer_,
+        bootstrap_success_rate = NA_real_,
+        confidence_level = 0.95
+      )
+    )
+  }
+
   loglik_values <- model_fit$loglik
   pseudo_r2 <- NA_real_
   if (!is.null(loglik_values) && length(loglik_values) == 2L && !isTRUE(all.equal(loglik_values[1], 0))) {
@@ -903,24 +1077,20 @@ extract_model_stats <- function(model_fit, model_data, model_label) {
 #' Fit interval-censored clustered Tobit model
 #' Model treats values at -9 as left-censored and 9 as right-censored.
 fit_clustered_tobit <- function(data, rhs_formula) {
-  model_data <- prepare_interval_model_data(data)
-  formula_obj <- build_interval_formula(
-    "survival::Surv(lower_endpoint, upper_endpoint, type = 'interval2')",
-    rhs_formula
-  )
+  model_data <- prepare_mixed_model_data(data)
+  rhs_text <- trimws(as.character(rhs_formula))
+  random_effects <- format_random_effect_formula(get_primary_random_effect_grouping(model_data))
+  formula_obj <- stats::as.formula(paste("judgement ~", rhs_text, "+", random_effects))
 
-  fit <- survival::survreg(
+  fit <- lme4::lmer(
     formula = formula_obj,
     data = model_data,
-    dist = "gaussian",
-    robust = TRUE,
-    cluster = id,
-    model = TRUE,
-    x = TRUE,
-    y = TRUE
+    REML = FALSE,
+    control = lme4::lmerControl(
+      optimizer = "bobyqa",
+      calc.derivs = TRUE
+    )
   )
-  fit$approach <- "Tobit"
-  fit$response_shift <- 0
   fit
 }
 
@@ -1295,16 +1465,28 @@ get_term_row <- function(model_table, term_name) {
   model_table[model_table$term == term_name, , drop = FALSE]
 }
 
-#' Test Tobit residuals for normality
+#' Test primary-model residuals for normality
 test_tobit_normality <- function(model_fit) {
-  res <- tryCatch(
-    stats::residuals(model_fit, type = "deviance"),
-    error = function(e) NULL
-  )
+  if (inherits(model_fit, "lmerMod")) {
+    res <- tryCatch(
+      stats::residuals(model_fit),
+      error = function(e) NULL
+    )
+    if (is.null(res) || !is.numeric(res)) {
+      return(
+        "Residual diagnostics could not be computed from the mixed-effects model object."
+      )
+    }
+  } else {
+    res <- tryCatch(
+      stats::residuals(model_fit, type = "deviance"),
+      error = function(e) NULL
+    )
+  }
 
   if (is.null(res) || !is.numeric(res)) {
     return(
-      "Residual-based normality diagnostics could not be computed from the saved interval-censored Tobit object. The report therefore omits the Shapiro-Wilk test for this model."
+      "Residual-based normality diagnostics could not be computed from the saved primary model object. The report therefore omits the Shapiro-Wilk test for this model."
     )
   }
 
@@ -1325,7 +1507,7 @@ test_tobit_normality <- function(model_fit) {
       paste(
         "The Shapiro-Wilk test on the deviance residuals indicates a violation of the normality assumption",
         "(W = %.3f, p = %.3e).",
-        "The primary Tobit model still uses participant-clustered standard errors by id,",
+        "The primary mixed-effects model retains participant-level random intercepts,",
         "and the report pairs it with a cluster-bootstrap non-parametric censored robustness model."
       ),
       sw_test$statistic,
@@ -1334,7 +1516,7 @@ test_tobit_normality <- function(model_fit) {
   }
 
   sprintf(
-    "The Shapiro-Wilk test on the deviance residuals suggests that the latent-error normality assumption is reasonably compatible with the data (W = %.3f, p = %.3f). The Tobit branch therefore remains a defensible clustered benchmark.",
+    "The Shapiro-Wilk test on the deviance residuals suggests that the residual normality assumption is reasonably compatible with the data (W = %.3f, p = %.3f). The primary mixed-effects branch therefore remains a defensible benchmark.",
     sw_test$statistic,
     sw_test$p.value
   )

@@ -26,6 +26,32 @@ sanitize_identifier <- function(x) {
   cleaned
 }
 
+parse_relational_contrast_term <- function(term_name) {
+  term_name <- as.character(term_name)
+
+  matched <- regmatches(
+    term_name,
+    regexec("^(victim_N1_group|victim_N2_group|bystander_N1_group|bystander_N2_group)(In|Out)$", term_name)
+  )[[1]]
+  if (length(matched) == 3L) {
+    return(list(
+      base_var = matched[2],
+      focus_level = matched[3],
+      reference_level = "Cont"
+    ))
+  }
+
+  if (identical(term_name, "bystander_victim_groupOut")) {
+    return(list(
+      base_var = "bystander_victim_group",
+      focus_level = "Out",
+      reference_level = "In"
+    ))
+  }
+
+  NULL
+}
+
 get_binary_value_labels <- function(var_name) {
   if (grepl("^h2_negstruct_", var_name)) {
     structure_label <- compact_h2_negotiator_structure_term(var_name)
@@ -193,11 +219,32 @@ format_discrete_value_label <- function(var_name, value) {
     return(paste("Socioeconomic status", value_chr))
   }
 
+  if (identical(var_name, "victim_N1_group")) {
+    return(switch(value_chr, Cont = "V-N1 Ctl", In = "V-N1 In", Out = "V-N1 Out", value_chr))
+  }
+  if (identical(var_name, "victim_N2_group")) {
+    return(switch(value_chr, Cont = "V-N2 Ctl", In = "V-N2 In", Out = "V-N2 Out", value_chr))
+  }
+  if (identical(var_name, "bystander_N1_group")) {
+    return(switch(value_chr, Cont = "B-N1 Ctl", In = "B-N1 In", Out = "B-N1 Out", value_chr))
+  }
+  if (identical(var_name, "bystander_N2_group")) {
+    return(switch(value_chr, Cont = "B-N2 Ctl", In = "B-N2 In", Out = "B-N2 Out", value_chr))
+  }
+  if (identical(var_name, "bystander_victim_group")) {
+    return(switch(value_chr, In = "B-V In", Out = "B-V Out", value_chr))
+  }
+
   value_chr
 }
 
 classify_predictor_component <- function(data, var_name) {
   var_name <- sub("^factor\\(([^)]+)\\).*", "\\1", var_name)
+  contrast_info <- parse_relational_contrast_term(var_name)
+  if (!is.null(contrast_info)) {
+    return("binary")
+  }
+
   if (!(var_name %in% names(data))) return("categorical")
 
   values <- data[[var_name]]
@@ -226,7 +273,23 @@ classify_predictor_component <- function(data, var_name) {
 build_term_visual_spec <- function(term, data) {
   canonical_term <- canonicalize_term_name(term)
   clean_canonical_term <- sub("^factor\\(([^)]+)\\).*", "\\1", canonical_term)
+
+  contrast_info <- parse_relational_contrast_term(clean_canonical_term)
   if (!grepl(":", canonical_term, fixed = TRUE)) {
+    if (!is.null(contrast_info)) {
+      return(list(
+        term = canonical_term,
+        label = label_term(canonical_term),
+        kind = "categorical_main",
+        x_var = contrast_info$base_var,
+        x_type = "binary",
+        moderator = NULL,
+        moderator_type = NULL,
+        contrast = contrast_info,
+        moderator_contrast = NULL
+      ))
+    }
+
     component_type <- classify_predictor_component(data, canonical_term)
     return(list(
       term = canonical_term,
@@ -235,36 +298,54 @@ build_term_visual_spec <- function(term, data) {
       x_var = clean_canonical_term,
       x_type = component_type,
       moderator = NULL,
-      moderator_type = NULL
+      moderator_type = NULL,
+      contrast = NULL,
+      moderator_contrast = NULL
     ))
   }
 
   parts <- strsplit(canonical_term, ":", fixed = TRUE)[[1]]
-  part_types <- stats::setNames(
-    vapply(parts, classify_predictor_component, character(1), data = data),
-    parts
-  )
+  part_details <- lapply(parts, function(part_term) {
+    clean_part <- sub("^factor\\(([^)]+)\\).*", "\\1", part_term)
+    part_contrast <- parse_relational_contrast_term(clean_part)
+    part_var <- if (is.null(part_contrast)) clean_part else part_contrast$base_var
+    part_type <- if (is.null(part_contrast)) {
+      classify_predictor_component(data, part_var)
+    } else {
+      "binary"
+    }
+    list(
+      raw_term = part_term,
+      var = part_var,
+      type = part_type,
+      contrast = part_contrast
+    )
+  })
 
-  continuous_parts <- names(part_types)[part_types == "continuous"]
-  if (length(continuous_parts) >= 1L) {
-    orig_x_var <- continuous_parts[1]
-    orig_moderator <- setdiff(parts, orig_x_var)[1]
+  part_types <- vapply(part_details, function(detail) detail$type, character(1))
+  continuous_idx <- which(part_types == "continuous")
+
+  if (length(continuous_idx) >= 1L) {
+    x_idx <- continuous_idx[1]
+    moderator_idx <- setdiff(seq_along(part_details), x_idx)[1]
   } else {
-    orig_x_var <- parts[1]
-    orig_moderator <- parts[2]
+    x_idx <- 1L
+    moderator_idx <- if (length(part_details) >= 2L) 2L else 1L
   }
 
-  clean_x_var <- sub("^factor\\(([^)]+)\\).*", "\\1", orig_x_var)
-  clean_moderator <- sub("^factor\\(([^)]+)\\).*", "\\1", orig_moderator)
+  x_detail <- part_details[[x_idx]]
+  moderator_detail <- part_details[[moderator_idx]]
 
   list(
     term = canonical_term,
     label = label_term(canonical_term),
     kind = "interaction",
-    x_var = clean_x_var,
-    x_type = unname(part_types[[orig_x_var]]),
-    moderator = clean_moderator,
-    moderator_type = unname(part_types[[orig_moderator]])
+    x_var = x_detail$var,
+    x_type = x_detail$type,
+    moderator = moderator_detail$var,
+    moderator_type = moderator_detail$type,
+    contrast = x_detail$contrast,
+    moderator_contrast = moderator_detail$contrast
   )
 }
 
@@ -338,6 +419,32 @@ build_moderator_grid <- function(data, moderator, moderator_type) {
   list(values = moderator_values, labels = moderator_labels)
 }
 
+build_contrast_grid <- function(data, var_name, contrast_info) {
+  if (is.null(contrast_info)) {
+    return(NULL)
+  }
+  if (!(var_name %in% names(data))) {
+    return(NULL)
+  }
+
+  observed_values <- unique(as.character(data[[var_name]]))
+  observed_values <- observed_values[!is.na(observed_values)]
+  candidate_values <- c(contrast_info$reference_level, contrast_info$focus_level)
+  candidate_values <- candidate_values[candidate_values %in% observed_values]
+  if (length(candidate_values) == 0L) {
+    return(NULL)
+  }
+
+  list(
+    values = candidate_values,
+    labels = vapply(
+      candidate_values,
+      function(value) format_discrete_value_label(var_name, value),
+      character(1)
+    )
+  )
+}
+
 get_prediction_bounds <- function() {
   get_judgment_observed_bounds()
 }
@@ -364,6 +471,12 @@ compute_censored_gaussian_expectation <- function(mu, sigma, lower = get_predict
 }
 
 get_tobit_vcov_matrix <- function(model_fit) {
+  if (inherits(model_fit, "lmerMod")) {
+    vcov_matrix <- tryCatch(stats::vcov(model_fit), error = function(e) NULL)
+    if (is.null(vcov_matrix)) return(NULL)
+    return(as.matrix(vcov_matrix))
+  }
+
   vcov_matrix <- model_fit[["var"]]
   if (is.null(vcov_matrix)) return(NULL)
   vcov_matrix <- as.matrix(vcov_matrix)
@@ -382,6 +495,10 @@ get_tobit_vcov_matrix <- function(model_fit) {
 }
 
 get_prediction_terms <- function(model_fit) {
+  if (inherits(model_fit, "lmerMod")) {
+    fixed_formula <- suppressWarnings(lme4::nobars(stats::formula(model_fit)))
+    return(stats::delete.response(stats::terms(fixed_formula)))
+  }
   terms_object <- if (inherits(model_fit, "clustered_ctqr_bootstrap")) {
     stats::terms(model_fit[["base_fit"]])
   } else {
@@ -391,6 +508,9 @@ get_prediction_terms <- function(model_fit) {
 }
 
 get_prediction_coefficients <- function(model_fit) {
+  if (inherits(model_fit, "lmerMod")) {
+    return(lme4::fixef(model_fit))
+  }
   coefficients <- if (inherits(model_fit, "clustered_ctqr_bootstrap")) {
     model_fit[["coefficients"]]
   } else {
@@ -416,9 +536,29 @@ extract_factor_wrapped_variables <- function(model_fit) {
   term_labels <- attr(get_prediction_terms(model_fit), "term.labels")
   if (is.null(term_labels) || length(term_labels) == 0L) return(character(0))
 
+  candidate_terms <- unique(unlist(strsplit(term_labels, ":", fixed = TRUE), use.names = FALSE))
+  candidate_terms <- sub("^factor\\(([^)]+)\\)$", "\\1", candidate_terms)
+  candidate_terms <- candidate_terms[nzchar(candidate_terms)]
+
+  model_frame <- tryCatch(stats::model.frame(model_fit), error = function(e) NULL)
+  if (!is.null(model_frame)) {
+    candidate_terms <- candidate_terms[candidate_terms %in% names(model_frame)]
+    if (length(candidate_terms) > 0L) {
+      factor_candidates <- candidate_terms[
+        vapply(
+          candidate_terms,
+          function(var_name) is.factor(model_frame[[var_name]]) || is.character(model_frame[[var_name]]),
+          logical(1)
+        )
+      ]
+      if (length(factor_candidates) > 0L) {
+        return(unique(factor_candidates))
+      }
+    }
+  }
+
   factor_terms <- grep("^factor\\(", term_labels, value = TRUE)
   if (length(factor_terms) == 0L) return(character(0))
-
   unique(sub("^factor\\(([^)]+)\\)$", "\\1", factor_terms))
 }
 
@@ -524,6 +664,36 @@ compute_prediction_summary <- function(model_fit, newdata) {
   }
 
   vcov_matrix <- get_tobit_vcov_matrix(model_fit)
+  if (inherits(model_fit, "lmerMod")) {
+    predicted <- clamp_judgment_scale(linear_predictor, lower = prediction_bounds[1], upper = prediction_bounds[2])
+
+    if (is.null(vcov_matrix)) {
+      return(data.frame(predicted = predicted, conf_low = NA_real_, conf_high = NA_real_, stringsAsFactors = FALSE))
+    }
+
+    coefficient_names <- names(coefficients)
+    vcov_matrix <- vcov_matrix[coefficient_names, coefficient_names, drop = FALSE]
+    standard_error <- sqrt(pmax(rowSums((design_matrix %*% vcov_matrix) * design_matrix), 0))
+    z_multiplier <- stats::qnorm(0.975)
+    conf_low <- clamp_judgment_scale(
+      linear_predictor - z_multiplier * standard_error,
+      lower = prediction_bounds[1],
+      upper = prediction_bounds[2]
+    )
+    conf_high <- clamp_judgment_scale(
+      linear_predictor + z_multiplier * standard_error,
+      lower = prediction_bounds[1],
+      upper = prediction_bounds[2]
+    )
+
+    return(data.frame(
+      predicted = predicted,
+      conf_low = conf_low,
+      conf_high = conf_high,
+      stringsAsFactors = FALSE
+    ))
+  }
+
   sigma <- as.numeric(model_fit[["scale"]][1])
   predicted <- compute_censored_gaussian_expectation(
     linear_predictor,
@@ -566,22 +736,50 @@ build_significance_plot_data <- function(model_fit, data, term) {
       stringsAsFactors = FALSE
     )
   } else if (identical(visual_spec$kind, "categorical_main")) {
-    x_values <- build_value_grid(data, visual_spec$x_var, visual_spec$x_type)
+    contrast_grid <- build_contrast_grid(data, visual_spec$x_var, visual_spec$contrast)
+    if (!is.null(contrast_grid)) {
+      x_values <- contrast_grid$values
+      x_labels <- contrast_grid$labels
+    } else {
+      x_values <- build_value_grid(data, visual_spec$x_var, visual_spec$x_type)
+      x_labels <- vapply(
+        x_values,
+        function(value) format_discrete_value_label(visual_spec$x_var, value),
+        character(1)
+      )
+    }
     newdata <- reference_profile[rep(1, length(x_values)), , drop = FALSE]
     newdata[[visual_spec$x_var]] <- x_values
     base_df <- data.frame(
       x_value = seq_along(x_values),
-      x_label = vapply(
-        x_values,
-        function(value) format_discrete_value_label(visual_spec$x_var, value),
-        character(1)
-      ),
+      x_label = x_labels,
       moderator_label = NA_character_,
       stringsAsFactors = FALSE
     )
   } else {
-    x_values <- build_value_grid(data, visual_spec$x_var, visual_spec$x_type)
-    moderator_grid <- build_moderator_grid(data, visual_spec$moderator, visual_spec$moderator_type)
+    x_contrast_grid <- build_contrast_grid(data, visual_spec$x_var, visual_spec$contrast)
+    if (!is.null(x_contrast_grid)) {
+      x_values <- x_contrast_grid$values
+      x_labels <- x_contrast_grid$labels
+    } else {
+      x_values <- build_value_grid(data, visual_spec$x_var, visual_spec$x_type)
+      x_labels <- if (identical(visual_spec$x_type, "continuous")) {
+        format(round(x_values, 2), trim = TRUE)
+      } else {
+        vapply(
+          x_values,
+          function(value) format_discrete_value_label(visual_spec$x_var, value),
+          character(1)
+        )
+      }
+    }
+
+    moderator_contrast_grid <- build_contrast_grid(data, visual_spec$moderator, visual_spec$moderator_contrast)
+    moderator_grid <- if (!is.null(moderator_contrast_grid)) {
+      moderator_contrast_grid
+    } else {
+      build_moderator_grid(data, visual_spec$moderator, visual_spec$moderator_type)
+    }
     if (length(x_values) == 0L || length(moderator_grid$values) == 0L) {
       stop("Interaction plot data could not be created because the focal variable or moderator had no observed values.", call. = FALSE)
     }
@@ -598,13 +796,9 @@ build_significance_plot_data <- function(model_fit, data, term) {
       base_blocks[[idx]] <- data.frame(
         x_value = if (identical(visual_spec$x_type, "continuous")) x_values else seq_along(x_values),
         x_label = if (identical(visual_spec$x_type, "continuous")) {
-          format(round(x_values, 2), trim = TRUE)
+          x_labels
         } else {
-          vapply(
-            x_values,
-            function(value) format_discrete_value_label(visual_spec$x_var, value),
-            character(1)
-          )
+          x_labels
         },
         moderator_label = moderator_grid$labels[idx],
         stringsAsFactors = FALSE
@@ -888,7 +1082,7 @@ write_significance_figure <- function(file_path, plot_payloads, figure_title) {
       oma = c(0, 0, 0, 0)
     )
     panel_title <- if (identical(payload$approach, "Tobit")) {
-      "Tobit"
+      "Primary model"
     } else {
       "Clustered non-parametric"
     }

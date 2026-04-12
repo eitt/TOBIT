@@ -1,4 +1,4 @@
-"Hypothesis","Tobit support"
+"Hypothesis","Tobit (random intercepts) support"
 "H1","None"
-"H2","N1 Out, N2 In+"
-"H3","None"
+"H2","B-V Out*; V-N2 In+; B-N2 Out+; B-N2 In+; B-N1 In x B-N2 In+"
+"H3","B-N1 Out x FS*; B-V Out x PD+; B-N2 Out x PT+"

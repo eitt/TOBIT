@@ -1,5 +1,5 @@
 # R/utils/nl_generation.R
-# Purpose: Generate dynamic narrative text explaining Tobit and CLAD model coefficients
+# Purpose: Generate dynamic narrative text explaining model coefficients
 # Dependencies: model_functions.R
 
 #' Helper to explain significance in plain language
@@ -69,6 +69,16 @@ get_term_definition <- function(term) {
     "iri_ec" = "the tendency to feel sympathy and compassion for others (Empathic Concern subscale)",
     "iri_pt" = "the tendency to look at things from another's point of view (Perspective Taking subscale)",
     "iri_pd" = "the tendency to feel distress in uncomfortable social situations (Personal Distress subscale)",
+    "N1_N2_same_faculty" = "whether N1 and N2 belong to the same faculty",
+    "victim_N1_groupIn" = "whether N1 is ingroup to the victim (relative to the control-labeled baseline)",
+    "victim_N1_groupOut" = "whether N1 is outgroup to the victim (relative to the control-labeled baseline)",
+    "victim_N2_groupIn" = "whether N2 is ingroup to the victim (relative to the control-labeled baseline)",
+    "victim_N2_groupOut" = "whether N2 is outgroup to the victim (relative to the control-labeled baseline)",
+    "bystander_N1_groupIn" = "whether N1 is ingroup to the bystander (relative to the control-labeled baseline)",
+    "bystander_N1_groupOut" = "whether N1 is outgroup to the bystander (relative to the control-labeled baseline)",
+    "bystander_N2_groupIn" = "whether N2 is ingroup to the bystander (relative to the control-labeled baseline)",
+    "bystander_N2_groupOut" = "whether N2 is outgroup to the bystander (relative to the control-labeled baseline)",
+    "bystander_victim_groupOut" = "whether the victim is outgroup to the bystander (reference = ingroup)",
     "case_configuration" = "the relational configuration of victim and negotiator groups",
     "decision_accept" = "whether N1 accepted the harmful deal",
     "judged_ingroup" = "whether N1 was ingroup rather than in the control-labeled baseline",
@@ -130,7 +140,7 @@ generate_coefficient_narrative <- function(coef_df, model_family = "Tobit") {
     # Intercept
     if (term == "(Intercept)") {
       lines <- c(lines, sprintf(
-        "The **Baseline judgment** represents the starting moral score when all continuous variables are at their average and all group variables are at their reference levels (for the active negotiator-status terms, the control-labeled condition). In this model, that baseline is estimated at %.3f (p=%.3f).",
+        "Baseline judgment represents the starting moral score when all continuous variables are at their average and all group variables are at their reference levels (for active negotiator-status terms, the control-labeled condition). In this model, that baseline is estimated at %.3f (p=%.3f).",
         est,
         p_val
       ))
@@ -140,7 +150,7 @@ generate_coefficient_narrative <- function(coef_df, model_family = "Tobit") {
     # Scale
     if (term == "Log(scale)") {
       lines <- c(lines, sprintf(
-        "The **Judgment variation (log-scale)** is %.3f, which indicates the level of dispersion or 'noise' in the latent judgments. This reflects the inherent variety of moral opinions across the sample.",
+        "Judgment variation (log-scale) is %.3f, which indicates the level of dispersion or noise in latent judgments. This reflects inherent variety of moral opinions across the sample.",
         est
       ))
       next
@@ -155,7 +165,7 @@ generate_coefficient_narrative <- function(coef_df, model_family = "Tobit") {
     sig_desc <- describe_significance(p_val, est)
 
     sentence <- sprintf(
-      "The variable **%s** (%s) has an estimated effect of %.3f. The results show %s. For example, a 1-unit increase in this variable (or moving from the reference group to this group) would shift the moral judgment by approximately %.2f points on the -9 to 9 scale.",
+      "The variable %s (%s) has an estimated effect of %.3f. The results show %s. For example, a 1-unit increase in this variable (or moving from the reference group to this group) would shift the moral judgment by approximately %.2f points on the -9 to 9 scale.",
       term_label, term_def, est, sig_desc, est
     )
     

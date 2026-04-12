@@ -54,73 +54,193 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
     "participant_engineering",
     "sex_man",
     "age",
-    "economic_status",
-    "factor(negotiator_slot)"
+    "economic_status"
   )
 
   empathy_vars_A <- c("iri_total")
   empathy_vars_B <- c("iri_fs", "iri_ec", "iri_pt", "iri_pd")
 
-  h1_relational_victim <- c(
-    "judged_ingroup",
-    "judged_outgroup",
-    "counterpart_ingroup",
-    "counterpart_outgroup",
-    "decision_accept"
+  group3_terms <- function(var_name) {
+    paste0(var_name, c("In", "Out"))
+  }
+
+  group3_interaction_terms <- function(var_a, var_b) {
+    as.vector(outer(
+      group3_terms(var_a),
+      group3_terms(var_b),
+      paste,
+      sep = ":"
+    ))
+  }
+
+  group2_group3_interaction_terms <- function(group2_var, group3_var) {
+    paste0(group2_var, "Out:", group3_terms(group3_var))
+  }
+
+  empathy_by_group_terms <- function(empathy_terms, group_terms) {
+    as.vector(outer(empathy_terms, group_terms, paste, sep = ":"))
+  }
+
+  victim_base_predictors <- c(
+    "victim_N1_group",
+    "victim_N2_group",
+    "N1_N2_same_faculty"
   )
-  h1_relational_bystander <- c(
-    h1_relational_victim,
-    "observer_victim_outgroup"
+  bystander_base_predictors <- c(
+    "bystander_victim_group",
+    "bystander_N1_group",
+    "bystander_N2_group",
+    "victim_N1_group",
+    "victim_N2_group",
+    "N1_N2_same_faculty"
   )
 
-  h1_victim_rhs_A <- paste(c(empathy_vars_A, h1_relational_victim, controls), collapse = " + ")
-  h1_victim_rhs_B <- paste(c(empathy_vars_B, h1_relational_victim, controls), collapse = " + ")
-  h1_bystander_rhs_A <- paste(c(empathy_vars_A, h1_relational_bystander, controls), collapse = " + ")
-  h1_bystander_rhs_B <- paste(c(empathy_vars_B, h1_relational_bystander, controls), collapse = " + ")
+  h1_victim_rhs_A <- paste(c(empathy_vars_A, victim_base_predictors, controls), collapse = " + ")
+  h1_victim_rhs_B <- paste(c(empathy_vars_B, victim_base_predictors, controls), collapse = " + ")
+  h1_bystander_rhs_A <- paste(c(empathy_vars_A, bystander_base_predictors, controls), collapse = " + ")
+  h1_bystander_rhs_B <- paste(c(empathy_vars_B, bystander_base_predictors, controls), collapse = " + ")
 
-  h2_structure_terms <- get_h2_negotiator_structure_term_names(
-    reference = "J_Cont__C_Cont",
-    include_control = TRUE
+  h2_victim_rhs_A <- paste(
+    c(
+      empathy_vars_A,
+      "victim_N1_group * victim_N2_group",
+      "N1_N2_same_faculty",
+      controls
+    ),
+    collapse = " + "
   )
-  h2_bystander_interaction_terms <- paste("player_victim_outgroup", h2_structure_terms, sep = ":")
-
-  h2_victim_rhs_A <- paste(c(empathy_vars_A, h2_structure_terms, controls), collapse = " + ")
-  h2_victim_rhs_B <- paste(c(empathy_vars_B, h2_structure_terms, controls), collapse = " + ")
+  h2_victim_rhs_B <- paste(
+    c(
+      empathy_vars_B,
+      "victim_N1_group * victim_N2_group",
+      "N1_N2_same_faculty",
+      controls
+    ),
+    collapse = " + "
+  )
   h2_bystander_rhs_A <- paste(
-    c(empathy_vars_A, h2_structure_terms, "player_victim_outgroup", h2_bystander_interaction_terms, controls),
+    c(
+      empathy_vars_A,
+      "bystander_victim_group",
+      "bystander_N1_group * bystander_N2_group",
+      "bystander_victim_group:bystander_N1_group",
+      "bystander_victim_group:bystander_N2_group",
+      "victim_N1_group * victim_N2_group",
+      "N1_N2_same_faculty",
+      controls
+    ),
     collapse = " + "
   )
   h2_bystander_rhs_B <- paste(
-    c(empathy_vars_B, h2_structure_terms, "player_victim_outgroup", h2_bystander_interaction_terms, controls),
+    c(
+      empathy_vars_B,
+      "bystander_victim_group",
+      "bystander_N1_group * bystander_N2_group",
+      "bystander_victim_group:bystander_N1_group",
+      "bystander_victim_group:bystander_N2_group",
+      "victim_N1_group * victim_N2_group",
+      "N1_N2_same_faculty",
+      controls
+    ),
     collapse = " + "
   )
 
-  h3_judged_terms <- c("judged_ingroup", "judged_outgroup")
-  h3_decision_block <- c(
-    "decision_accept",
-    "decision_accept:judged_ingroup",
-    "decision_accept:judged_outgroup"
+  h2_victim_terms <- c(
+    group3_terms("victim_N1_group"),
+    group3_terms("victim_N2_group"),
+    group3_interaction_terms("victim_N1_group", "victim_N2_group"),
+    "N1_N2_same_faculty"
   )
-  h3_counterpart_terms <- c("counterpart_ingroup", "counterpart_outgroup")
-  h3_interactions_A <- paste(empathy_vars_A, h3_judged_terms, sep = ":")
-  h3_interactions_B <- as.vector(outer(empathy_vars_B, h3_judged_terms, paste, sep = ":"))
+  h2_bystander_terms <- c(
+    "bystander_victim_groupOut",
+    group3_terms("bystander_N1_group"),
+    group3_terms("bystander_N2_group"),
+    group3_terms("victim_N1_group"),
+    group3_terms("victim_N2_group"),
+    group3_interaction_terms("bystander_N1_group", "bystander_N2_group"),
+    group2_group3_interaction_terms("bystander_victim_group", "bystander_N1_group"),
+    group2_group3_interaction_terms("bystander_victim_group", "bystander_N2_group"),
+    group3_interaction_terms("victim_N1_group", "victim_N2_group"),
+    "N1_N2_same_faculty"
+  )
+
+  h3_victim_group_terms <- c(
+    group3_terms("victim_N1_group"),
+    group3_terms("victim_N2_group")
+  )
+  h3_bystander_group_terms <- c(
+    "bystander_victim_groupOut",
+    group3_terms("bystander_N1_group"),
+    group3_terms("bystander_N2_group"),
+    group3_terms("victim_N1_group"),
+    group3_terms("victim_N2_group")
+  )
+  h3_victim_interactions_A <- empathy_by_group_terms(empathy_vars_A, h3_victim_group_terms)
+  h3_victim_interactions_B <- empathy_by_group_terms(empathy_vars_B, h3_victim_group_terms)
+  h3_victim_formula_interactions_A <- c(
+    paste(empathy_vars_A, "victim_N1_group", sep = ":"),
+    paste(empathy_vars_A, "victim_N2_group", sep = ":")
+  )
+  h3_victim_formula_interactions_B <- c(
+    paste(empathy_vars_B, "victim_N1_group", sep = ":"),
+    paste(empathy_vars_B, "victim_N2_group", sep = ":")
+  )
+  h3_bystander_interaction_groups <- c(
+    "bystander_victim_groupOut",
+    group3_terms("bystander_N1_group"),
+    group3_terms("bystander_N2_group")
+  )
+  h3_bystander_interactions_A <- empathy_by_group_terms(empathy_vars_A, h3_bystander_interaction_groups)
+  h3_bystander_interactions_B <- empathy_by_group_terms(empathy_vars_B, h3_bystander_interaction_groups)
+  h3_bystander_formula_interactions_A <- c(
+    paste(empathy_vars_A, "bystander_victim_group", sep = ":"),
+    paste(empathy_vars_A, "bystander_N1_group", sep = ":"),
+    paste(empathy_vars_A, "bystander_N2_group", sep = ":")
+  )
+  h3_bystander_formula_interactions_B <- c(
+    paste(empathy_vars_B, "bystander_victim_group", sep = ":"),
+    paste(empathy_vars_B, "bystander_N1_group", sep = ":"),
+    paste(empathy_vars_B, "bystander_N2_group", sep = ":")
+  )
 
   h3_victim_rhs_A <- paste(
-    c(empathy_vars_A, h3_judged_terms, h3_decision_block, h3_interactions_A, h3_counterpart_terms, controls),
+    c(
+      empathy_vars_A,
+      "victim_N1_group",
+      "victim_N2_group",
+      "victim_N1_group:victim_N2_group",
+      h3_victim_formula_interactions_A,
+      "N1_N2_same_faculty",
+      controls
+    ),
     collapse = " + "
   )
   h3_victim_rhs_B <- paste(
-    c(empathy_vars_B, h3_judged_terms, h3_decision_block, h3_interactions_B, h3_counterpart_terms, controls),
+    c(
+      empathy_vars_B,
+      "victim_N1_group",
+      "victim_N2_group",
+      "victim_N1_group:victim_N2_group",
+      h3_victim_formula_interactions_B,
+      "N1_N2_same_faculty",
+      controls
+    ),
     collapse = " + "
   )
   h3_bystander_rhs_A <- paste(
     c(
       empathy_vars_A,
-      h3_judged_terms,
-      h3_decision_block,
-      h3_interactions_A,
-      h3_counterpart_terms,
-      "observer_victim_outgroup",
+      "bystander_victim_group",
+      "bystander_N1_group",
+      "bystander_N2_group",
+      "victim_N1_group",
+      "victim_N2_group",
+      "bystander_N1_group:bystander_N2_group",
+      "bystander_victim_group:bystander_N1_group",
+      "bystander_victim_group:bystander_N2_group",
+      "victim_N1_group:victim_N2_group",
+      h3_bystander_formula_interactions_A,
+      "N1_N2_same_faculty",
       controls
     ),
     collapse = " + "
@@ -128,11 +248,17 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
   h3_bystander_rhs_B <- paste(
     c(
       empathy_vars_B,
-      h3_judged_terms,
-      h3_decision_block,
-      h3_interactions_B,
-      h3_counterpart_terms,
-      "observer_victim_outgroup",
+      "bystander_victim_group",
+      "bystander_N1_group",
+      "bystander_N2_group",
+      "victim_N1_group",
+      "victim_N2_group",
+      "bystander_N1_group:bystander_N2_group",
+      "bystander_victim_group:bystander_N1_group",
+      "bystander_victim_group:bystander_N2_group",
+      "victim_N1_group:victim_N2_group",
+      h3_bystander_formula_interactions_B,
+      "N1_N2_same_faculty",
       controls
     ),
     collapse = " + "
@@ -145,8 +271,8 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
       short_label = "Empathy Effect",
       statement = paste(
         "Empathy dimensions are associated with moral judgment severity after",
-        "conditioning on judged-negotiator status, counterpart status,",
-        "decision outcome, and observer-side victim alignment when applicable."
+        "conditioning on role-specific N1/N2 relational predictors and the",
+        "N1-N2 same-faculty context term."
       ),
       expected_direction = "negative",
       primary_terms = list(
@@ -167,14 +293,15 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
         A = list(Victim = h1_victim_rhs_A, Bystander = h1_bystander_rhs_A),
         B = list(Victim = h1_victim_rhs_B, Bystander = h1_bystander_rhs_B)
       ),
-      exclude_terms = c("(Intercept)", "Log(scale)"),
+      exclude_terms = c("(Intercept)"),
       plain_title = "H1",
       plain_question = paste(
         "Si las dimensiones de empatia se relacionan con la severidad del juicio",
-        "moral cuando ya controlamos el contexto relacional del negociador."
+        "moral cuando controlamos los predictores relacionales de N1 y N2",
+        "segun el rol del participante."
       ),
-      plain_sample = "Se estima por separado en Victima y Observador, con una fila por juicio sobre un negociador.",
-      plain_equation = "Juicio moral ~ empatia + estatus del negociador juzgado + estatus de la contraparte + decision + controles",
+      plain_sample = "Se estima por separado en Victima y Observador, con una fila por respuesta y sin duplicar observaciones.",
+      plain_equation = "Juicio moral ~ empatia + predictores relacionales por rol (N1, N2, victima) + N1_N2_same_faculty + controles + (1 | id) + [opcional (1 | id_case)]",
       plain_code_equations = build_plain_code_equations(
         victim_rhs_A = h1_victim_rhs_A,
         bystander_rhs_A = h1_bystander_rhs_A,
@@ -182,8 +309,9 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
         bystander_rhs_B = h1_bystander_rhs_B
       ),
       plain_term_note = paste(
-        "En Observador se agrega `observer_victim_outgroup` porque solo ahi varia",
-        "la relacion entre el jugador y la victima."
+        "Todas las estimaciones inferenciales incluyen intercepto aleatorio",
+        "por participante `(1 | id)`; cuando `id_case` identifica pares",
+        "repetidos por caso, tambien se agrega `(1 | id_case)`."
       )
     ),
     list(
@@ -191,28 +319,28 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
       family_id = "H2",
       short_label = "Negotiator-Side Structure",
       statement = paste(
-        "Moral judgments vary with the joint judged-plus-counterpart",
-        "negotiator structure, and in the bystander subset that structure",
-        "may also depend on player-victim alignment."
+        "Moral judgments vary with explicit N1/N2 relational structure and",
+        "with the participant role. Bystander models retain participant-victim",
+        "alignment and selective pairwise interactions."
       ),
       expected_direction = "relational",
       primary_terms = list(
-        A = list(Victim = h2_structure_terms, Bystander = c(h2_structure_terms, "player_victim_outgroup", h2_bystander_interaction_terms)),
-        B = list(Victim = h2_structure_terms, Bystander = c(h2_structure_terms, "player_victim_outgroup", h2_bystander_interaction_terms))
+        A = list(Victim = h2_victim_terms, Bystander = h2_bystander_terms),
+        B = list(Victim = h2_victim_terms, Bystander = h2_bystander_terms)
       ),
       model_terms = list(
         A = list(
-          Victim = list(terms = h2_structure_terms, description = "negotiator-side structure contrasts"),
+          Victim = list(terms = h2_victim_terms, description = "victim-side N1/N2 relational structure and interaction"),
           Bystander = list(
-            terms = c(h2_structure_terms, "player_victim_outgroup", h2_bystander_interaction_terms),
-            description = "negotiator-side structure, player-victim alignment, and their interaction"
+            terms = h2_bystander_terms,
+            description = "bystander-victim alignment plus bystander-victim x bystander-N1/N2 and N1/N2 joint relational structure"
           )
         ),
         B = list(
-          Victim = list(terms = h2_structure_terms, description = "negotiator-side structure contrasts"),
+          Victim = list(terms = h2_victim_terms, description = "victim-side N1/N2 relational structure and interaction"),
           Bystander = list(
-            terms = c(h2_structure_terms, "player_victim_outgroup", h2_bystander_interaction_terms),
-            description = "negotiator-side structure, player-victim alignment, and their interaction"
+            terms = h2_bystander_terms,
+            description = "bystander-victim alignment plus bystander-victim x bystander-N1/N2 and N1/N2 joint relational structure"
           )
         )
       ),
@@ -220,16 +348,17 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
         A = list(Victim = h2_victim_rhs_A, Bystander = h2_bystander_rhs_A),
         B = list(Victim = h2_victim_rhs_B, Bystander = h2_bystander_rhs_B)
       ),
-      exclude_terms = c("(Intercept)", "Log(scale)"),
+      exclude_terms = c("(Intercept)"),
       plain_title = "H2",
       plain_question = paste(
-        "Si el juicio cambia segun la posicion conjunta del negociador juzgado",
-        "y su contraparte respecto al participante."
+        "Si el juicio cambia segun la estructura relacional explicita entre",
+        "N1, N2 y la victima segun el rol (Victima u Observador)."
       ),
-      plain_sample = "Se estima por separado en Victima y Observador, con una fila por juicio sobre un negociador.",
+      plain_sample = "Se estima por separado en Victima y Observador, con una fila por respuesta y sin duplicar observaciones.",
       plain_equation = paste(
-        "Juicio moral ~ estructura juzgado-contraparte",
-        "(+ alineacion jugador-victima e interacciones en Observador) + empatia + controles"
+        "Juicio moral ~ estructura relacional de N1 y N2",
+        "(+ alineacion observador-victima e interacciones selectivas en Observador)",
+        "+ empatia + controles + (1 | id) + [opcional (1 | id_case)]"
       ),
       plain_code_equations = build_plain_code_equations(
         victim_rhs_A = h2_victim_rhs_A,
@@ -238,48 +367,49 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
         bystander_rhs_B = h2_bystander_rhs_B
       ),
       plain_term_note = paste(
-        "La referencia de H2 es `J_Cont__C_Cont`: N1 y N2 en la condicion",
-        "control."
+        "N1_N2_same_faculty entra primero como efecto principal contextual;",
+        "en Observador tambien se incluyen interacciones bystander-victima x bystander-N1/N2;",
+        "no se agregan interacciones con N1_N2_same_faculty salvo justificacion teorica explicita."
       )
     ),
     list(
       id = "H3",
       family_id = "H3",
-      short_label = "Empathy x Judged Status",
+      short_label = "Empathy x Relational Status",
       statement = paste(
-        "The empathy effect depends on the judged negotiator's ingroup,",
-        "outgroup, or control status after retaining decision context and",
-        "relational controls."
+        "The empathy effect depends on N1/N2 relational status indicators",
+        "within each role-specific model while retaining relational controls",
+        "and participant-level random intercepts."
       ),
       expected_direction = "either",
       primary_terms = list(
-        A = h3_interactions_A,
-        B = h3_interactions_B
+        A = list(Victim = h3_victim_interactions_A, Bystander = h3_bystander_interactions_A),
+        B = list(Victim = h3_victim_interactions_B, Bystander = h3_bystander_interactions_B)
       ),
       model_terms = list(
         A = list(
-          Victim = list(terms = h3_interactions_A, description = "composite-empathy by judged-status interactions"),
-          Bystander = list(terms = h3_interactions_A, description = "composite-empathy by judged-status interactions")
+          Victim = list(terms = h3_victim_interactions_A, description = "composite-empathy by victim-side N1/N2 interactions"),
+          Bystander = list(terms = h3_bystander_interactions_A, description = "composite-empathy by bystander-victim and bystander-side N1/N2 interactions")
         ),
         B = list(
-          Victim = list(terms = h3_interactions_B, description = "empathy-by-judged-status interactions"),
-          Bystander = list(terms = h3_interactions_B, description = "empathy-by-judged-status interactions")
+          Victim = list(terms = h3_victim_interactions_B, description = "empathy-by-victim-side N1/N2 interactions"),
+          Bystander = list(terms = h3_bystander_interactions_B, description = "empathy-by-bystander-victim and bystander-side N1/N2 interactions")
         )
       ),
       formula_rhs = list(
         A = list(Victim = h3_victim_rhs_A, Bystander = h3_bystander_rhs_A),
         B = list(Victim = h3_victim_rhs_B, Bystander = h3_bystander_rhs_B)
       ),
-      exclude_terms = c("(Intercept)", "Log(scale)"),
+      exclude_terms = c("(Intercept)"),
       plain_title = "H3",
       plain_question = paste(
         "Si la relacion entre empatia y juicio moral cambia dependiendo del",
-        "estatus del negociador juzgado."
+        "estatus relacional de N1 y N2 dentro de cada rol."
       ),
-      plain_sample = "Se estima por separado en Victima y Observador, con una fila por juicio sobre un negociador.",
+      plain_sample = "Se estima por separado en Victima y Observador, con una fila por respuesta y sin duplicar observaciones.",
       plain_equation = paste(
-        "Juicio moral ~ empatia + estatus del negociador juzgado + decision +",
-        "empatia x estatus juzgado + decision x estatus juzgado + controles"
+        "Juicio moral ~ empatia + estatus relacional de N1/N2 +",
+        "empatia x estatus relacional + controles + (1 | id) + [opcional (1 | id_case)]"
       ),
       plain_code_equations = build_plain_code_equations(
         victim_rhs_A = h3_victim_rhs_A,
@@ -288,8 +418,10 @@ get_hypothesis_specs <- function(paths = get_project_paths()) {
         bystander_rhs_B = h3_bystander_rhs_B
       ),
       plain_term_note = paste(
-        "En Observador se conserva ademas `observer_victim_outgroup` para no",
-        "mezclar un predictor solo-observador dentro del subconjunto Victima."
+        "En Observador se conservan predictores adicionales de alineacion",
+        "bystander-victima, incluidas interacciones bystander-victima x bystander-N1/N2",
+        "y empatia x bystander-victima; no se agregan interacciones",
+        "de orden superior por defecto."
       )
     )
   )
