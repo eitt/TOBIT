@@ -1,88 +1,54 @@
-# Tobit and Cluster-Aware Non-Parametric Censored Robustness Analysis Pipeline
+# Repository Guide
 
-This repository implements a reproducible, function-oriented R pipeline for analyzing bounded moral judgments using interval-censored Tobit regression plus a distribution-robust non-parametric censored robustness check.
+## Active pipeline
 
-The project now adopts **Option 2: judgment-level relational modeling** across the full workflow. The executable models use explicit negotiator-level predictors for judged-negotiator status, counterpart status, observer-side victim alignment, and hypothesis-specific interaction blocks. H2 now centers on the joint judged-plus-counterpart structure, while H3 retains the decision-conditioned judged-status interaction design.
+The project now runs a longitudinal two-sided Tobit workflow centered on:
 
-## Project Purpose
+- `judgement` as the dependent variable
+- `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` as the sole analytical input
+- 20 long-format judgement rows per participant in principle
+- separate victim and bystander specifications
+- participant-level dependence handled with cluster-robust standard errors by `id`
+- session adjustment through `factor(session)`
+- H1-H5 instead of the earlier empathy-only emphasis
+- role-specific group coding where ingroup means matching faculties, including `control` with `control`
 
-The goal is to estimate the impact of empathy (IRI) and relational structure on moral judgments of negotiators who accept or reject harmful deals using negotiator-level ingroup/outgroup/control predictors.
+## Key folders
 
-## Data Sources
+- `R/`: executable pipeline scripts
+- `R/utils/`: dataset preparation, relational-variable construction, and Tobit helpers
+- `R/hypotheses/`: H1-H5 scripts and shared formula catalog
+- `data/processed/`: processed analytical datasets used by the pipeline
+- `outputs/`: generated tables, figures, model files, logs, and dynamic reports
+- `docs/`: source documentation for the active redesign
 
-The primary inputs are located in `data/raw/`:
+## Main run order
 
-- `data_final_FLORIDA.xlsx`
-- `data_final_BUC.xlsx`
+1. `R/01_import_data.R`
+2. `R/02_clean_data.R`
+3. `R/03_transform_data.R`
+4. `R/04_generate_variables.R`
+5. `R/05_descriptive_statistics.R`
+6. `R/hypotheses/H1_test.R` through `R/hypotheses/H5_test.R`
+7. `R/06_generate_report.R`
+8. `R/08_generate_plain_language_report.R`
+9. `R/09_generate_behavioral_economics_report.R`
 
-## Repository Structure
+## Main outputs
 
-The project has been reorganized into a strict function-oriented architecture:
+- `data/processed/judgments_analysis.csv`
+- `data/processed/judgments_victim.csv`
+- `data/processed/judgments_bystander.csv`
+- `outputs/tables/hypothesis_formula_catalog.csv`
+- `outputs/tables/hypothesis_summary.csv`
+- `outputs/tables/model_fit_summary.csv`
+- `outputs/tables/pipeline_compliance_report.csv`
+- `outputs/report/tobit_analysis_report.md`
+- `outputs/report/tobit_analysis_report.docx`
+- `outputs/report/tobit_analysis_report.pdf`
+- `outputs/report/tobit_plain_language_guide.md`
+- `outputs/report/tobit_behavioral_economics_report.md`
 
-- `data/`: Contains `raw/` inputs and `processed/` analytical datasets.
-- `R/`: Contains step-by-step data preparation scripts (`01_import_data.R` to `05_descriptive_statistics.R`).
-- `R/utils/`: Safe, modular, and shared utilities for IO, transformation, modeling, and output formatting.
-- `R/hypotheses/`: Hypothesis estimation scripts that now run the active Tobit workflow with the four empathy constructs (`H1_test.R`, `H2_test.R`, etc.), while the non-parametric robustness code remains available but inactive by default.
-- `R/07_run_nonparametric_bootstrap_phase.R`: Bootstrap-only refresh utility that updates only the non-parametric outputs with participant-level cluster bootstrap inference and then refreshes the report without refitting Tobit.
-- `R/08_generate_plain_language_report.R`: Companion report generator that writes a simpler study guide covering the data card, hypothesis wording, variable creation rules, and regression codings.
-- `outputs/`: Automatically populated artifacts segmented into `tables/`, `figures/`, `models/`, and `logs/`.
-- `docs/`: Technical and conceptual documentation (`datacard.md`, `hypotheses.md`, `workflow.md`).
+## Compatibility note
 
-## Execution Order
-
-1. **01_import_data.R** - Validation and ingestion wrapper
-2. **02_clean_data.R** - Label recoding and attention check flagging
-3. **03_transform_data.R** - Psychometric metric scoring (IRI totals and subscales, kept on raw scales)
-4. **04_generate_variables.R** - Matrix restructuring (wide to long) and scenario feature engineering, including Option 2 negotiator-level relational variables
-5. **05_descriptive_statistics.R** - Dataset-wide distributional outputs
-6. **Hypothesis tests** - H1 through H3 standalone model runs, each generating the active Tobit outputs with the four empathy constructs, using judgment-level relational structure terms rather than descriptive case labels
-7. **Bootstrap-only refresh utility** - retained for the archived non-parametric branch when you explicitly want to refresh those outputs without refitting Tobit
-8. **Plain-language guide** - generated after the main report so the project also exports a simpler explanation of the data card, hypotheses, variable creation, and model codings
-
-## How to Run the Full Pipeline
-
-### Option 1: Using Windows Helper Scripts (Recommended)
-
-If you are on Windows, you can double-click or run the following files from PowerShell/CMD. They will automatically check for R, ensure you use `Rscript`, and run the entire pipeline:
-
-- `run_pipeline.bat` (Double-click in File Explorer or run in CMD)
-- `run_pipeline.ps1` (Run in PowerShell: `.\run_pipeline.ps1`)
-
-### Manual Rscript Command
-
-```powershell
-Rscript run_pipeline.R
-```
-
-This script handles all sequential evaluations, ensures all processed data tables are rebuilt, installs any missing R packages automatically, clears the existing generated artifacts under `outputs/` at the start of the run, and then repopulates the `outputs/` folder from scratch.
-
-For quicker test cycles, the import step now applies a reproducible random participant-level sample by default. The central default in `R/00_config.R` is `10%` of the imported dataset with a fixed seed. Set `options(tobit.dataset_sample_fraction = 1)` (or `100`) when you want to keep the full dataset.
-
-By default, the main pipeline now runs only the Tobit branch and only the empathy-construct specification (`iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`). The archived non-parametric branch remains in the repository and can still be run manually when needed.
-
-The central bootstrap default is currently `10` replicates in `R/00_config.R` via `get_default_clad_bootstrap_reps()`. Change that single value there if you want a different default for future runs.
-
-If you want a faster fit-only pass, disable bootstrap first with `options(tobit.clad_run_bootstrap = FALSE)` and then use the refresh utility later.
-
-### Bootstrap-Only Refresh Utility
-
-```powershell
-Rscript R/07_run_nonparametric_bootstrap_phase.R
-```
-
-This utility updates only the non-parametric outputs, running the participant-level cluster bootstrap for specifications whose full-sample non-parametric fit already converged. You can override the central default temporarily with `options(tobit.clad_bootstrap_reps = ...)` in R, but the repository debug default currently comes from `R/00_config.R`.
-
-## How to Run a Single Hypothesis
-
-Because each hypothesis script is modular, you can choose to run just one after data preparation is done. Example for Hypothesis 1:
-
-```powershell
-Rscript R/hypotheses/H1_test.R
-```
-
-## Main Outputs Produced
-
-- **Tables**: `outputs/tables/` generates Letter-width wrapped `.tex` source tables, standard `.csv` aggregations, a concise `hypothesis_summary.csv` significance table keyed to hypothesis-relevant relational terms, a `hypothesis_figure_catalog.csv` index of hypothesis-target figures, and an `all_significant_figure_catalog.csv` index covering every predictor below `p < .10` in the H-model families.
-- **Figures**: `outputs/figures/` exports accessible 300dpi `.png` histograms, summary maps, hypothesis-target figures, and broader significant-predictor figures for controls and interactions such as `age` when they reach at least `p < .10` in the Tobit or clustered non-parametric model.
-- **Models**: `outputs/models/` writes clustered `survreg` Tobit coefficients, fit summaries, and binary `.rds` fitted engines for the active four-construct empathy specifications. The non-parametric robustness outputs remain supported in the codebase but are not generated in the default pipeline.
-- **Reports**: `outputs/report/` now includes both the main technical report and a simpler companion file, `tobit_plain_language_guide.md` (plus `.docx` when Pandoc is available).
+`participants_scored.csv` and `03_transformed_participants.csv` are still generated as bridge artifacts so downstream local tools keep finding the expected files, but the authoritative inferential workflow now comes from the longitudinal judgment files and H1-H5 Tobit models.

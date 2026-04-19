@@ -1,0 +1,9 @@
+"role_label","decision_pattern","n","mean_judgement"
+"bystander","both_accept",604,-2.78476821192053
+"victim","both_accept",610,-3.1672131147541
+"bystander","both_reject",690,7.08550724637681
+"victim","both_reject",662,7.0619335347432
+"bystander","target_accept_other_reject",568,-3.15492957746479
+"victim","target_accept_other_reject",579,-3.80310880829016
+"bystander","target_reject_other_accept",568,4.95774647887324
+"victim","target_reject_other_accept",579,5.37823834196891

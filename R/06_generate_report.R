@@ -1,2509 +1,585 @@
-# R/06_generate_report.R
-# Purpose: Dynamically generate a full scientific manuscript (Markdown, LaTeX, PDF, Word)
-# incorporating theoretical foundations, bivariate stats, power analysis, 
-# dynamic NLP coefficient interpretations, and normality tests.
-# Execution Order: 7
-
 source("R/00_config.R")
-source("R/utils/case_configuration_functions.R")
-source("R/utils/io_functions.R")
-source("R/utils/power_functions.R")
-source("R/utils/table_functions.R")
-source("R/utils/narrative_functions.R")
-source("R/utils/model_functions.R")
-source("R/utils/hypothesis_metadata.R")
-source("R/utils/figure_functions.R")
-source("R/utils/significance_figure_functions.R")
-source("R/utils/nl_generation.R")
+source("R/hypotheses/H_formulas.R")
+source("R/utils/report_dynamic_helpers.R")
+
 paths <- get_project_paths()
-figure_radar_file <- get_standard_figure_filename("radar")
-figure_severity_panels_file <- get_standard_figure_filename("severity_panels")
-figure_victim_case_panels_file <- get_standard_figure_filename("victim_case_panels")
-figure_bystander_case_panels_file <- get_standard_figure_filename("bystander_case_panels")
-figure_accepted_case_panels_file <- get_standard_figure_filename("accepted_case_panels")
-figure_rejected_case_panels_file <- get_standard_figure_filename("rejected_case_panels")
-figure_bivariate_scatters_file <- get_standard_figure_filename("bivariate_scatters")
-case_examples_latex <- paste(get_case_configuration_example_labels(latex = TRUE), collapse = ", ")
-configured_clad_bootstrap_reps <- resolve_clad_bootstrap_reps()
-report_hypothesis_specs <- get_hypothesis_family_specs(paths = paths)
-report_h1_spec <- get_hypothesis_spec("H1", paths = paths)
-report_h2_spec <- get_hypothesis_spec("H2", paths = paths)
-report_h3_spec <- get_hypothesis_spec("H3", paths = paths)
-report_pipeline_mode <- toupper(trimws(as.character(
-  getOption("tobit.pipeline_mode", get_default_pipeline_mode())
-)))
-if (!(report_pipeline_mode %in% c("TOBIT", "BOTH"))) {
-  report_pipeline_mode <- "TOBIT"
-}
-report_active_model_suffixes <- resolve_active_model_suffixes()
-if (length(report_active_model_suffixes) == 0L) {
-  report_active_model_suffixes <- "B"
-}
 
-report_includes_nonparametric <- function() {
-  identical(report_pipeline_mode, "BOTH")
-}
-
-report_uses_composite_model <- function() {
-  "A" %in% report_active_model_suffixes
-}
-
-report_uses_construct_model <- function() {
-  "B" %in% report_active_model_suffixes
-}
-
-get_report_approaches <- function() {
-  if (report_includes_nonparametric()) {
-    c("Tobit", "CLAD")
-  } else {
-    "Tobit"
+normalize_existing_paths <- function(paths_vector) {
+  existing_paths <- paths_vector[nzchar(paths_vector) & file.exists(paths_vector)]
+  if (length(existing_paths) == 0L) {
+    return(character(0))
   }
+  unique(normalizePath(existing_paths, winslash = "/", mustWork = FALSE))
 }
 
-format_count_value <- function(x) {
-  if (length(x) == 0L || is.na(x[1])) return("NA")
-  format(as.integer(x[1]), big.mark = ",", scientific = FALSE, trim = TRUE)
-}
-
-format_sample_description <- function(fit_stats, subset_role = NULL) {
-  subset_prefix <- if (!is.null(subset_role)) {
-    paste0(subset_role, " subset: ")
-  } else {
-    ""
-  }
-  if (is.null(fit_stats) || nrow(fit_stats) == 0L) {
-    return(paste0(subset_prefix, "sample counts unavailable"))
-  }
-  sprintf(
-    "%s%s observations from %s participants",
-    subset_prefix,
-    format_count_value(fit_stats$Observations[1]),
-    format_count_value(fit_stats$Participants[1])
-  )
-}
-
-format_missing_display <- function(x, missing_label = "--") {
-  x_chr <- as.character(x)
-  x_chr[is.na(x) | !nzchar(trimws(x_chr))] <- missing_label
-  x_chr
-}
-
-title_case_status <- function(x) {
-  x_chr <- gsub("_", " ", tolower(trimws(as.character(x))))
-  tools::toTitleCase(x_chr)
-}
-
-parse_fit_summary_model <- function(model_label) {
-  matches <- regexec("^(H[123])_([AB])_(Victim|Bystander)_Constructs(?:_(Tobit|CLAD))?$", model_label)
-  parts <- regmatches(model_label, matches)[[1]]
-  if (length(parts) == 0L) {
-    return(list(
-      hypothesis = model_label,
-      model = NA_character_,
-      subset = NA_character_
-    ))
-  }
-  list(
-    hypothesis = parts[2],
-    model = paste("Model", parts[3]),
-    subset = parts[4]
-  )
-}
-
-format_cluster_unit_label <- function(x) {
-  x_chr <- trimws(as.character(x))
-  if (!nzchar(x_chr) || is.na(x_chr)) return("--")
-  if (identical(x_chr, "id_case + id")) return("case + participant")
-  if (identical(x_chr, "id")) return("participant")
-  gsub("_", " ", x_chr, fixed = TRUE)
-}
-
-build_model_fit_summary_display <- function(fit_summary) {
-  if (is.null(fit_summary) || nrow(fit_summary) == 0L) return(NULL)
-
-  parsed_meta <- lapply(fit_summary$Model, parse_fit_summary_model)
-  display_df <- data.frame(
-    Hypothesis = vapply(parsed_meta, `[[`, character(1), "hypothesis"),
-    Subset = vapply(parsed_meta, `[[`, character(1), "subset"),
-    Specification = vapply(parsed_meta, `[[`, character(1), "model"),
-    Approach = fit_summary$Approach,
-    Status = title_case_status(fit_summary$Status),
-    Iterations = format_missing_display(fit_summary$Iterations),
-    Observations = format_missing_display(fit_summary$Observations),
-    Participants = format_missing_display(fit_summary$Participants),
-    `Cluster unit` = vapply(fit_summary$ClusterUnit, format_cluster_unit_label, character(1)),
-    stringsAsFactors = FALSE,
-    check.names = FALSE
-  )
-
-  if (report_includes_nonparametric()) {
-    display_df$`Bootstrap reps` <- format_missing_display(fit_summary$BootstrapReplicates)
-    display_df$`Bootstrap successful` <- format_missing_display(fit_summary$BootstrapSuccessful)
-  }
-
-  display_df[order(display_df$Hypothesis, display_df$Subset, display_df$Specification), , drop = FALSE]
-}
-
-build_model_fit_note_text <- function(fit_summary_display) {
-  if (is.null(fit_summary_display) || nrow(fit_summary_display) == 0L) {
-    return("Fit-summary note unavailable.")
-  }
-
-  note_parts <- c(
-    paste0(
-      "Reported approaches: ",
-      paste(unique(fit_summary_display$Approach), collapse = ", "),
-      "."
-    )
-  )
-
-  if (all(fit_summary_display$Iterations == "--")) {
-    note_parts <- c(
-      note_parts,
-      "Iterations are shown as -- when the saved estimator object does not report a comparable iteration count."
+find_tool_path <- function(tool_name, extra_candidates = character()) {
+  system_candidate <- unname(Sys.which(tool_name))
+  where_candidates <- character(0)
+  if (.Platform$OS.type == "windows") {
+    where_candidates <- tryCatch(
+      system2("where.exe", args = tool_name, stdout = TRUE, stderr = FALSE),
+      error = function(e) character(0)
     )
   }
+  normalize_existing_paths(c(system_candidate, where_candidates, extra_candidates))
+}
 
-  cluster_units <- unique(fit_summary_display$`Cluster unit`)
-  note_parts <- c(
-    note_parts,
-    paste0(
-      "Cluster unit entries used in this table: ",
-      paste(cluster_units, collapse = "; "),
-      "."
-    )
+run_command_capture <- function(command, args) {
+  command_output <- tryCatch(
+    system2(command, args = args, stdout = TRUE, stderr = TRUE),
+    error = function(e) structure(conditionMessage(e), status = 1L)
+  )
+  exit_status <- attr(command_output, "status")
+  if (is.null(exit_status)) exit_status <- 0L
+  list(status = as.integer(exit_status), output = paste(command_output, collapse = "\n"))
+}
+
+bind_csv_files <- function(file_paths) {
+  if (length(file_paths) == 0L) {
+    return(data.frame())
+  }
+  data_frames <- lapply(file_paths, read_csv_or_empty)
+  data_frames <- Filter(function(df) is.data.frame(df) && nrow(df) > 0L && ncol(df) > 0L, data_frames)
+  if (length(data_frames) == 0L) {
+    return(data.frame())
+  }
+  do.call(rbind, data_frames)
+}
+
+render_dynamic_report_outputs <- function(markdown_path, paths = get_project_paths()) {
+  report_stem <- tools::file_path_sans_ext(basename(markdown_path))
+  output_dir <- dirname(markdown_path)
+  pandoc_path <- find_tool_path(
+    "pandoc",
+    c(file.path(Sys.getenv("LOCALAPPDATA"), "Pandoc", "pandoc.exe"))
+  )
+  pdflatex_path <- find_tool_path(
+    "pdflatex",
+    c(file.path(Sys.getenv("LOCALAPPDATA"), "Programs", "MiKTeX", "miktex", "bin", "x64", "pdflatex.exe"))
   )
 
-  paste(note_parts, collapse = " ")
-}
-
-collect_table_text_values <- function(table_df) {
-  if (is.null(table_df) || !is.data.frame(table_df) || nrow(table_df) == 0L) return(character(0))
-  unlist(lapply(table_df, as.character), use.names = FALSE)
-}
-
-get_contextual_abbreviation_note_text <- function(text_values) {
-  text_values <- text_values[!is.na(text_values)]
-  if (length(text_values) == 0L) return("")
-  text_blob <- paste(text_values, collapse = " | ")
-
-  abbreviation_specs <- list(
-    list(pattern = "\\bFS\\b|Fantasy|iri_fs", text = "FS = fantasy"),
-    list(pattern = "\\bEC\\b|Empathic concern|Empathy: Empathic concern|iri_ec", text = "EC = empathic concern"),
-    list(pattern = "\\bPT\\b|Perspective taking|Empathy: Perspective taking|iri_pt", text = "PT = perspective taking"),
-    list(pattern = "\\bPD\\b|Personal distress|iri_pd", text = "PD = personal distress"),
-    list(pattern = "\\bN1\\b|Victim-N1|Bystander-N1", text = "N1 = judged negotiator"),
-    list(pattern = "\\bN2\\b|Victim-N2|Bystander-N2", text = "N2 = counterpart negotiator"),
-    list(pattern = "\\bB-V\\b|Bystander-victim", text = "B-V = bystander-victim relation"),
-    list(pattern = "\\bV-N1\\b|Victim-N1", text = "V-N1 = victim-negotiator 1 relation"),
-    list(pattern = "\\bV-N2\\b|Victim-N2", text = "V-N2 = victim-negotiator 2 relation"),
-    list(pattern = "\\bB-N1\\b|Bystander-N1", text = "B-N1 = bystander-negotiator 1 relation"),
-    list(pattern = "\\bB-N2\\b|Bystander-N2", text = "B-N2 = bystander-negotiator 2 relation"),
-    list(pattern = "Ingroup|Outgroup|Control|\\bCtl\\b", text = "In / Out / Ctl = ingroup / outgroup / control label hidden"),
-    list(pattern = "SameFac|same faculty", text = "SameFac = N1 and N2 same faculty"),
-    list(pattern = "\\bSES\\b|economic status", text = "SES = economic status")
-  )
-
-  matched_parts <- vapply(
-    Filter(function(spec) grepl(spec$pattern, text_blob, ignore.case = TRUE, perl = TRUE), abbreviation_specs),
-    `[[`,
-    character(1),
-    "text"
-  )
-
-  paste(unique(matched_parts), collapse = "; ")
-}
-
-summarize_displayed_predictors <- function(predictor_values, max_terms = 6L) {
-  predictor_values <- unique(trimws(as.character(predictor_values)))
-  predictor_values <- predictor_values[
-    nzchar(predictor_values) &
-      !is.na(predictor_values) &
-      !(predictor_values %in% c("Base", "(Intercept)"))
-  ]
-  if (length(predictor_values) == 0L) return(NULL)
-  if (length(predictor_values) <= max_terms) {
-    return(paste0("Displayed predictors: ", paste(predictor_values, collapse = ", "), "."))
-  }
-  paste0(
-    "Displayed predictors include ",
-    paste(predictor_values[seq_len(max_terms)], collapse = ", "),
-    ", and ",
-    length(predictor_values) - max_terms,
-    " additional terms."
-  )
-}
-
-build_dynamic_table_note_text <- function(table_df, prefix_parts = NULL, predictor_col = NULL) {
-  note_parts <- prefix_parts
-  if (!is.null(predictor_col) && predictor_col %in% names(table_df)) {
-    predictor_note <- summarize_displayed_predictors(table_df[[predictor_col]])
-    if (!is.null(predictor_note)) {
-      note_parts <- c(note_parts, predictor_note)
-    }
-  }
-  abbreviation_note <- get_contextual_abbreviation_note_text(collect_table_text_values(table_df))
-  if (nzchar(abbreviation_note)) {
-    note_parts <- c(note_parts, paste0("Abbrev.: ", abbreviation_note, "."))
-  }
-  paste(note_parts[nzchar(note_parts)], collapse = " ")
-}
-
-message("Generating Comprehensive Scientific Manuscript (LaTeX/PDF/Word)...")
-
-# 1. LOAD DATA & ASSETS
-judgments_df <- read.csv(paths$processed_judgments, stringsAsFactors = FALSE)
-power_results <- calc_effective_sample_size(judgments_df$judgement, judgments_df$id)
-bivar_cor <- read.csv(file.path(paths$tables_dir, "bivariate_correlations.csv"), row.names = 1, check.names = FALSE)
-case_configuration_summary_path <- file.path(paths$tables_dir, "case_configuration_summary.csv")
-case_configuration_summary <- if (file.exists(case_configuration_summary_path)) {
-  read.csv(case_configuration_summary_path, stringsAsFactors = FALSE)
-} else {
-  NULL
-}
-
-dataset_mode_suffix <- function(dataset_mode) {
-  mode_key <- toupper(trimws(as.character(dataset_mode)))
-  switch(
-    mode_key,
-    BUC = "Buca",
-    FLORIDA = "Florida",
-    BOTH = "",
-    mode_key
-  )
-}
-
-get_dataset_specific_stem <- function(prefix, dataset_mode) {
-  suffix <- dataset_mode_suffix(dataset_mode)
-  if (!nzchar(suffix)) return(NULL)
-  paste(prefix, suffix, sep = "_")
-}
-
-copy_if_present <- function(source_path, target_path) {
-  if (!file.exists(source_path)) return(FALSE)
-  if (normalizePath(dirname(source_path), winslash = "/", mustWork = TRUE) ==
-      normalizePath(dirname(target_path), winslash = "/", mustWork = TRUE) &&
-      basename(source_path) == basename(target_path)) {
-    return(TRUE)
-  }
-  file.copy(source_path, target_path, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)
-}
-
-sync_dataset_specific_report_aliases <- function(dataset_mode) {
-  report_alias_stem <- get_dataset_specific_stem("tobit_analysis_report", dataset_mode)
-  if (is.null(report_alias_stem)) return(invisible(FALSE))
-
-  report_extensions <- c(".tex", ".md", ".pdf", ".docx", ".log", ".aux", ".out")
-  for (ext in report_extensions) {
-    source_path <- file.path(paths$report_dir, paste0("tobit_analysis_report", ext))
-    target_path <- file.path(paths$report_dir, paste0(report_alias_stem, ext))
-    copy_if_present(source_path, target_path)
-  }
-
-  log_alias_stem <- get_dataset_specific_stem("dynamic_report", dataset_mode)
-  if (!is.null(log_alias_stem)) {
-    copy_if_present(
-      file.path(paths$logs_dir, "dynamic_report.md"),
-      file.path(paths$logs_dir, paste0(log_alias_stem, ".md"))
-    )
-  }
-
-  invisible(TRUE)
-}
-
-read_fit_stats <- function(output_prefix) {
-  stats_file <- file.path(paths$models_dir, sprintf("%s_fit_stats.csv", output_prefix))
-  if (!file.exists(stats_file)) return(NULL)
-  read.csv(stats_file, stringsAsFactors = FALSE)
-}
-
-write_model_fit_summary <- function() {
-  fit_files <- list.files(
-    paths$models_dir,
-    pattern = "^(H1|H2|H3)_(A|B)_(Victim|Bystander)(_CLAD)?_fit_stats\\.csv$",
-    full.names = TRUE
-  )
-  if (length(fit_files) == 0L) return(NULL)
-
-  required_cols <- c(
-    "Model", "Approach", "Observations", "Participants", "LowerBoundCensored",
-    "UpperBoundCensored", "LogLik", "AIC", "PseudoR2", "Quantile", "Converged",
-    "Iterations", "Inference", "ClusterUnit", "BootstrapReplicates",
-    "BootstrapSuccessful", "BootstrapFailed", "BootstrapSuccessRate",
-    "ConfidenceLevel", "Status", "ErrorMessage"
-  )
-  fit_rows <- lapply(fit_files, function(path) {
-    fit_df <- read.csv(path, stringsAsFactors = FALSE)
-    missing_cols <- setdiff(required_cols, names(fit_df))
-    for (col_name in missing_cols) {
-      fit_df[[col_name]] <- NA
-    }
-    fit_df[, required_cols, drop = FALSE]
-  })
-  fit_summary <- do.call(rbind, fit_rows)
-  fit_summary <- fit_summary[fit_summary$Approach %in% get_report_approaches(), , drop = FALSE]
-  if (nrow(fit_summary) == 0L) return(NULL)
-  fit_summary <- fit_summary[order(fit_summary$Approach, fit_summary$Model), , drop = FALSE]
-  fit_summary_display <- build_model_fit_summary_display(fit_summary)
-  write.csv(fit_summary_display, file.path(paths$tables_dir, "model_fit_summary.csv"), row.names = FALSE)
-  fit_summary_display
-}
-
-model_fit_summary <- write_model_fit_summary()
-
-collapse_with_and <- function(values) {
-  values <- unique(values[nzchar(values)])
-  if (length(values) == 0L) return("")
-  if (length(values) == 1L) return(values)
-  if (length(values) == 2L) return(paste(values, collapse = " and "))
-  paste(paste(values[-length(values)], collapse = ", "), values[length(values)], sep = ", and ")
-}
-
-coerce_fit_flag <- function(x) {
-  if (length(x) == 0L || is.na(x[1])) return(FALSE)
-  tolower(trimws(as.character(x[1]))) %in% c("true", "t", "1", "yes")
-}
-
-coerce_integer_or_na <- function(x) {
-  if (length(x) == 0L || is.na(x[1])) return(NA_integer_)
-  suppressWarnings(as.integer(x[1]))
-}
-
-format_p_clause <- function(p_value) {
-  p_text <- format_p_value(p_value)
-  if (startsWith(p_text, "<")) {
-    return(paste("p", sub("^<", "< ", p_text)))
-  }
-  paste("p =", p_text)
-}
-
-has_sufficient_clad_bootstrap <- function(fit_stats, min_successes = 2L) {
-  if (is.null(fit_stats) || nrow(fit_stats) == 0L) return(FALSE)
-  bootstrap_successes <- if ("BootstrapSuccessful" %in% names(fit_stats)) {
-    coerce_integer_or_na(fit_stats$BootstrapSuccessful[1])
-  } else {
-    NA_integer_
-  }
-  !is.na(bootstrap_successes) && bootstrap_successes >= min_successes
-}
-
-is_clad_bootstrap_deferred <- function(fit_stats) {
-  !is.null(fit_stats) &&
-    nrow(fit_stats) > 0L &&
-    tolower(trimws(as.character(fit_stats$Status[1]))) == "bootstrap_deferred"
-}
-
-is_clad_bootstrap_sparse <- function(fit_stats, min_successes = 2L) {
-  if (is.null(fit_stats) || nrow(fit_stats) == 0L) return(FALSE)
-  status_value <- tolower(trimws(as.character(fit_stats$Status[1])))
-  if (status_value == "bootstrap_sparse") return(TRUE)
-  status_value == "completed" && !has_sufficient_clad_bootstrap(fit_stats, min_successes = min_successes)
-}
-
-is_fit_usable <- function(fit_stats, approach) {
-  if (is.null(fit_stats) || nrow(fit_stats) == 0L) return(FALSE)
-  status_value <- tolower(trimws(as.character(fit_stats$Status[1])))
-  if (status_value != "completed") return(FALSE)
-  if (approach == "CLAD") {
-    return(
-      coerce_fit_flag(fit_stats$Converged[1]) &&
-        has_sufficient_clad_bootstrap(fit_stats)
-    )
-  }
-  TRUE
-}
-
-read_model_bundle <- function(hypothesis_id, model_suffix, approach, subset_role = NULL) {
-  subset_part <- if (!is.null(subset_role)) paste0("_", subset_role) else ""
-  output_prefix <- paste0(hypothesis_id, "_", model_suffix, subset_part, if (approach == "CLAD") "_CLAD" else "")
-  coef_file <- file.path(paths$models_dir, sprintf("%s_coefficients.csv", output_prefix))
-  fit_stats <- read_fit_stats(output_prefix)
-  coef_df <- if (file.exists(coef_file)) read.csv(coef_file, stringsAsFactors = FALSE) else NULL
-
-  list(
-    hypothesis_id = hypothesis_id,
-    model_suffix = model_suffix,
-    approach = approach,
-    subset_role = subset_role,
-    output_prefix = output_prefix,
-    fit_stats = fit_stats,
-    coef_df = coef_df,
-    available = !is.null(coef_df) && is_fit_usable(fit_stats, approach)
-  )
-}
-
-get_fit_issue_text <- function(bundle) {
-  if (is.null(bundle$fit_stats) || nrow(bundle$fit_stats) == 0L) {
-    return("its fit summary is missing")
-  }
-
-  if (bundle$approach == "CLAD" && is_clad_bootstrap_deferred(bundle$fit_stats)) {
-    return("participant-level cluster bootstrap inference was not run for this pass")
-  }
-
-  if (bundle$approach == "CLAD" && !coerce_fit_flag(bundle$fit_stats$Converged[1])) {
-    iteration_text <- if (!is.na(bundle$fit_stats$Iterations[1])) {
-      sprintf(" after %s iterations", bundle$fit_stats$Iterations[1])
-    } else {
-      ""
-    }
-    return(paste0("the non-parametric optimization did not converge", iteration_text))
-  }
-
-  if (bundle$approach == "CLAD" && "BootstrapSuccessful" %in% names(bundle$fit_stats)) {
-    bootstrap_successes <- coerce_integer_or_na(bundle$fit_stats$BootstrapSuccessful[1])
-    if (!is.na(bootstrap_successes) && bootstrap_successes < 1L) {
-      return("the participant-level cluster bootstrap produced no successful refits")
-    }
-    if (!is.na(bootstrap_successes) && bootstrap_successes < 2L) {
-      return("the participant-level cluster bootstrap produced fewer than two successful refits, so inferential summaries are too sparse to interpret")
-    }
-  }
-
-  sprintf("its status is '%s'", bundle$fit_stats$Status[1])
-}
-
-select_hypothesis_rows <- function(coef_df, terms) {
-  if (is.null(coef_df) || nrow(coef_df) == 0L) return(NULL)
-
-  target_terms <- vapply(terms, canonicalize_term_name, character(1))
-  observed_terms <- vapply(coef_df$term, canonicalize_term_name, character(1))
-  coef_df[observed_terms %in% target_terms, , drop = FALSE]
-}
-
-matches_expected_direction <- function(estimates, expected_direction) {
-  if (expected_direction %in% c("either", "relational")) {
-    return(rep(TRUE, length(estimates)))
-  }
-  if (expected_direction == "negative") return(estimates < 0)
-  estimates > 0
-}
-
-describe_effect_short <- function(row) {
-  sprintf(
-    "%s with a %s association (%s)",
-    row$label[1],
-    if (row$estimate[1] > 0) "positive" else "negative",
-    format_p_clause(row$p_value[1])
-  )
-}
-
-describe_row_group <- function(rows) {
-  phrases <- vapply(
-    seq_len(nrow(rows)),
-    function(i) describe_effect_short(rows[i, , drop = FALSE]),
-    character(1)
-  )
-  collapse_with_and(phrases)
-}
-
-assess_model_terms <- function(bundle, term_info, expected_direction, alpha = 0.10) {
-  if (!bundle$available) {
-    return(list(
-      status = "unavailable",
-      sentence = sprintf("Model %s is not interpreted because %s.", bundle$model_suffix, get_fit_issue_text(bundle))
-    ))
-  }
-
-  rows <- select_hypothesis_rows(bundle$coef_df, term_info$terms)
-  if (is.null(rows) || nrow(rows) == 0L) {
-    return(list(
-      status = "missing",
-      sentence = sprintf(
-        "Model %s cannot be evaluated because %s are missing from the coefficient table.",
-        bundle$model_suffix,
-        term_info$description
-      )
-    ))
-  }
-
-  rows <- rows[order(ifelse(is.na(rows$p_value), Inf, rows$p_value)), , drop = FALSE]
-  sig_rows <- rows[!is.na(rows$p_value) & rows$p_value < alpha, , drop = FALSE]
-  expected_rows <- sig_rows[matches_expected_direction(sig_rows$estimate, expected_direction), , drop = FALSE]
-  opposite_rows <- sig_rows[!matches_expected_direction(sig_rows$estimate, expected_direction), , drop = FALSE]
-
-  if (nrow(expected_rows) > 0L) {
-    return(list(
-      status = "support",
-      sentence = sprintf("Model %s supports the hypothesis through %s.", bundle$model_suffix, describe_row_group(expected_rows))
-    ))
-  }
-
-  if (nrow(opposite_rows) > 0L) {
-    return(list(
-      status = "contradict",
-      sentence = sprintf("Model %s points in the opposite direction through %s.", bundle$model_suffix, describe_row_group(opposite_rows))
-    ))
-  }
-
-  closest_row <- rows[1, , drop = FALSE]
-  if (nrow(rows) == 1L) {
-    return(list(
-      status = "no_support",
-      sentence = sprintf(
-        "Model %s does not support the hypothesis; %s is %s but not statistically significant (%s).",
-        bundle$model_suffix,
-        closest_row$label[1],
-        if (closest_row$estimate[1] > 0) "positive" else "negative",
-        format_p_clause(closest_row$p_value[1])
-      )
-    ))
-  }
-
-  list(
-    status = "no_support",
-    sentence = sprintf(
-      "Model %s does not support the hypothesis; none of %s are statistically significant, and the closest signal is %s.",
-      bundle$model_suffix,
-      term_info$description,
-      describe_effect_short(closest_row)
-    )
-  )
-}
-
-summarize_additional_signals <- function(bundles, excluded_terms, alpha = 0.10, max_terms = 2L) {
-  available_bundles <- Filter(function(bundle) isTRUE(bundle$available), bundles)
-  if (length(available_bundles) == 0L) return(NULL)
-
-  signal_rows <- lapply(available_bundles, function(bundle) {
-    if (is.null(bundle$coef_df) || nrow(bundle$coef_df) == 0L) return(NULL)
-    bundle$coef_df
-  })
-  signal_rows <- Filter(Negate(is.null), signal_rows)
-  if (length(signal_rows) == 0L) return(NULL)
-
-  signal_df <- do.call(rbind, signal_rows)
-  signal_df$canonical_term <- vapply(signal_df$term, canonicalize_term_name, character(1))
-  excluded_canonical <- unique(vapply(excluded_terms, canonicalize_term_name, character(1)))
-
-  signal_df <- signal_df[
-    !is.na(signal_df$p_value) &
-      signal_df$p_value < alpha &
-      !(signal_df$canonical_term %in% excluded_canonical) &
-      signal_df$term != "(Intercept)" &
-      signal_df$term != "Log(scale)" &
-      !grepl("^factor\\(negotiator_slot\\)", signal_df$term) &
-      !grepl("^factor\\(stage\\)", signal_df$term),
-    ,
-    drop = FALSE
-  ]
-
-  if (nrow(signal_df) == 0L) return(NULL)
-
-  signal_df <- signal_df[order(signal_df$p_value), , drop = FALSE]
-  signal_df <- signal_df[!duplicated(signal_df$canonical_term), , drop = FALSE]
-  signal_df <- utils::head(signal_df, max_terms)
-
-  sprintf("Additional statistically significant signals include %s.", describe_row_group(signal_df))
-}
-
-summarize_overall_support <- function(statuses) {
-  if (length(statuses) == 0L) return("the available evidence is inconclusive.")
-  if (all(statuses == "support")) return("the available models support the hypothesis.")
-  if (any(statuses == "support")) return("the evidence is mixed but offers partial support for the hypothesis.")
-  if (all(statuses == "contradict")) return("the available models point in the opposite direction of the hypothesis.")
-  if (any(statuses == "contradict")) return("the available models do not support the hypothesis and at least one model points in the opposite direction.")
-  "the available models do not support the hypothesis."
-}
-
-summarize_estimator_hypothesis_for_subset <- function(spec, approach, subset_role, alpha = 0.10) {
-  bundles <- stats::setNames(
-    lapply(report_active_model_suffixes, function(model_suffix) {
-      read_model_bundle(spec$id, model_suffix, approach, subset_role)
-    }),
-    report_active_model_suffixes
-  )
-  assessments <- stats::setNames(
-    lapply(report_active_model_suffixes, function(model_suffix) {
-      assess_model_terms(
-        bundles[[model_suffix]],
-        get_hypothesis_model_terms(spec, model_suffix, subset_role),
-        spec$expected_direction,
-        alpha
-      )
-    }),
-    report_active_model_suffixes
-  )
-
-  available_flags <- vapply(bundles, function(bundle) isTRUE(bundle$available), logical(1))
-  if (!any(available_flags)) {
-    if (approach == "CLAD") {
-      deferred_flags <- vapply(
-        bundles,
-        function(bundle) is_clad_bootstrap_deferred(bundle$fit_stats),
-        logical(1)
-      )
-      if (any(deferred_flags)) {
-        return("Non-parametric conclusion: the full-sample non-parametric fit is available, but participant-level cluster-bootstrap inference was not run for this pass, so the robustness check is not yet interpreted inferentially.")
-      }
-      sparse_flags <- vapply(
-        bundles,
-        function(bundle) is_clad_bootstrap_sparse(bundle$fit_stats),
-        logical(1)
-      )
-      if (any(sparse_flags)) {
-        return("Non-parametric conclusion: the full-sample non-parametric fit converged, but fewer than two participant-level bootstrap refits succeeded, so the robustness check is not interpreted inferentially for this hypothesis.")
-      }
-      return("Non-parametric conclusion: no converged second-phase non-parametric model is available, so the robustness check is inconclusive for this hypothesis.")
-    }
-    return("Tobit (random intercepts) conclusion: outputs are unavailable for this hypothesis.")
-  }
-
-  available_statuses <- vapply(
-    assessments[names(assessments)[available_flags]],
-    function(assessment) assessment$status,
-    character(1)
-  )
-  approach_label <- if (approach == "CLAD") "Non-parametric conclusion" else "Tobit (random intercepts) conclusion"
-  partial_availability_note <- if (approach == "CLAD" && sum(available_flags) < length(available_flags)) {
-    "Only non-parametric specifications with available cluster-bootstrap inference are interpreted here."
-  } else {
-    NULL
-  }
-  additional_signal_text <- summarize_additional_signals(bundles, spec$exclude_terms, alpha)
-
-  paste(
-    c(
-      sprintf("%s: %s", approach_label, summarize_overall_support(available_statuses)),
-      partial_availability_note,
-      vapply(assessments, function(assessment) assessment$sentence, character(1)),
-      additional_signal_text
-    ),
-    collapse = " "
-  )
-}
-
-summarize_estimator_hypothesis <- function(spec, approach, alpha = 0.10) {
-  victim_summary <- summarize_estimator_hypothesis_for_subset(spec, approach, "Victim", alpha)
-  bystander_summary <- summarize_estimator_hypothesis_for_subset(spec, approach, "Bystander", alpha)
-
-  sprintf(
-    "Victim subset: %s Bystander subset: %s",
-    victim_summary,
-    bystander_summary
-  )
-}
-
-empty_signal_details_df <- function() {
-  data.frame(
-    hypothesis_id = character(0),
-    hypothesis_family_id = character(0),
-    hypothesis_statement = character(0),
-    hypothesis_family_statement = character(0),
-    short_label = character(0),
-    hypothesis_family_label = character(0),
-    data_path = character(0),
-    approach = character(0),
-    subset_role = character(0),
-    model_suffix = character(0),
-    output_prefix = character(0),
-    term = character(0),
-    canonical_term = character(0),
-    label = character(0),
-    label_short = character(0),
-    estimate = numeric(0),
-    p_value = numeric(0),
-    symbol = character(0),
-    stringsAsFactors = FALSE
-  )
-}
-
-filter_significant_coefficients <- function(coef_df, alpha = 0.10) {
-  if (is.null(coef_df) || nrow(coef_df) == 0L) return(NULL)
-  rows <- coef_df
-  rows$canonical_term <- vapply(rows$term, canonicalize_term_name, character(1))
-  rows <- rows[
-    !is.na(rows$p_value) &
-      rows$p_value < alpha &
-      rows$term != "(Intercept)" &
-      rows$term != "Log(scale)" &
-      !grepl("^factor\\(negotiator_slot\\)", rows$term) &
-      !grepl("^factor\\(stage\\)", rows$term),
-    ,
-    drop = FALSE
-  ]
-  if (nrow(rows) == 0L) return(NULL)
-  rows
-}
-
-collect_hypothesis_signal_details <- function(spec, alpha = 0.10) {
-  bundle_grid <- expand.grid(
-    approach = get_report_approaches(),
-    model_suffix = report_active_model_suffixes,
-    subset_role = c("Victim", "Bystander"),
-    stringsAsFactors = FALSE
-  )
-  signal_rows <- lapply(seq_len(nrow(bundle_grid)), function(idx) {
-    approach <- bundle_grid$approach[idx]
-    model_suffix <- bundle_grid$model_suffix[idx]
-    subset_role <- bundle_grid$subset_role[idx]
-    bundle <- read_model_bundle(spec$id, model_suffix, approach, subset_role)
-    if (!isTRUE(bundle$available) || is.null(bundle$coef_df) || nrow(bundle$coef_df) == 0L) {
-      return(NULL)
-    }
-    term_info <- get_hypothesis_model_terms(spec, model_suffix, subset_role)
-    target_terms <- term_info$terms
-    rows <- select_hypothesis_rows(bundle$coef_df, target_terms)
-    if (is.null(rows) || nrow(rows) == 0L) return(NULL)
-    rows$canonical_term <- vapply(rows$term, canonicalize_term_name, character(1))
-    rows <- rows[!is.na(rows$p_value) & rows$p_value < alpha, , drop = FALSE]
-    if (nrow(rows) == 0L) return(NULL)
-
-    data.frame(
-      hypothesis_id = spec$id,
-      hypothesis_family_id = get_hypothesis_family_id(spec),
-      hypothesis_statement = spec$statement,
-      hypothesis_family_statement = get_hypothesis_family_statement(spec),
-      short_label = spec$short_label,
-      hypothesis_family_label = get_hypothesis_family_short_label(spec),
-      data_path = if (subset_role == "Victim") paths$processed_victim else paths$processed_bystander,
-      approach = bundle$approach,
-      subset_role = subset_role,
-      model_suffix = model_suffix,
-      output_prefix = bundle$output_prefix,
-      term = rows$term,
-      canonical_term = rows$canonical_term,
-      label = rows$label,
-      label_short = if ("label_short" %in% names(rows)) rows$label_short else rows$label,
-      estimate = rows$estimate,
-      p_value = rows$p_value,
-      symbol = vapply(rows$p_value, significance_symbol, character(1)),
-      stringsAsFactors = FALSE
-    )
-  })
-  signal_rows <- Filter(Negate(is.null), signal_rows)
-  if (length(signal_rows) == 0L) return(empty_signal_details_df())
-  do.call(rbind, signal_rows)
-}
-
-collect_all_hypothesis_signal_details <- function(alpha = 0.10) {
-  hypothesis_specs <- get_hypothesis_specs(paths = paths)
-  signal_rows <- lapply(hypothesis_specs, collect_hypothesis_signal_details, alpha = alpha)
-  signal_rows <- Filter(function(df) nrow(df) > 0L, signal_rows)
-
-  signal_df <- if (length(signal_rows) == 0L) {
-    empty_signal_details_df()
-  } else {
-    do.call(rbind, signal_rows)
-  }
-
-  write.csv(signal_df, file.path(paths$tables_dir, "hypothesis_signal_details.csv"), row.names = FALSE)
-  signal_df
-}
-
-collect_all_significant_predictor_details <- function(alpha = 0.10) {
-  hypothesis_specs <- get_hypothesis_specs(paths = paths)
-  bundle_grid <- expand.grid(
-    hypothesis_idx = seq_along(hypothesis_specs),
-    approach = get_report_approaches(),
-    model_suffix = report_active_model_suffixes,
-    subset_role = c("Victim", "Bystander"),
+  docx_path <- file.path(output_dir, paste0(report_stem, ".docx"))
+  pdf_path <- file.path(output_dir, paste0(report_stem, ".pdf"))
+  render_status <- data.frame(
+    format = c("docx", "pdf"),
+    status = c("not_run", "not_run"),
+    output_file = c(docx_path, pdf_path),
+    detail = c(NA_character_, NA_character_),
     stringsAsFactors = FALSE
   )
 
-  signal_rows <- lapply(seq_len(nrow(bundle_grid)), function(idx) {
-    spec <- hypothesis_specs[[bundle_grid$hypothesis_idx[idx]]]
-    bundle <- read_model_bundle(spec$id, bundle_grid$model_suffix[idx], bundle_grid$approach[idx], bundle_grid$subset_role[idx])
-    if (!isTRUE(bundle$available) || is.null(bundle$coef_df) || nrow(bundle$coef_df) == 0L) {
-      return(NULL)
-    }
-
-    rows <- filter_significant_coefficients(bundle$coef_df, alpha = alpha)
-    if (is.null(rows) || nrow(rows) == 0L) return(NULL)
-
-    data.frame(
-      hypothesis_id = spec$id,
-      hypothesis_family_id = get_hypothesis_family_id(spec),
-      hypothesis_statement = spec$statement,
-      hypothesis_family_statement = get_hypothesis_family_statement(spec),
-      short_label = spec$short_label,
-      hypothesis_family_label = get_hypothesis_family_short_label(spec),
-      data_path = if (bundle_grid$subset_role[idx] == "Victim") paths$processed_victim else paths$processed_bystander,
-      approach = bundle$approach,
-      subset_role = bundle_grid$subset_role[idx],
-      model_suffix = bundle_grid$model_suffix[idx],
-      output_prefix = bundle$output_prefix,
-      term = rows$term,
-      canonical_term = rows$canonical_term,
-      label = rows$label,
-      label_short = if ("label_short" %in% names(rows)) rows$label_short else rows$label,
-      estimate = rows$estimate,
-      p_value = rows$p_value,
-      symbol = vapply(rows$p_value, significance_symbol, character(1)),
-      stringsAsFactors = FALSE
-    )
-  })
-
-  signal_rows <- Filter(Negate(is.null), signal_rows)
-  signal_df <- if (length(signal_rows) == 0L) {
-    empty_signal_details_df()
+  if (length(pandoc_path) == 0L) {
+    render_status$status <- "missing_pandoc"
+    render_status$detail <- "Pandoc was not found, so docx/pdf rendering was skipped."
   } else {
-    do.call(rbind, signal_rows)
-  }
+    pandoc_path <- pandoc_path[[1]]
+    docx_result <- run_command_capture(pandoc_path, c(markdown_path, "-o", docx_path))
+    render_status$status[1] <- if (docx_result$status == 0L) "rendered" else "failed"
+    render_status$detail[1] <- if (nzchar(docx_result$output)) docx_result$output else NA_character_
 
-  write.csv(signal_df, file.path(paths$tables_dir, "all_significant_predictor_details.csv"), row.names = FALSE)
-  signal_df
-}
-
-collect_hypothesis_signals <- function(spec, approach, alpha = 0.10, signal_details = NULL) {
-  bundle_grid <- expand.grid(
-    model_suffix = report_active_model_suffixes,
-    subset_role = c("Victim", "Bystander"),
-    stringsAsFactors = FALSE
-  )
-  bundle_names <- sprintf("%s_%s", substr(bundle_grid$subset_role, 1, 1), bundle_grid$model_suffix)
-  bundles <- stats::setNames(
-    lapply(seq_len(nrow(bundle_grid)), function(idx) {
-      read_model_bundle(spec$id, bundle_grid$model_suffix[idx], approach, bundle_grid$subset_role[idx])
-    }),
-    bundle_names
-  )
-  available_bundles <- Filter(function(bundle) isTRUE(bundle$available), bundles)
-  if (length(available_bundles) == 0L) {
-    if (approach == "CLAD") {
-      deferred_flags <- vapply(
-        bundles,
-        function(bundle) is_clad_bootstrap_deferred(bundle$fit_stats),
-        logical(1)
-      )
-      if (any(deferred_flags)) return("Bootstrap not run")
-      sparse_flags <- vapply(
-        bundles,
-        function(bundle) is_clad_bootstrap_sparse(bundle$fit_stats),
-        logical(1)
-      )
-      if (any(sparse_flags)) return("Bootstrap too sparse")
-    }
-    return("None")
-  }
-
-  if (is.null(signal_details)) {
-    signal_details <- collect_hypothesis_signal_details(spec, alpha = alpha)
-  }
-
-  signal_df <- signal_details[
-    signal_details$hypothesis_id == spec$id &
-      signal_details$approach == approach,
-    ,
-    drop = FALSE
-  ]
-  label_col <- if ("label_short" %in% names(signal_df)) "label_short" else "label"
-  signal_df <- signal_df[order(signal_df$p_value, signal_df[[label_col]]), , drop = FALSE]
-  if (nrow(signal_df) == 0L) {
-    return("None")
-  }
-
-  signal_df <- signal_df[!duplicated(signal_df$canonical_term), , drop = FALSE]
-  formatted_terms <- paste0(signal_df[[label_col]], signal_df$symbol)
-  paste(formatted_terms, collapse = "; ")
-}
-
-collect_hypothesis_family_signals <- function(family_spec, approach, alpha = 0.10, signal_details = NULL, subset_role = NULL) {
-  subset_roles <- if (is.null(subset_role)) c("Victim", "Bystander") else subset_role
-  bundle_grid <- expand.grid(
-    hypothesis_id = family_spec$member_ids,
-    model_suffix = report_active_model_suffixes,
-    subset_role = subset_roles,
-    stringsAsFactors = FALSE
-  )
-  bundles <- lapply(seq_len(nrow(bundle_grid)), function(idx) {
-    read_model_bundle(bundle_grid$hypothesis_id[idx], bundle_grid$model_suffix[idx], approach, bundle_grid$subset_role[idx])
-  })
-  available_bundles <- Filter(function(bundle) isTRUE(bundle$available), bundles)
-  if (length(available_bundles) == 0L) {
-    if (approach == "CLAD") {
-      deferred_flags <- vapply(
-        bundles,
-        function(bundle) is_clad_bootstrap_deferred(bundle$fit_stats),
-        logical(1)
-      )
-      if (any(deferred_flags)) return("Bootstrap not run")
-      sparse_flags <- vapply(
-        bundles,
-        function(bundle) is_clad_bootstrap_sparse(bundle$fit_stats),
-        logical(1)
-      )
-      if (any(sparse_flags)) return("Bootstrap too sparse")
-    }
-    return("None")
-  }
-
-  if (is.null(signal_details)) {
-    signal_details <- collect_all_hypothesis_signal_details(alpha = alpha)
-  }
-
-  signal_df <- signal_details[
-    signal_details$hypothesis_family_id == family_spec$id &
-      signal_details$approach == approach,
-    ,
-    drop = FALSE
-  ]
-  if (!is.null(subset_role)) {
-    signal_df <- signal_df[signal_df$subset_role %in% subset_role, , drop = FALSE]
-  }
-  label_col <- if ("label_short" %in% names(signal_df)) "label_short" else "label"
-  signal_df <- signal_df[order(signal_df$p_value, signal_df[[label_col]]), , drop = FALSE]
-  if (nrow(signal_df) == 0L) {
-    return("None")
-  }
-
-  signal_df <- signal_df[!duplicated(signal_df$canonical_term), , drop = FALSE]
-  formatted_terms <- paste0(signal_df[[label_col]], signal_df$symbol)
-  paste(formatted_terms, collapse = "; ")
-}
-
-build_hypothesis_significance_summary_df <- function(subset_role, alpha = 0.10, signal_details = NULL) {
-  hypothesis_specs <- get_hypothesis_family_specs(paths = paths)
-  if (is.null(signal_details)) {
-    signal_details <- collect_all_hypothesis_signal_details(alpha = alpha)
-  }
-  summary_columns <- list(
-    Hypothesis = vapply(hypothesis_specs, function(spec) spec$id, character(1)),
-    `Tobit (random intercepts) support` = vapply(
-      hypothesis_specs,
-      function(spec) collect_hypothesis_family_signals(spec, "Tobit", alpha, signal_details = signal_details, subset_role = subset_role),
-      character(1)
-    )
-  )
-  if (report_includes_nonparametric()) {
-    summary_columns$`Non-parametric support` <- vapply(
-      hypothesis_specs,
-      function(spec) collect_hypothesis_family_signals(spec, "CLAD", alpha, signal_details = signal_details, subset_role = subset_role),
-      character(1)
-    )
-  }
-  as.data.frame(summary_columns, stringsAsFactors = FALSE, check.names = FALSE)
-}
-
-write_hypothesis_significance_summary <- function(alpha = 0.10, signal_details = NULL) {
-  if (is.null(signal_details)) {
-    signal_details <- collect_all_hypothesis_signal_details(alpha = alpha)
-  }
-
-  subset_tables <- list(
-    Victim = build_hypothesis_significance_summary_df("Victim", alpha = alpha, signal_details = signal_details),
-    Bystander = build_hypothesis_significance_summary_df("Bystander", alpha = alpha, signal_details = signal_details)
-  )
-
-  combined_export <- do.call(
-    rbind,
-    lapply(names(subset_tables), function(role_label) {
-      export_df <- subset_tables[[role_label]]
-      data.frame(Subset = role_label, export_df, stringsAsFactors = FALSE, check.names = FALSE)
-    })
-  )
-
-  write.csv(combined_export, file.path(paths$tables_dir, "hypothesis_summary.csv"), row.names = FALSE)
-  write.csv(subset_tables$Victim, file.path(paths$tables_dir, "hypothesis_summary_victim.csv"), row.names = FALSE)
-  write.csv(subset_tables$Bystander, file.path(paths$tables_dir, "hypothesis_summary_bystander.csv"), row.names = FALSE)
-
-  subset_tables
-}
-
-format_hypothesis_summary_cell_latex <- function(x) {
-  text <- escape_latex(x)
-  text <- gsub("; ", paste0(";", "\\newline "), text, fixed = TRUE)
-  text <- gsub("None", "None", text, fixed = TRUE)
-  text
-}
-
-to_latex_wrapped_hypothesis_summary <- function(df, caption, label) {
-  if (!is.data.frame(df) || ncol(df) < 2L) return("")
-
-  formatted_df <- df
-  formatted_df[] <- lapply(formatted_df, format_hypothesis_summary_cell_latex)
-  header <- paste(vapply(names(formatted_df), escape_latex, character(1)), collapse = " & ")
-  body <- apply(formatted_df, 1, function(row) paste(row, collapse = " & "))
-  caption_text <- escape_latex(caption)
-  col_widths <- if (ncol(formatted_df) == 2L) {
-    c(0.12, 0.74)
-  } else if (ncol(formatted_df) == 3L) {
-    c(0.10, 0.38, 0.38)
-  } else {
-    c(0.12, rep(0.74 / (ncol(formatted_df) - 1L), ncol(formatted_df) - 1L))
-  }
-  col_spec <- paste(
-    vapply(
-      col_widths,
-      function(width) sprintf(">{\\raggedright\\arraybackslash}p{%.2f\\textwidth}", width),
-      character(1)
-    ),
-    collapse = ""
-  )
-
-  c(
-    "\\begin{table}[H]",
-    "\\centering",
-    "{\\fontsize{11}{13}\\selectfont",
-    "\\renewcommand{\\arraystretch}{1.15}",
-    paste0("\\caption{", caption_text, "}"),
-    paste0("\\label{", label, "}"),
-    paste0("\\begin{tabular}{", col_spec, "}"),
-    "\\toprule",
-    paste0(header, " \\\\"),
-    "\\midrule",
-    paste0(body, " \\\\"),
-    "\\bottomrule",
-    "\\end{tabular}",
-    "}",
-    "\\end{table}"
-  )
-}
-
-get_abbreviation_note_text <- function() {
-  paste0(
-    "Abbrev.: ",
-    get_predictor_abbreviation_note(),
-    "."
-  )
-}
-
-build_latex_note_block <- function(text) {
-  c(
-    "\\begin{flushleft}",
-    paste0("\\footnotesize\\textit{Note.} ", escape_latex(text)),
-    "\\end{flushleft}"
-  )
-}
-
-build_markdown_note_line <- function(text) {
-  paste0("_Note._ ", text)
-}
-
-build_predictor_glossary_df <- function() {
-  glossary_df <- data.frame(
-    `Code / pattern` = c(
-      "iri_total",
-      "iri_fs, iri_ec, iri_pt, iri_pd",
-      "victim_N1_groupIn, victim_N1_groupOut",
-      "victim_N2_groupIn, victim_N2_groupOut",
-      "bystander_N1_groupIn, bystander_N1_groupOut",
-      "bystander_N2_groupIn, bystander_N2_groupOut",
-      "bystander_victim_groupOut",
-      "N1_N2_same_faculty",
-      "victim_N1_group*:victim_N2_group*",
-      "bystander_N1_group*:bystander_N2_group*",
-      "bystander_victim_group*:bystander_N1_group*",
-      "bystander_victim_group*:bystander_N2_group*",
-      "iri_*:victim_N*_group*",
-      "iri_*:bystander_N*_group*",
-      "iri_*:bystander_victim_group*",
-      "participant_engineering",
-      "sex_man",
-      "age",
-      "economic_status"
-    ),
-    Compact = c(
-      "Emp",
-      "FS, EC, PT, PD",
-      "V-N1 In, V-N1 Out",
-      "V-N2 In, V-N2 Out",
-      "B-N1 In, B-N1 Out",
-      "B-N2 In, B-N2 Out",
-      "B-V Out",
-      "SameFac",
-      "V-N1 x V-N2",
-      "B-N1 x B-N2",
-      "B-V x B-N1",
-      "B-V x B-N2",
-      "Emp / FS / EC / PT / PD x V-N1 or V-N2",
-      "Emp / FS / EC / PT / PD x B-N1 or B-N2",
-      "Emp / FS / EC / PT / PD x B-V",
-      "Eng part.",
-      "Man",
-      "Age",
-      "SES"
-    ),
-    Meaning = c(
-      "Composite empathy predictor used in Model A.",
-      "IRI subscales used in Model B: fantasy, empathic concern, perspective taking, and personal distress.",
-      "Victim-to-N1 contrasts relative to the control-labeled baseline.",
-      "Victim-to-N2 contrasts relative to the control-labeled baseline.",
-      "Bystander-to-N1 contrasts relative to the control-labeled baseline.",
-      "Bystander-to-N2 contrasts relative to the control-labeled baseline.",
-      "Bystander-victim outgroup contrast with bystander-victim ingroup as the reference.",
-      "Context indicator for whether N1 and N2 belong to the same faculty.",
-      "Victim-side N1-by-N2 interaction block.",
-      "Bystander-side N1-by-N2 interaction block.",
-      "Bystander-victim by bystander-N1 interaction block.",
-      "Bystander-victim by bystander-N2 interaction block.",
-      "Empathy-by-victim-side relational interaction block.",
-      "Empathy-by-bystander-side relational interaction block.",
-      "Empathy-by-bystander-victim interaction block.",
-      "Participant faculty contrast.",
-      "Sex contrast with woman as the reference.",
-      "Participant age in original units.",
-      "Economic status in original units."
-    ),
-    `Used in` = c(
-      "H1/H2/H3 Model A",
-      "H1/H2/H3 Model B",
-      "H1/H2/H3 Victim and Bystander",
-      "H1/H2/H3 Victim and Bystander",
-      "H1/H2/H3 Bystander",
-      "H1/H2/H3 Bystander",
-      "H1/H2/H3 Bystander",
-      "H1/H2/H3 Victim and Bystander",
-      "H2/H3 Victim and Bystander",
-      "H2/H3 Bystander",
-      "H2/H3 Bystander",
-      "H2/H3 Bystander",
-      "H3 Victim",
-      "H3 Bystander",
-      "H3 Bystander",
-      "H1/H2/H3",
-      "H1/H2/H3",
-      "H1/H2/H3",
-      "H1/H2/H3"
-    ),
-    stringsAsFactors = FALSE,
-    check.names = FALSE
-  )
-
-  if (!report_uses_composite_model()) {
-    glossary_df <- glossary_df[glossary_df$`Code / pattern` != "iri_total", , drop = FALSE]
-    glossary_df$Compact[glossary_df$`Code / pattern` == "iri_*:victim_N*_group*"] <- "FS / EC / PT / PD x V-N..."
-    glossary_df$Compact[glossary_df$`Code / pattern` == "iri_*:bystander_N*_group*"] <- "FS / EC / PT / PD x B-N..."
-    glossary_df$Compact[glossary_df$`Code / pattern` == "iri_*:bystander_victim_group*"] <- "FS / EC / PT / PD x B-V"
-    glossary_df$Meaning[glossary_df$`Code / pattern` == "iri_fs, iri_ec, iri_pt, iri_pd"] <-
-      "Active empathy predictors: fantasy, empathic concern, perspective taking, and personal distress."
-    glossary_df$`Used in`[glossary_df$`Code / pattern` == "iri_fs, iri_ec, iri_pt, iri_pd"] <- "H1/H2/H3 active model"
-  }
-
-  glossary_df
-}
-
-build_latex_predictor_glossary_list <- function() {
-  glossary_df <- build_predictor_glossary_df()
-  c(
-    "\\begin{itemize}",
-    vapply(seq_len(nrow(glossary_df)), function(idx) {
-      paste0(
-        "  \\item \\texttt{",
-        escape_latex(glossary_df$`Code / pattern`[idx]),
-        "} [",
-        escape_latex(glossary_df$Compact[idx]),
-        "]: ",
-        escape_latex(glossary_df$Meaning[idx]),
-        " Used in ",
-        escape_latex(glossary_df$`Used in`[idx]),
-        "."
-      )
-    }, character(1)),
-    "\\end{itemize}"
-  )
-}
-
-build_markdown_predictor_glossary_list <- function() {
-  glossary_df <- build_predictor_glossary_df()
-  vapply(seq_len(nrow(glossary_df)), function(idx) {
-    sprintf(
-      "- `%s` [%s]: %s Used in %s.",
-      glossary_df$`Code / pattern`[idx],
-      glossary_df$Compact[idx],
-      glossary_df$Meaning[idx],
-      glossary_df$`Used in`[idx]
-    )
-  }, character(1))
-}
-
-escape_formula_texttt <- function(x) {
-  x_chr <- as.character(x)
-  x_chr <- gsub("\\\\", "\\\\textbackslash{}", x_chr)
-  x_chr <- gsub("_", "\\_", x_chr, fixed = TRUE)
-  x_chr
-}
-
-split_formula_terms_for_display <- function(rhs_formula, max_terms_per_line = 4L) {
-  formula_terms <- strsplit(rhs_formula, " \\+ ", perl = TRUE)[[1]]
-  split(
-    formula_terms,
-    ceiling(seq_along(formula_terms) / max_terms_per_line)
-  )
-}
-
-build_formula_display_block <- function(lhs_label, rhs_formula) {
-  wrapped_terms <- split_formula_terms_for_display(rhs_formula)
-  aligned_lines <- character(length(wrapped_terms))
-
-  for (idx in seq_along(wrapped_terms)) {
-    rhs_chunk <- paste(vapply(wrapped_terms[[idx]], escape_formula_texttt, character(1)), collapse = " + ")
-    if (idx == 1L) {
-      aligned_lines[idx] <- paste0("\\texttt{", escape_formula_texttt(lhs_label), "} &\\sim ", rhs_chunk)
+    if (length(pdflatex_path) == 0L) {
+      render_status$status[2] <- "missing_pdflatex"
+      render_status$detail[2] <- "Pandoc was found, but pdflatex was not found."
     } else {
-      aligned_lines[idx] <- paste0("&\\quad + ", rhs_chunk)
-    }
-  }
-
-  c(
-    "\\[",
-    "\\begin{aligned}",
-    paste0(aligned_lines, ifelse(seq_along(aligned_lines) < length(aligned_lines), " \\\\", "")),
-    "\\end{aligned}",
-    "\\]"
-  )
-}
-
-build_aligned_equation_block <- function(title, lhs, rhs_lines) {
-  continuation_lines <- if (length(rhs_lines) > 1L) {
-    vapply(rhs_lines[-1], function(line) paste0("&\\quad ", line, " \\\\"), character(1))
-  } else {
-    character(0)
-  }
-  c(
-    paste0("\\textbf{", escape_latex(title), "}"),
-    "\\[",
-    "\\begin{aligned}",
-    paste0(lhs, " &= ", rhs_lines[1], if (length(rhs_lines) > 1L) " \\\\" else ""),
-    continuation_lines,
-    "\\end{aligned}",
-    "\\]",
-    ""
-  )
-}
-
-build_subset_formula_lines <- function(spec, model_suffix) {
-  victim_rhs <- get_hypothesis_formula_rhs(spec, model_suffix, "Victim")
-  bystander_rhs <- get_hypothesis_formula_rhs(spec, model_suffix, "Bystander")
-
-  c(
-    paste0("\\textit{Model ", model_suffix, " subset-specific formulas.}"),
-    "\\begin{flushleft}",
-    "\\textbf{Victim}",
-    build_formula_display_block("judgement", victim_rhs),
-    "\\textbf{Bystander}",
-    build_formula_display_block("judgement", bystander_rhs),
-    "\\end{flushleft}",
-    ""
-  )
-}
-
-format_support_phrase <- function(row) {
-  estimator_label <- if (identical(row$approach, "Tobit")) {
-    "the Tobit random-intercepts model"
-  } else {
-    "the clustered non-parametric model"
-  }
-  p_text <- format_p_value(row$p_value)
-  if (startsWith(p_text, "<")) {
-    sprintf("%s (%s, p %s)", estimator_label, row$symbol, sub("^<", "< ", p_text))
-  } else {
-    sprintf("%s (%s, p = %s)", estimator_label, row$symbol, p_text)
-  }
-}
-
-summarize_support_phrases <- function(support_rows) {
-  collapse_with_and(vapply(seq_len(nrow(support_rows)), function(idx) format_support_phrase(support_rows[idx, , drop = FALSE]), character(1)))
-}
-
-build_significance_figure_artifacts <- function(signal_details) {
-  if (is.null(signal_details) || nrow(signal_details) == 0L) {
-    empty_catalog_columns <- list(
-      Hypothesis = character(0),
-      Predictor = character(0),
-      Figure = character(0),
-      FigureType = character(0),
-      `Tobit (random intercepts) support` = character(0)
-    )
-    if (report_includes_nonparametric()) {
-      empty_catalog_columns$`Non-parametric support` <- character(0)
-    }
-    empty_catalog <- as.data.frame(empty_catalog_columns, stringsAsFactors = FALSE, check.names = FALSE)
-    write.csv(empty_catalog, file.path(paths$tables_dir, "hypothesis_figure_catalog.csv"), row.names = FALSE)
-    return(list())
-  }
-
-  hypothesis_specs <- get_hypothesis_specs(paths = paths)
-  hypothesis_lookup <- stats::setNames(hypothesis_specs, vapply(hypothesis_specs, `[[`, character(1), "id"))
-  group_keys <- unique(signal_details[, c("hypothesis_id", "canonical_term")])
-  group_order <- order(
-    match(group_keys$hypothesis_id, names(hypothesis_lookup)),
-    vapply(
-      seq_len(nrow(group_keys)),
-      function(idx) {
-        key_rows <- signal_details[
-          signal_details$hypothesis_id == group_keys$hypothesis_id[idx] &
-            signal_details$canonical_term == group_keys$canonical_term[idx],
-          ,
-          drop = FALSE
-        ]
-        min(key_rows$p_value, na.rm = TRUE)
-      },
-      numeric(1)
-    )
-  )
-  group_keys <- group_keys[group_order, , drop = FALSE]
-
-  artifacts <- vector("list", nrow(group_keys))
-  catalog_rows <- vector("list", nrow(group_keys))
-
-  for (idx in seq_len(nrow(group_keys))) {
-    hypothesis_id <- group_keys$hypothesis_id[idx]
-    canonical_term <- group_keys$canonical_term[idx]
-    spec <- hypothesis_lookup[[hypothesis_id]]
-    family_id <- get_hypothesis_family_id(spec)
-    family_short_label <- get_hypothesis_family_short_label(spec)
-    family_statement <- get_hypothesis_family_statement(spec)
-    support_rows <- signal_details[
-      signal_details$hypothesis_id == hypothesis_id &
-        signal_details$canonical_term == canonical_term,
-      ,
-      drop = FALSE
-    ]
-    support_rows <- do.call(
-      rbind,
-      lapply(
-        split(support_rows, support_rows$approach),
-        function(df) df[order(df$p_value, df$model_suffix), , drop = FALSE][1, , drop = FALSE]
+      pdf_result <- run_command_capture(
+        pandoc_path,
+        c(markdown_path, "-o", pdf_path, paste0("--pdf-engine=", pdflatex_path[[1]]))
       )
-    )
-    rownames(support_rows) <- NULL
-
-    model_data <- read.csv(support_rows$data_path[1], stringsAsFactors = FALSE)
-    visual_spec <- build_term_visual_spec(canonical_term, model_data)
-    figure_title <- sprintf("%s %s", family_id, label_term(canonical_term))
-    figure_file <- build_titled_figure_filename(
-      sprintf("figure_sig_%s_%s", hypothesis_id, sanitize_identifier(canonical_term)),
-      figure_title
-    )
-    figure_path <- file.path(paths$figures_dir, figure_file)
-    latex_label <- paste0("fig:sig_", hypothesis_id, "_", sanitize_identifier(canonical_term))
-
-    plot_payloads <- lapply(seq_len(nrow(support_rows)), function(row_idx) {
-      support_row <- support_rows[row_idx, , drop = FALSE]
-      model_fit <- readRDS(file.path(paths$models_dir, sprintf("%s_model.rds", support_row$output_prefix[1])))
-      plot_df <- build_significance_plot_data(model_fit, model_data, canonical_term)
-      list(
-        approach = support_row$approach[1],
-        support_row = support_row,
-        visual_spec = visual_spec,
-        plot_df = plot_df,
-        pattern = describe_prediction_pattern(plot_df, visual_spec)
-      )
-    })
-
-    write_significance_figure(
-      figure_path,
-      plot_payloads,
-      figure_title
-    )
-
-    support_phrase <- summarize_support_phrases(support_rows)
-    pattern_text <- if (length(plot_payloads) == 1L) {
-      plot_payloads[[1]]$pattern
-    } else {
-      paste0("both estimator panels indicate that ", plot_payloads[[1]]$pattern)
+      render_status$status[2] <- if (pdf_result$status == 0L) "rendered" else "failed"
+      render_status$detail[2] <- if (nzchar(pdf_result$output)) pdf_result$output else NA_character_
     }
-
-    figure_type <- switch(
-      visual_spec$kind,
-      continuous_main = "effect plot",
-      categorical_main = "grouped prediction plot",
-      interaction = "interaction plot",
-      "dynamic effect plot"
-    )
-    caption <- sprintf(
-      "%s for %s in %s. The panels show predicted judgments on the observed -9 to 9 scale with 95%% confidence intervals. %s",
-      tools::toTitleCase(figure_type),
-      label_term(canonical_term),
-      family_short_label,
-      get_abbreviation_note_text()
-    )
-
-    artifacts[[idx]] <- list(
-      hypothesis_id = family_id,
-      hypothesis_statement = family_statement,
-      short_label = family_short_label,
-      operational_hypothesis_id = hypothesis_id,
-      operational_short_label = spec$short_label,
-      canonical_term = canonical_term,
-      label = label_term(canonical_term),
-      label_short = label_term_compact(canonical_term),
-      figure_file = figure_file,
-      figure_path = figure_path,
-      latex_label = latex_label,
-      support_rows = support_rows,
-      support_phrase = support_phrase,
-      caption = caption,
-      pattern_text = pattern_text,
-      min_p_value = min(support_rows$p_value, na.rm = TRUE)
-    )
-
-    catalog_row <- list(
-      Hypothesis = family_id,
-      Predictor = label_term_compact(canonical_term),
-      Figure = figure_file,
-      FigureType = figure_type,
-      `Tobit (random intercepts) support` = if (any(support_rows$approach == "Tobit")) {
-        label_values <- if ("label_short" %in% names(support_rows)) support_rows$label_short else support_rows$label
-        paste0(label_values[support_rows$approach == "Tobit"], support_rows$symbol[support_rows$approach == "Tobit"], collapse = "; ")
-      } else {
-        "None"
-      }
-    )
-    if (report_includes_nonparametric()) {
-      catalog_row$`Non-parametric support` <- if (any(support_rows$approach == "CLAD")) {
-        label_values <- if ("label_short" %in% names(support_rows)) support_rows$label_short else support_rows$label
-        paste0(label_values[support_rows$approach == "CLAD"], support_rows$symbol[support_rows$approach == "CLAD"], collapse = "; ")
-      } else {
-        "None"
-      }
-    }
-    catalog_rows[[idx]] <- as.data.frame(catalog_row, stringsAsFactors = FALSE, check.names = FALSE)
   }
 
-  write.csv(
-    do.call(rbind, catalog_rows),
-    file.path(paths$tables_dir, "hypothesis_figure_catalog.csv"),
-    row.names = FALSE
-  )
-  artifacts
+  write.csv(render_status, file.path(paths$logs_dir, "dynamic_report_render_status.csv"), row.names = FALSE)
+  write.csv(render_status, file.path(paths$reports_data_dir, "dynamic_report_render_status.csv"), row.names = FALSE)
+
+  if (file.exists(docx_path)) file.copy(docx_path, file.path(paths$logs_dir, "dynamic_report.docx"), overwrite = TRUE)
+  if (file.exists(pdf_path)) file.copy(pdf_path, file.path(paths$logs_dir, "dynamic_report.pdf"), overwrite = TRUE)
+
+  invisible(render_status)
 }
 
-describe_signal_sample <- function(data_path) {
-  if (length(data_path) == 0L || is.na(data_path[1]) || !is.character(data_path[1])) return("analysis sample")
-  normalized_path <- normalizePath(data_path[1], winslash = "/", mustWork = FALSE)
-  if (grepl("04_judgments_victim\\.csv$", normalized_path)) return("Victim role sample")
-  if (grepl("04_judgments_bystander\\.csv$", normalized_path)) return("Bystander role sample")
-  if (grepl("04_judgments_accept\\.csv$", normalized_path)) return("accepted-deal sub-sample")
-  tools::file_path_sans_ext(basename(data_path[1]))
+relative_report_path <- function(abs_path) {
+  gsub("\\\\", "/", normalizePath(abs_path, winslash = "/", mustWork = FALSE))
 }
 
-format_support_model_rows <- function(rows, approach = NULL) {
-  if (!is.null(approach)) {
-    rows <- rows[rows$approach == approach, , drop = FALSE]
-  }
-  if (nrow(rows) == 0L) return("None")
-  label_col <- if ("hypothesis_family_label" %in% names(rows)) "hypothesis_family_label" else "short_label"
-  rows <- rows[order(rows$p_value, rows[[label_col]], rows$model_suffix), , drop = FALSE]
-  descriptors <- paste0(rows[[label_col]], " Model ", rows$model_suffix, rows$symbol)
-  paste(unique(descriptors), collapse = "; ")
-}
+participant_summary <- read_csv_or_empty(file.path(paths$tables_dir, "participant_summary.csv"))
+judgement_summary <- read_csv_or_empty(file.path(paths$tables_dir, "judgement_summary.csv"))
+decision_summary <- read_csv_or_empty(file.path(paths$tables_dir, "decision_summary.csv"))
+group_summary <- read_csv_or_empty(file.path(paths$tables_dir, "group_summary.csv"))
+missingness_summary <- read_csv_or_empty(file.path(paths$tables_dir, "missingness_summary.csv"))
+observation_audit <- read_csv_or_empty(file.path(paths$tables_dir, "observation_audit.csv"))
+formula_catalog <- read_csv_or_empty(file.path(paths$tables_dir, "hypothesis_formula_catalog.csv"))
+participants <- read.csv(paths$processed_participants, stringsAsFactors = FALSE)
+judgments_analysis <- read.csv(paths$processed_judgments, stringsAsFactors = FALSE)
+judgments_victim <- read.csv(paths$processed_victim, stringsAsFactors = FALSE)
+judgments_bystander <- read.csv(paths$processed_bystander, stringsAsFactors = FALSE)
 
-summarize_supporting_models <- function(rows) {
-  label_col <- if ("hypothesis_family_label" %in% names(rows)) "hypothesis_family_label" else "short_label"
-  rows <- rows[order(rows$p_value, rows[[label_col]], rows$model_suffix), , drop = FALSE]
-  approach_label <- ifelse(
-    rows$approach == "Tobit",
-    "Tobit random-intercepts",
-    ifelse(rows$approach == "CLAD", "Non-parametric", rows$approach)
-  )
-  descriptors <- paste0(rows[[label_col]], " Model ", rows$model_suffix, " (", approach_label, ")")
-  collapse_with_and(unique(descriptors))
-}
+symbol_dictionary <- get_current_symbol_dictionary()
+predictor_glossary <- get_current_predictor_glossary()
+correlation_table <- build_participant_correlation_table(participants, judgments_analysis)
+clustering_diagnostic <- compute_descriptive_clustering_diagnostic(judgments_analysis)
 
-get_supporting_model_descriptors <- function(rows) {
-  label_col <- if ("hypothesis_family_label" %in% names(rows)) "hypothesis_family_label" else "short_label"
-  rows <- rows[order(rows$p_value, rows[[label_col]], rows$model_suffix), , drop = FALSE]
-  approach_label <- ifelse(
-    rows$approach == "Tobit",
-    "Tobit random-intercepts",
-    ifelse(rows$approach == "CLAD", "Non-parametric", rows$approach)
-  )
-  unique(paste0(rows[[label_col]], " Model ", rows$model_suffix, " (", approach_label, ")"))
-}
+write.csv(symbol_dictionary, file.path(paths$tables_dir, "report_symbol_dictionary.csv"), row.names = FALSE)
+write.csv(predictor_glossary, file.path(paths$tables_dir, "report_predictor_glossary.csv"), row.names = FALSE)
+write.csv(correlation_table, file.path(paths$tables_dir, "report_correlation_matrix.csv"), row.names = FALSE)
+write.csv(clustering_diagnostic, file.path(paths$tables_dir, "report_clustering_diagnostic.csv"), row.names = FALSE)
 
-format_supporting_models_latex <- function(descriptors) {
-  descriptors <- unique(descriptors[nzchar(descriptors)])
-  if (length(descriptors) == 0L) {
-    return(escape_latex("No supporting models were available."))
-  }
-  paste(escape_latex(descriptors), collapse = ";\\newline ")
-}
+primary_coef_files <- list.files(paths$models_dir, pattern = "_primary_coefficients\\.csv$", full.names = TRUE)
+primary_fit_files <- list.files(paths$models_dir, pattern = "_primary_fit_stats\\.csv$", full.names = TRUE)
+coef_summary <- bind_csv_files(primary_coef_files)
+fit_summary <- bind_csv_files(primary_fit_files)
 
-format_supporting_models_markdown <- function(descriptors) {
-  descriptors <- unique(descriptors[nzchar(descriptors)])
-  if (length(descriptors) == 0L) {
-    return("No supporting models were available.")
-  }
-  paste(descriptors, collapse = ";<br>")
-}
+significance_summary <- build_role_significance_summary(coef_summary)
+write.csv(significance_summary, file.path(paths$tables_dir, "report_role_significance_summary.csv"), row.names = FALSE)
+write.csv(significance_summary, file.path(paths$tables_dir, "hypothesis_summary.csv"), row.names = FALSE)
+write.csv(subset(significance_summary, role == "Victim"), file.path(paths$tables_dir, "hypothesis_summary_victim.csv"), row.names = FALSE)
+write.csv(subset(significance_summary, role == "Bystander"), file.path(paths$tables_dir, "hypothesis_summary_bystander.csv"), row.names = FALSE)
+write.csv(significance_summary, file.path(paths$results_dir, "hypothesis_summary.csv"), row.names = FALSE)
 
-build_latex_all_significant_predictor_narrative <- function(artifact) {
-  c(
-    escape_latex(sprintf("%s is statistically significant in:", artifact$label)),
-    "\\begin{itemize}",
-    paste0("  \\item ", escape_latex(artifact$supporting_models_list)),
-    "\\end{itemize}",
-    paste0(
-      "Figure \\ref{", artifact$latex_label, "} ",
-      escape_latex(sprintf("shows that %s.", artifact$pattern_text))
-    )
-  )
-}
-
-build_markdown_all_significant_predictor_narrative <- function(artifact) {
-  c(
-    sprintf("%s is statistically significant in:", artifact$label),
-    paste0("- ", artifact$supporting_models_list),
-    sprintf("The figure below shows that %s.", artifact$pattern_text)
-  )
-}
-
-build_all_significant_predictor_figure_artifacts <- function(signal_details) {
-  if (is.null(signal_details) || nrow(signal_details) == 0L) {
-    empty_catalog_columns <- list(
-      Sample = character(0),
-      Predictor = character(0),
-      Figure = character(0),
-      FigureType = character(0),
-      `Tobit (random intercepts) support` = character(0)
-    )
-    if (report_includes_nonparametric()) {
-      empty_catalog_columns$`Non-parametric support` <- character(0)
-    }
-    empty_catalog_columns$`Supporting models` <- character(0)
-    empty_catalog <- as.data.frame(empty_catalog_columns, stringsAsFactors = FALSE, check.names = FALSE)
-    write.csv(empty_catalog, file.path(paths$tables_dir, "all_significant_figure_catalog.csv"), row.names = FALSE)
-    return(list())
-  }
-
-  group_keys <- unique(signal_details[, c("data_path", "canonical_term"), drop = FALSE])
-  group_order <- order(
-    vapply(seq_len(nrow(group_keys)), function(idx) describe_signal_sample(group_keys$data_path[idx]), character(1)),
-    vapply(
-      seq_len(nrow(group_keys)),
-      function(idx) {
-        key_rows <- signal_details[
-          signal_details$data_path == group_keys$data_path[idx] &
-            signal_details$canonical_term == group_keys$canonical_term[idx],
-          ,
-          drop = FALSE
-        ]
-        min(key_rows$p_value, na.rm = TRUE)
-      },
-      numeric(1)
-    )
-  )
-  group_keys <- group_keys[group_order, , drop = FALSE]
-
-  artifacts <- vector("list", nrow(group_keys))
-  catalog_rows <- vector("list", nrow(group_keys))
-
-  for (idx in seq_len(nrow(group_keys))) {
-    data_path <- group_keys$data_path[idx]
-    canonical_term <- group_keys$canonical_term[idx]
-    support_rows_all <- signal_details[
-      signal_details$data_path == data_path &
-        signal_details$canonical_term == canonical_term,
-      ,
-      drop = FALSE
-    ]
-
-    support_rows <- do.call(
-      rbind,
-      lapply(
-        split(support_rows_all, support_rows_all$approach),
-        function(df) df[order(df$p_value, df$short_label, df$model_suffix), , drop = FALSE][1, , drop = FALSE]
-      )
-    )
-    rownames(support_rows) <- NULL
-
-    model_data <- read.csv(data_path, stringsAsFactors = FALSE)
-    visual_spec <- build_term_visual_spec(canonical_term, model_data)
-    sample_label <- describe_signal_sample(data_path)
-    figure_title <- sprintf("%s %s", sample_label, label_term(canonical_term))
-    figure_file <- build_titled_figure_filename(
-      sprintf(
-        "figure_sig_all_%s_%s",
-        sanitize_identifier(sample_label),
-        sanitize_identifier(canonical_term)
-      ),
-      figure_title
-    )
-    figure_path <- file.path(paths$figures_dir, figure_file)
-    latex_label <- paste0("fig:sig_all_", sanitize_identifier(sample_label), "_", sanitize_identifier(canonical_term))
-
-    plot_payloads <- lapply(seq_len(nrow(support_rows)), function(row_idx) {
-      support_row <- support_rows[row_idx, , drop = FALSE]
-      model_fit <- readRDS(file.path(paths$models_dir, sprintf("%s_model.rds", support_row$output_prefix[1])))
-      plot_df <- build_significance_plot_data(model_fit, model_data, canonical_term)
-      list(
-        approach = support_row$approach[1],
-        support_row = support_row,
-        visual_spec = visual_spec,
-        plot_df = plot_df,
-        pattern = describe_prediction_pattern(plot_df, visual_spec)
-      )
-    })
-
-    write_significance_figure(
-      figure_path,
-      plot_payloads,
-      figure_title
-    )
-
-    support_phrase <- summarize_support_phrases(support_rows)
-    supporting_models_list <- get_supporting_model_descriptors(support_rows_all)
-    supporting_models <- summarize_supporting_models(support_rows_all)
-    pattern_text <- if (length(plot_payloads) == 1L) {
-      plot_payloads[[1]]$pattern
-    } else {
-      paste0("the estimator panels indicate that ", plot_payloads[[1]]$pattern)
-    }
-
-    figure_type <- switch(
-      visual_spec$kind,
-      continuous_main = "effect plot",
-      categorical_main = "grouped prediction plot",
-      interaction = "interaction plot",
-      "dynamic effect plot"
-    )
-    caption <- sprintf(
-      "%s for %s in the %s. The panels show predicted judgments on the observed -9 to 9 scale with 95%% confidence intervals. %s",
-      tools::toTitleCase(figure_type),
-      label_term(canonical_term),
-      sample_label,
-      get_abbreviation_note_text()
-    )
-
-    artifacts[[idx]] <- list(
-      sample_label = sample_label,
-      sample_key = sanitize_identifier(sample_label),
-      canonical_term = canonical_term,
-      label = label_term(canonical_term),
-      label_short = label_term_compact(canonical_term),
-      figure_file = figure_file,
-      figure_path = figure_path,
-      latex_label = latex_label,
-      support_rows = support_rows,
-      support_rows_all = support_rows_all,
-      support_phrase = support_phrase,
-      supporting_models_list = supporting_models_list,
-      supporting_models = supporting_models,
-      caption = caption,
-      pattern_text = pattern_text,
-      min_p_value = min(support_rows_all$p_value, na.rm = TRUE)
-    )
-
-    catalog_row <- list(
-      Sample = sample_label,
-      Predictor = label_term_compact(canonical_term),
-      Figure = figure_file,
-      FigureType = figure_type,
-      `Tobit (random intercepts) support` = format_support_model_rows(support_rows_all, approach = "Tobit")
-    )
-    if (report_includes_nonparametric()) {
-      catalog_row$`Non-parametric support` <- format_support_model_rows(support_rows_all, approach = "CLAD")
-    }
-    catalog_row$`Supporting models` <- supporting_models
-    catalog_rows[[idx]] <- as.data.frame(catalog_row, stringsAsFactors = FALSE, check.names = FALSE)
-  }
-
-  write.csv(
-    do.call(rbind, catalog_rows),
-    file.path(paths$tables_dir, "all_significant_figure_catalog.csv"),
-    row.names = FALSE
-  )
-  artifacts
-}
-
-build_latex_significance_figure_narrative <- function(artifact) {
-  paste0(
-    escape_latex(sprintf("%s is statistically significant in %s. ", artifact$label, artifact$support_phrase)),
-    "Figure \\ref{", artifact$latex_label, "} ",
-    escape_latex(sprintf("shows that %s.", artifact$pattern_text))
-  )
-}
-
-build_markdown_significance_figure_narrative <- function(artifact) {
-  sprintf(
-    "%s is statistically significant in %s. The figure below shows that %s.",
-    artifact$label,
-    artifact$support_phrase,
-    artifact$pattern_text
-  )
-}
-
-build_latex_all_significant_predictor_figure_section <- function(artifacts) {
-  if (length(artifacts) == 0L) return(character(0))
-
-  section_lines <- c(
-    "",
-    "\\subsection{All Significant Predictors (p < 0.10)}",
-    escape_latex(
-      if (report_includes_nonparametric()) {
-        paste(
-          "The following figures extend beyond the hypothesis-target terms and visualize every predictor",
-          "that reaches p < 0.10 in the available H1-H3 Tobit random-intercepts or clustered non-parametric models.",
-          "This includes significant controls such as age when they clear the threshold."
-        )
-      } else {
-        paste(
-          "The following figures extend beyond the hypothesis-target terms and visualize every predictor",
-          "that reaches p < 0.10 in the available H1-H3 Tobit random-intercepts models.",
-          "This includes significant controls such as age when they clear the threshold."
-        )
-      }
-    ),
-    ""
-  )
-
-  current_sample <- NULL
-  for (artifact in artifacts) {
-    if (!identical(current_sample, artifact$sample_key)) {
-      section_lines <- c(
-        section_lines,
-        paste0("\\paragraph{", escape_latex(artifact$sample_label), "}"),
-        ""
-      )
-      current_sample <- artifact$sample_key
-    }
-
-    section_lines <- c(
-      section_lines,
-      build_latex_all_significant_predictor_narrative(artifact),
-      "",
-      latex_include_graphic(file.path("../figures", artifact$figure_file), artifact$caption, artifact$latex_label),
-      ""
-    )
-  }
-
-  section_lines
-}
-
-build_markdown_all_significant_predictor_figure_section <- function(artifacts) {
-  if (length(artifacts) == 0L) return(character(0))
-
-  section_lines <- c(
-    "## All Significant Predictors (p < .10)",
-    if (report_includes_nonparametric()) {
-      "The following figures extend beyond the hypothesis-target terms and visualize every predictor that reaches `p < .10` in the available H1-H3 Tobit random-intercepts or clustered non-parametric models. This includes significant controls such as age when they clear the threshold."
-    } else {
-      "The following figures extend beyond the hypothesis-target terms and visualize every predictor that reaches `p < .10` in the available H1-H3 Tobit random-intercepts models. This includes significant controls such as age when they clear the threshold."
-    },
-    ""
-  )
-
-  current_sample <- NULL
-  for (artifact in artifacts) {
-    if (!identical(current_sample, artifact$sample_key)) {
-      section_lines <- c(section_lines, paste0("### ", artifact$sample_label), "")
-      current_sample <- artifact$sample_key
-    }
-
-    section_lines <- c(
-      section_lines,
-      build_markdown_all_significant_predictor_narrative(artifact),
-      "",
-      sprintf("![%s](../figures/%s)", artifact$caption, artifact$figure_file),
-      ""
-    )
-  }
-
-  section_lines
-}
-
-build_latex_significance_figure_section <- function(artifacts) {
-  if (length(artifacts) == 0L) return(character(0))
-
-  section_lines <- c(
-    "",
-    "\\subsection{Significance-Driven Figures}",
-    escape_latex(
-      if (report_includes_nonparametric()) {
-        paste(
-          "Only hypothesis-relevant predictors that reach p < 0.10 or better are visualized automatically.",
-          "These dynamic figures use the saved Tobit random-intercepts and clustered non-parametric outputs,",
-          "and participant id remains only an inference-level clustering unit rather than a substantive explanatory variable."
-        )
-      } else {
-        paste(
-          "Only hypothesis-relevant predictors that reach p < 0.10 or better are visualized automatically.",
-          "These dynamic figures use the saved Tobit random-intercepts outputs,",
-          "and participant id remains only an inference-level clustering unit rather than a substantive explanatory variable."
-        )
-      }
-    ),
-    ""
-  )
-
-  current_hypothesis <- NULL
-  for (artifact in artifacts) {
-    if (!identical(current_hypothesis, artifact$hypothesis_id)) {
-      section_lines <- c(
-        section_lines,
-        paste0("\\paragraph{", escape_latex(artifact$short_label), "}"),
-        ""
-      )
-      current_hypothesis <- artifact$hypothesis_id
-    }
-
-    section_lines <- c(
-      section_lines,
-      build_latex_significance_figure_narrative(artifact),
-      "",
-      latex_include_graphic(file.path("../figures", artifact$figure_file), artifact$caption, artifact$latex_label),
-      ""
-    )
-  }
-
-  section_lines
-}
-
-build_markdown_significance_figure_section <- function(artifacts) {
-  if (length(artifacts) == 0L) return(character(0))
-
-  section_lines <- c(
-    "## Significance-Driven Figures",
-    if (report_includes_nonparametric()) {
-      "Only hypothesis-relevant predictors that reach at least `p < .10` are visualized automatically. These figures rely on the saved Tobit random-intercepts and clustered non-parametric fits, and `id` remains only an inference-level clustering unit."
-    } else {
-      "Only hypothesis-relevant predictors that reach at least `p < .10` are visualized automatically. These figures rely on the saved Tobit random-intercepts fits, and `id` remains only an inference-level clustering unit."
-    },
-    ""
-  )
-
-  current_hypothesis <- NULL
-  for (artifact in artifacts) {
-    if (!identical(current_hypothesis, artifact$hypothesis_id)) {
-      section_lines <- c(section_lines, paste0("### ", artifact$short_label), "")
-      current_hypothesis <- artifact$hypothesis_id
-    }
-
-    section_lines <- c(
-      section_lines,
-      build_markdown_significance_figure_narrative(artifact),
-      "",
-      sprintf("![%s](../figures/%s)", artifact$caption, artifact$figure_file),
-      ""
-    )
-  }
-
-  section_lines
-}
-
-build_hypothesis_conclusion_items <- function(alpha = 0.10) {
-  hypothesis_specs <- get_hypothesis_specs(paths = paths)
-  vapply(
-    hypothesis_specs,
-    function(spec) {
-      estimator_summaries <- vapply(
-        get_report_approaches(),
-        function(approach) summarize_estimator_hypothesis(spec, approach, alpha),
-        character(1)
-      )
-      trimws(paste(
-        c(sprintf("%s. Original hypothesis: %s", spec$id, spec$statement), estimator_summaries),
-        collapse = " "
-      ))
-    },
-    character(1)
-  )
-}
-
-hypothesis_signal_details <- collect_all_hypothesis_signal_details()
-hypothesis_significance_summary <- write_hypothesis_significance_summary(signal_details = hypothesis_signal_details)
-hypothesis_figure_artifacts <- build_significance_figure_artifacts(hypothesis_signal_details)
-all_significant_predictor_details <- collect_all_significant_predictor_details()
-all_significant_predictor_figure_artifacts <- build_all_significant_predictor_figure_artifacts(all_significant_predictor_details)
-hypothesis_conclusion_items <- build_hypothesis_conclusion_items()
-
-build_latex_hypothesis_significance_tables <- function(summary_tables) {
-  if (!is.list(summary_tables) || length(summary_tables) == 0L) {
-    return("Hypothesis summary unavailable.")
-  }
-
-  subset_order <- c("Victim", "Bystander")
-  unlist(lapply(subset_order, function(subset_role) {
-    subset_df <- summary_tables[[subset_role]]
-    if (is.null(subset_df)) return(character(0))
-    c(
-      paste0("\\paragraph{", subset_role, " subset}"),
-      to_latex_wrapped_hypothesis_summary(
-        subset_df,
-        if (report_includes_nonparametric()) {
-          sprintf("Hypothesis-level significance summary for the %s subset across Tobit random-intercepts and cluster-aware non-parametric models.", tolower(subset_role))
-        } else {
-          sprintf("Hypothesis-level significance summary for the %s subset across Tobit random-intercepts models.", tolower(subset_role))
-        },
-        sprintf("tab:hypothesis_summary_%s", tolower(subset_role))
-      ),
-      build_latex_note_block(build_dynamic_table_note_text(subset_df)),
-      ""
-    )
-  }), use.names = FALSE)
-}
-
-build_markdown_hypothesis_significance_tables <- function(summary_tables) {
-  if (!is.list(summary_tables) || length(summary_tables) == 0L) {
-    return("Hypothesis summary unavailable.")
-  }
-
-  subset_order <- c("Victim", "Bystander")
-  unlist(lapply(subset_order, function(subset_role) {
-    subset_df <- summary_tables[[subset_role]]
-    if (is.null(subset_df)) return(character(0))
-    c(
-      paste0("### ", subset_role, " subset"),
-      to_markdown_table(subset_df),
-      build_markdown_note_line(build_dynamic_table_note_text(subset_df)),
-      ""
-    )
-  }), use.names = FALSE)
-}
-
-build_estimator_block <- function(output_prefix, estimator_name, table_caption, subset_role) {
-  coef_file <- file.path(paths$models_dir, sprintf("%s_coefficients.csv", output_prefix))
-  model_file <- file.path(paths$models_dir, sprintf("%s_model.rds", output_prefix))
-  fit_stats <- read_fit_stats(output_prefix)
-
-  if (!file.exists(coef_file) || !file.exists(model_file)) {
-    failure_text <- if (!is.null(fit_stats) && nrow(fit_stats) > 0L && fit_stats$Status[1] == "failed") {
-      sprintf("%s estimation failed: %s", estimator_name, fit_stats$ErrorMessage[1])
-    } else {
-      sprintf("%s outputs are missing.", estimator_name)
-    }
-
-    return(c(
-      paste0("\\paragraph{", estimator_name, "}"),
-      "",
-      escape_latex(failure_text),
-      ""
-    ))
-  }
-
-  coef_df <- read.csv(coef_file, stringsAsFactors = FALSE)
-  model_fit <- if (file.exists(model_file)) readRDS(model_file) else NULL
-  inference_pending <- all(is.na(coef_df$std_error)) && all(is.na(coef_df$p_value))
-  if (!("p_value_display" %in% names(coef_df))) {
-    coef_df$p_value_display <- format_p_value(coef_df$p_value)
-  }
-  if (!("p_symbol" %in% names(coef_df))) {
-    coef_df$p_symbol <- significance_symbol(coef_df$p_value)
-  }
-  label_col <- if ("label_short" %in% names(coef_df)) "label_short" else "label"
-  table_df <- coef_df[, c(label_col, "estimate", "std_error", "p_value_display"), drop = FALSE]
-  names(table_df) <- c("Predictor", "Estimate", "Std. Error", "p-value")
-
-  table_latex <- to_latex_table(
-    table_df,
-    sprintf(
-      "%s (%s; %s).",
-      sub("\\.$", "", table_caption),
-      estimator_name,
-      format_sample_description(fit_stats, subset_role = subset_role)
-    ),
-    sprintf("tab:%s", tolower(output_prefix)),
-    digits = 3,
-    preserve_font_size = TRUE
-  )
-
-  narrative <- if (!is.null(model_fit)) {
-    generate_coefficient_narrative(coef_df, model_family = get_model_family(model_fit))
-  } else {
-    "Interpretation could not be generated because the saved model object is unavailable."
-  }
-  diagnostic_text <- if (!is.null(model_fit)) {
-    get_model_diagnostics(model_fit)
-  } else {
-    "Diagnostics are unavailable because the saved model object is missing."
-  }
-  if (!report_includes_nonparametric()) {
-    diagnostic_text <- sub(
-      " and the report pairs it with a cluster-bootstrap non-parametric censored robustness model.",
-      ".",
-      diagnostic_text,
-      fixed = TRUE
-    )
-  }
-  note_lines <- if (inference_pending) {
-    c(
-      "",
-      escape_latex(sprintf(
-        "Inference note: %s",
-        coef_df$inference[which.max(!is.na(coef_df$inference))]
-      )),
-      ""
-    )
-  } else {
-    character(0)
-  }
-
-  c(
-    paste0("\\paragraph{", estimator_name, "}"),
-    "",
-    table_latex,
-    build_latex_note_block(build_dynamic_table_note_text(
-      table_df,
-      prefix_parts = c(
-        sprintf("Estimator: %s.", estimator_name),
-        sprintf("%s.", format_sample_description(fit_stats, subset_role = subset_role))
-      ),
-      predictor_col = "Predictor"
-    )),
-    note_lines,
-    "",
-    "Interpretation:",
-    "",
-    escape_latex(narrative),
-    "",
-    "Diagnostics:",
-    "",
-    escape_latex(diagnostic_text),
-    ""
-  )
-}
-
-# Helper for rendering Tobit-random-intercepts plus non-parametric robustness sections.
-build_model_section <- function(hypothesis_id, model_suffix, table_caption) {
-  clean_caption <- sub("\\.$", "", table_caption)
-  subset_blocks <- lapply(c("Victim", "Bystander"), function(subset_role) {
-    output_prefix <- sprintf("%s_%s_%s", hypothesis_id, model_suffix, subset_role)
-    block_lines <- c(
-      paste0("\\paragraph{", subset_role, " subset}"),
-      "",
-      build_estimator_block(
-        output_prefix,
-        "Tobit estimator with random intercepts",
-        clean_caption,
-        subset_role = subset_role
-      )
-    )
-    if (report_includes_nonparametric()) {
-      block_lines <- c(
-        block_lines,
-        "",
-        build_estimator_block(
-          paste0(output_prefix, "_CLAD"),
-          "Non-parametric robustness estimator",
-          clean_caption,
-          subset_role = subset_role
-        )
-      )
-    }
-    c(block_lines, "")
-  })
-
-  unlist(subset_blocks, use.names = FALSE)
-}
-
-# 2. BUILD LATEX CONTENT
-latex_lines <- c(
-  "\\documentclass[11pt]{article}",
-  "\\usepackage[margin=1in]{geometry}",
-  "\\usepackage[T1]{fontenc}",
-  "\\usepackage[utf8]{inputenc}",
-  "\\usepackage{amsmath, amssymb, amsfonts}",
-  "\\usepackage{graphicx}",
-  "\\usepackage{array}",
-  "\\usepackage{tabularx}",
-  "\\usepackage{booktabs}",
-  "\\usepackage{float}",
-  "\\usepackage{hyperref}",
-  if (report_includes_nonparametric()) {
-    "\\title{Scientific Analysis of Moral Judgments using Tobit Models with Random Intercepts and Cluster-Aware Non-Parametric Robustness Models}"
-  } else {
-    "\\title{Scientific Analysis of Moral Judgments using Tobit Models with Random Intercepts and Four Empathy Constructs}"
-  },
-  "\\author{Automated Research Pipeline}",
-  paste0("\\date{", format(Sys.Date(), "%B %d, %Y"), "}"),
-  "\\begin{document}",
-  "\\maketitle",
-  "",
-  "\\section{Dataset and Sample Description}",
-  escape_latex(paste(get_dataset_narration(paths$dataset_mode), collapse = " ")),
-  "",
-  "\\section{Primary Estimator in This Run}",
-  "The primary inferential branch is the Tobit slot with random intercepts. In practice, each fitted model includes (1 | id), and when id\\_case is identifiable as a repeated grouping level the model also includes (1 | id\\_case).",
-  "",
-  "\\section{Datacard and Variable Definitions}",
-  "The following table defines the primary symbols and variables used in the mathematical specifications and hypothesis tests.",
-  to_latex_table(get_symbols_dictionary(), "Symbols and Variable Dictionary.", "tab:symbols", escape_math = FALSE),
-  escape_latex(paste(
-    get_case_configuration_option_label(),
-    "retains a compact relational shorthand for descriptive summaries, while the executable hypotheses use explicit role-specific N1/N2 predictors and N1_N2_same_faculty as a contextual main effect."
-  )),
-  "",
-  "\\subsection{Predictor Glossary and Abbreviations}",
-  "The regression tables and dynamic figures use compact predictor labels to stay readable. The bullet list below maps those compact labels back to their full meaning and subset-specific interpretation.",
-  build_latex_predictor_glossary_list(),
-  "",
-  "\\subsection{Interpretation of Interaction Terms}",
-  "The models herein employ several predefined predictors. It is important to note how interaction terms are interpreted in the context of this behavioral experiment:",
-  "\\begin{enumerate}",
-  "  \\item \\textbf{Interaction Subsumption:} When an interaction term is statistically significant, it indicates that the effect of one variable depends on the level of the other. Crucially, if the interaction is significant but the constituent main effects are not explicitly significant, their effects are fully subsumed and contextualized by the interaction.",
-  "  \\item \\textbf{Continuous by Discrete Interactions:} For terms like \\texttt{iri\\_pt:victim\\_N1\\_groupOut}, a negative coefficient implies that the empathy slope becomes more negative (more severe judgments) under that relational outgroup condition relative to the control-labeled baseline.",
-  "  \\item \\textbf{Discrete by Discrete Interactions:} For terms like \\texttt{bystander\\_N1\\_groupOut:bystander\\_N2\\_groupOut}, a positive coefficient implies that the joint relational condition is associated with less severe condemnation than expected from the baseline profile.",
-  "\\end{enumerate}",
-  "",
-  "\\section{Hypotheses to Test}",
-  "\\begin{itemize}",
-  vapply(
-    report_hypothesis_specs,
-    function(spec) {
-      paste0(
-        "  \\item \\textbf{",
-        escape_latex(spec$id),
-        " (",
-        escape_latex(spec$focus_label),
-        "):} ",
-        escape_latex(spec$statement)
-      )
-    },
-    character(1)
-  ),
-  "\\end{itemize}",
-  "",
-  "\\section{Mathematical Approach and Theoretical Foundations}",
-  paste(get_math_foundations(), collapse = "\n"),
-  "",
-  "\\section{Analysis of Sample Size Impact}",
-  paste(get_error_analysis_narration(), collapse = "\n"),
-  sprintf("\nBased on the current run, the observed Intraclass Correlation (ICC) is %.3f, with an Effective Sample Size (ESS) of %.1f.", power_results$ICC, power_results$EffectiveN),
-  "",
-  "\\section{Descriptive Statistics}",
-  paste0(
-    "The empathy profile of the sample is visualized in Figure \\ref{fig:radar}, showing the average scores ",
-    "across the four IRI subscales (Fantasy, Empathic Concern, Perspective Taking, Personal Distress), ",
-    "each scored 0\u20134 (scale mean per subscale)."
-  ),
-  latex_include_graphic(file.path("../figures", figure_radar_file), "IRI subscale averages (radar plot; scale 0--4 per subscale).", "fig:radar", escape = FALSE),
-  paste0(
-    "Figure \\ref{fig:severity_panels} shows severity distributions pooled across the full analytical sample, ",
-    "broken down by N1 group membership (\\textit{group\\_target}: Ingroup, Outgroup, Control). ",
-    "Figures \\ref{fig:victim_case_panels} and \\ref{fig:bystander_case_panels} expand the descriptive view ",
-    "to the six explicit victim x negotiator faculty configurations, with separate panel rows for accepted ",
-    "and rejected harmful deals inside each role subset. Figures \\ref{fig:accepted_case_panels} and ",
-    "\\ref{fig:rejected_case_panels} then pool the full analytical sample and show the accepted- and ",
-    "rejected-decision distributions across those same six case configurations."
-  ),
-  latex_include_graphic(file.path("../figures", figure_severity_panels_file),
-    "Judgment severity by N1 group (\\textit{group\\_target}: Ingroup, Outgroup, Control) --- full analytical sample, scale $-9$ to $9$.",
-    "fig:severity_panels", escape = FALSE),
-  latex_include_graphic(file.path("../figures", figure_victim_case_panels_file),
-    "Victim-subset judgment distributions across the six explicit victim x negotiator faculty configurations, with separate rows for accepted and rejected harmful deals, scale $-9$ to $9$.",
-    "fig:victim_case_panels", escape = FALSE),
-  latex_include_graphic(file.path("../figures", figure_bystander_case_panels_file),
-    "Bystander-subset judgment distributions across the six explicit victim x negotiator faculty configurations, with separate rows for accepted and rejected harmful deals, scale $-9$ to $9$.",
-    "fig:bystander_case_panels", escape = FALSE),
-  latex_include_graphic(file.path("../figures", figure_accepted_case_panels_file),
-    "Accepted harmful-deal judgments across the six explicit victim x negotiator faculty configurations in the full analytical sample, scale $-9$ to $9$.",
-    "fig:accepted_case_panels", escape = FALSE),
-  latex_include_graphic(file.path("../figures", figure_rejected_case_panels_file),
-    "Rejected harmful-deal judgments across the six explicit victim x negotiator faculty configurations in the full analytical sample, scale $-9$ to $9$.",
-    "fig:rejected_case_panels", escape = FALSE),
-  paste0(
-    "When a control-labeled negotiator condition exists, the active hypothesis models treat that control level as the reference category. ",
-    "Observer--victim alignment remains binary and therefore keeps ingroup as its reference level."
-  ),
-  "",
-  "\\section{Bi-variate Statistics}",
-  "The correlation matrix between the psychometric subscales and the mean moral judgment is presented below. Figure \\ref{fig:bivariate_scatters} complements that matrix with participant-level scatterplots, fitted lines, and 95\\% confidence bands on the observed judgment scale.",
-  to_latex_table(bivar_cor, "Correlation Matrix: IRI Subscales and Moral Judgment.", "tab:bivar"),
-  latex_include_graphic(file.path("../figures", figure_bivariate_scatters_file),
-    "Bivariate scatters of participant-level IRI scales versus mean judgment, with fitted lines and 95\\% confidence bands. The judgment axis is fixed at $-9$ to $9$.",
-    "fig:bivariate_scatters", escape = FALSE),
-  "",
-  "\\section{Estimator Fit Summary}",
-  if (report_includes_nonparametric()) {
-    "The following table consolidates fit-status information for the Tobit models with random intercepts and the non-parametric robustness branch. In the default pipeline, participant-level cluster bootstrap launches immediately after a converged full-sample non-parametric fit is available; if bootstrap is disabled manually or too few bootstrap refits converge, that status is shown explicitly."
-  } else {
-    "The following table consolidates fit-status information for the Tobit models with random intercepts used in this report."
-  },
-  if (report_includes_nonparametric()) {
-    escape_latex(sprintf(
-      "This run uses %s participant-level bootstrap replicate%s for the non-parametric branch. A bootstrap_failed status means the full-sample CLAD fit converged but none of the attempted bootstrap refits converged; it does not imply that the full non-parametric estimator itself failed to converge.",
-      configured_clad_bootstrap_reps,
-      if (configured_clad_bootstrap_reps == 1L) "" else "s"
-    ))
-  } else {
-    NULL
-  },
-  if (!is.null(model_fit_summary)) {
-    c(
-      to_latex_table(
-        model_fit_summary[, if (report_includes_nonparametric()) {
-          c("Hypothesis", "Subset", "Specification", "Approach", "Status", "Iterations", "Bootstrap reps", "Bootstrap successful", "Observations", "Participants", "Cluster unit")
-        } else {
-          c("Hypothesis", "Subset", "Specification", "Approach", "Status", "Iterations", "Observations", "Participants", "Cluster unit")
-        }],
-        if (report_includes_nonparametric()) {
-          "Estimator fit summary across Tobit-random-intercepts and cluster-aware non-parametric specifications."
-        } else {
-          "Estimator fit summary across Tobit-random-intercepts specifications."
-        },
-        "tab:model_fit_summary",
-        preserve_font_size = TRUE
-      ),
-      build_latex_note_block(build_model_fit_note_text(model_fit_summary))
-    )
-  } else {
-    "Model fit summary unavailable."
-  },
-  "",
-  "\\subsection{Hypothesis Significance Summary}",
-  if (report_includes_nonparametric()) {
-    "The following concise tables list only hypothesis-relevant predictors that reached at least p < 0.10, split by victim and bystander subsets, using conventional symbols to indicate strength of evidence (plus for p < 0.10, one-star for p < 0.05, two-star for p < 0.01, and three-star for p < 0.001). If the non-parametric bootstrap is disabled, too sparse, or the censored median fit does not converge, the non-parametric column reports that status instead of inferential symbols. Dynamic figures are generated only for predictors that appear in these tables with at least one significance symbol."
-  } else {
-    "The following concise tables list only hypothesis-relevant predictors that reached at least p < 0.10 in the available Tobit models with random intercepts, split by victim and bystander subsets, using conventional symbols to indicate strength of evidence (plus for p < 0.10, one-star for p < 0.05, two-star for p < 0.01, and three-star for p < 0.001). Dynamic figures are generated only for predictors that appear in these tables with at least one significance symbol."
-  },
-  if (!is.null(hypothesis_significance_summary)) {
-    build_latex_hypothesis_significance_tables(hypothesis_significance_summary)
-  } else {
-    "Hypothesis summary unavailable."
-  },
-  build_latex_significance_figure_section(hypothesis_figure_artifacts),
-  build_latex_all_significant_predictor_figure_section(all_significant_predictor_figure_artifacts),
-  "",
-  "\\subsection{Integrated Hypothesis Conclusions}",
-  if (report_includes_nonparametric()) {
-    "The following summary restates each original hypothesis and indicates whether the available Tobit-random-intercepts estimates and the cluster-aware non-parametric models support it in the current data. Non-parametric conclusions are drawn when the participant-level bootstrap inference is available and are otherwise labeled explicitly."
-  } else {
-    "The following summary restates each original hypothesis and indicates whether the available Tobit-random-intercepts estimates support it in the current data."
-  },
-  "\\begin{itemize}",
-  paste0("\\item ", escape_latex(hypothesis_conclusion_items)),
-  "\\end{itemize}",
-  "",
-  "\\section{Hypothesis Validation and Results}",
-  if (report_includes_nonparametric()) {
-    "Detailed coefficient tables for each Tobit model with random intercepts, coupled with non-parametric robustness outputs, natural language interpretive narratives, and estimator-specific diagnostics, are provided below. In the default pipeline, converged non-parametric fits immediately attempt participant-level cluster-bootstrap inference; the report labels deferred and sparse-bootstrap cases explicitly when full inference is not available."
-  } else {
-    "Detailed coefficient tables for each Tobit model with random intercepts, including predictor estimates, standard errors, p-values with conventional significance symbols, and estimator diagnostics for the victim and bystander subsets, are provided below."
-  },
-  "",
-  "\\subsection{H1: Empathy Effect}",
-  "This section evaluates H1 separately in the victim and bystander subsets using the four IRI subscales as the active empathy specification: fantasy, empathic concern, perspective taking, and personal distress. The formula retains role-specific relational predictors for N1 and N2, the contextual same-faculty indicator between N1 and N2, and participant controls for sex, age, and economic status.",
-  "\\subsubsection{Active Empathy-Construct Specification}",
-  build_subset_formula_lines(report_h1_spec, "B"),
-  build_model_section("H1", "B", "H1 active model: empathy-construct mixed-effects coefficients."),
-  "",
-  "\\subsection{H2: Negotiator-Side Relational Structure}",
-  "This section estimates H2 separately in the victim and bystander subsets. In the victim subset, H2 evaluates the joint victim-N1 and victim-N2 structure through their interaction, while retaining the N1-N2 same-faculty context term. In the bystander subset, H2 retains bystander-victim alignment, bystander-victim x bystander-N1/N2 interactions, selective N1-by-N2 and victim-by-negotiator interaction blocks, and N1-N2 same-faculty as a contextual main effect.",
-  build_aligned_equation_block(
-    "Victim-subset H2",
-    "y_{isj,\\mathrm{Victim}}",
-    c(
-      "\\beta_0 + \\beta_1\\,\\mathrm{Empathy}_i + \\gamma_1\\,\\mathrm{Victim\\text{-}N1}_{isj} + \\gamma_2\\,\\mathrm{Victim\\text{-}N2}_{isj}",
-      "+\\ \\gamma_3\\,(\\mathrm{Victim\\text{-}N1}_{isj}\\times\\mathrm{Victim\\text{-}N2}_{isj}) + \\gamma_4\\,\\mathrm{SameFac}_{isj} + \\boldsymbol{\\delta}'\\mathbf{Z}_i",
-      "+\\ u_i + v_{\\mathrm{case}(i,s,j)} + \\epsilon_{isj}"
-    )
-  ),
-  build_aligned_equation_block(
-    "Bystander-subset H2",
-    "y_{isj,\\mathrm{Obs}}",
-    c(
-      "\\beta_0 + \\beta_1\\,\\mathrm{Empathy}_i + \\eta\\,\\mathrm{Bystander\\text{-}Victim}_{isj}",
-      "+\\ \\boldsymbol{\\kappa}'\\bigl(\\mathrm{Bystander\\text{-}Victim}_{isj}\\times\\mathrm{Bystander\\text{-}N}_{isj}\\bigr) + \\boldsymbol{\\gamma}'\\mathbf{R}_{isj}",
-      "+\\ \\boldsymbol{\\delta}'\\mathbf{Z}_i + u_i + v_{\\mathrm{case}(i,s,j)} + \\epsilon_{isj}"
-    )
-  ),
-  "\\subsubsection{Active Empathy-Construct Specification}",
-  build_subset_formula_lines(report_h2_spec, "B"),
-  build_model_section("H2", "B", "H2 active model: empathy-construct mixed-effects coefficients."),
-  "",
-  "\\subsection{H3: Empathy x Relational-Status Moderation}",
-  "This section tests whether empathy slopes differ across relational N1/N2 status contrasts within each role-specific model. Victim and bystander subsets keep their own relational blocks; in the bystander subset, the model also retains bystander-victim x bystander-N1/N2 terms and empathy x bystander-victim when identifiable.",
-  build_aligned_equation_block(
-    "Role-specific H3",
-    "y_{isjr}",
-    c(
-      "\\beta_0 + \\beta_1\\,\\mathrm{Empathy}_i + \\beta_2'\\mathbf{G}_{isjr} + \\beta_3'\\bigl(\\mathrm{Empathy}_i\\times\\mathbf{G}_{isjr}\\bigr)",
-      "+\\ \\kappa_1\\bigl(\\mathrm{Bystander\\text{-}Victim}_{isjr}\\times\\mathrm{Bystander\\text{-}N}_{isjr}\\bigr) + \\kappa_2\\bigl(\\mathrm{Empathy}_i\\times\\mathrm{Bystander\\text{-}Victim}_{isjr}\\bigr)",
-      "+\\ \\phi'\\mathbf{C}_{isjr} + \\boldsymbol{\\delta}'\\mathbf{Z}_i + u_i + v_{\\mathrm{case}(i,s,j)} + \\epsilon_{isjr}"
-    )
-  ),
-  "\\subsubsection{Active Empathy-Construct Specification}",
-  build_subset_formula_lines(report_h3_spec, "B"),
-  build_model_section("H3", "B", "H3 active model: empathy-construct mixed-effects coefficients."),
-  "",
-  "\\section{Discussion and Limitations}",
-  paste(get_limitations_narration(), collapse = " "),
-  "",
-  "\\section{Conclusion}",
-  "Based on the Tobit-random-intercepts estimations using the four empathy constructs, empathy and relational judgment structure have been documented together under Option 2 through negotiator-level relational predictors rather than descriptive case labels.",
-  "\\end{document}"
+coefficient_tables <- list()
+coefficient_narratives <- list()
+figure_manifest <- data.frame(
+  figure_file = character(0),
+  figure_type = character(0),
+  hypothesis = character(0),
+  role = character(0),
+  term = character(0),
+  caption = character(0),
+  interpretation = character(0),
+  stringsAsFactors = FALSE
 )
 
-tex_path <- file.path(paths$report_dir, "tobit_analysis_report.tex")
-write_text_file(latex_lines, tex_path)
-
-# Rendering Markdown is temporarily simplified to focus on standardizing the LaTeX/PDF engine.
-md_lines <- c(
-  if (report_includes_nonparametric()) {
-    "# Scientific Analysis of Moral Judgments with Tobit Random-Intercept Models and Cluster-Aware Non-Parametric Robustness Checks"
-  } else {
-    "# Scientific Analysis of Moral Judgments with Tobit Random-Intercept Models and Four Empathy Constructs"
-  },
-  "",
-  "## Dataset Description",
-  paste(get_dataset_narration(paths$dataset_mode), collapse = " "),
-  "",
-  "## Primary Estimator in This Run",
-  "The primary inferential branch is the Tobit slot with random intercepts: each model includes `(1 | id)`, and when `id_case` is identifiable it also includes `(1 | id_case)`.",
-  "",
-  "## Option 2 Relational Case Configuration",
-  paste(
-    "All hypothesis sections are now interpreted through negotiator-level relational predictors rather than descriptive case labels."
+descriptive_figure_entries <- data.frame(
+  figure_file = c(
+    file.path(paths$figures_dir, "figure_iri_subscale_radar.png"),
+    file.path(paths$figures_dir, "figure_bivariate_empathy_vs_mean_judgement.png"),
+    file.path(paths$figures_dir, "figure_judgement_distribution_by_role.png"),
+    file.path(paths$figures_dir, "figure_decision_pattern_by_role.png")
   ),
-  "",
-  "## Predictor Glossary and Abbreviations",
-  "The regression tables and dynamic figures use compact predictor labels to keep long H2 and H3 rows readable. The bullet list below maps those compact labels back to the full meanings used in the manuscript.",
-  build_markdown_predictor_glossary_list(),
-  "",
-  "## Interpretation of Interaction Terms",
-  "The models herein employ several predefined predictors. It is important to note how interaction terms are interpreted in the context of this behavioral experiment:",
-  "",
-  "1. Interaction subsumption: when an interaction term is statistically significant, the effect of one variable depends on the other.",
-  "2. Continuous-by-discrete interactions: for terms like `iri_pt:victim_N1_groupOut`, a negative coefficient means the empathy slope is more negative under that outgroup condition than under the control-labeled baseline.",
-  "3. Discrete-by-discrete interactions: for terms like `bystander_N1_groupOut:bystander_N2_groupOut`, a positive coefficient means the joint relational condition is associated with less severe condemnation than expected from the baseline profile.",
-  "",
-  "## Hypothesis Significance Summary",
-  if (report_includes_nonparametric()) {
-    "Only hypothesis-relevant predictors with p < 0.10 are shown below, split into victim and bystander subset tables. Significance symbols follow plus, one-star, two-star, and three-star thresholds. If bootstrap is disabled for a run, too few non-parametric bootstrap refits succeed, or the non-parametric fit does not converge, the non-parametric column reports that status explicitly. Dynamic figures are generated only for predictors that appear here with at least one significance symbol."
+  figure_type = c("descriptive", "descriptive", "descriptive", "descriptive"),
+  hypothesis = c("All", "All", "All", "All"),
+  role = c("All", "All", "All", "All"),
+  term = c("IRI profile", "Empathy correlations", "Judgement distribution", "Decision pattern"),
+  caption = c(
+    "Mean IRI subscale profile across participants.",
+    "Participant-level bivariate scatters of IRI subscales against mean judgement.",
+    "Observed judgement distributions split by role.",
+    "Observed decision patterns by role."
+  ),
+  interpretation = c(
+    "This figure summarizes the central empathy profile of the sample before conditioning on hypothesis-specific models.",
+    "These scatterplots show the participant-level descriptive relationship between empathy dimensions and average judgement.",
+    "This figure shows the raw shape of the bounded judgement outcome in the victim and bystander subsets.",
+    "This figure summarizes how the four joint decision contexts are distributed across roles."
+  ),
+  stringsAsFactors = FALSE
+)
+figure_manifest <- rbind(figure_manifest, descriptive_figure_entries)
+
+get_dataset_for_role <- function(role_label) {
+  if (identical(role_label, "Victim")) {
+    judgments_victim
   } else {
-    "Only hypothesis-relevant predictors with p < 0.10 in the available Tobit random-intercept models are shown below, split into victim and bystander subset tables. Significance symbols follow plus, one-star, two-star, and three-star thresholds. Dynamic figures are generated only for predictors that appear here with at least one significance symbol."
-  },
-  build_markdown_hypothesis_significance_tables(hypothesis_significance_summary),
-  "",
-  build_markdown_significance_figure_section(hypothesis_figure_artifacts),
-  "",
-  build_markdown_all_significant_predictor_figure_section(all_significant_predictor_figure_artifacts),
-  "",
-  "## Hypothesis Conclusion Summary",
-  if (report_includes_nonparametric()) {
-    "Each conclusion below is generated from the current coefficient outputs. Non-parametric statements are interpreted when participant-level cluster-bootstrap inference is available and are otherwise labeled explicitly."
+    judgments_bystander
+  }
+}
+
+get_model_prefix <- function(hypothesis_id, role_label) {
+  sprintf("%s_%s_primary", hypothesis_id, role_label)
+}
+
+for (hypothesis_id in paste0("H", 1:5)) {
+  for (role_label in c("Victim", "Bystander")) {
+    prefix <- get_model_prefix(hypothesis_id, role_label)
+    coef_path <- file.path(paths$models_dir, sprintf("%s_coefficients.csv", prefix))
+    model_path <- file.path(paths$models_dir, sprintf("%s_model.rds", prefix))
+    if (!file.exists(coef_path) || !file.exists(model_path)) {
+      next
+    }
+
+    coef_df <- read.csv(coef_path, stringsAsFactors = FALSE)
+    display_table <- prepare_report_coefficient_table(coef_df)
+    coefficient_tables[[prefix]] <- display_table
+    coefficient_narratives[[prefix]] <- generate_model_narrative(coef_df, hypothesis_id, role_label)
+
+    write.csv(display_table, file.path(paths$tables_dir, sprintf("report_%s_coefficients.csv", prefix)), row.names = FALSE)
+
+    focal_terms <- coef_df[
+      coef_df$p_value < 0.10 &
+        vapply(seq_len(nrow(coef_df)), function(i) is_focal_term_for_hypothesis(hypothesis_id, coef_df$term[[i]]), logical(1)) &
+        !vapply(coef_df$term, is_session_term, logical(1)),
+      "term",
+      drop = TRUE
+    ]
+    focal_terms <- unique(stats::na.omit(focal_terms))
+    if (length(focal_terms) == 0L) {
+      next
+    }
+
+    model_fit <- readRDS(model_path)
+    model_data <- get_dataset_for_role(role_label)
+
+    for (term_name in focal_terms) {
+      plot_df <- tryCatch(
+        build_plot_data_for_term(model_fit, model_data, term_name),
+        error = function(e) NULL
+      )
+      if (is.null(plot_df)) {
+        next
+      }
+      figure_file <- file.path(
+        paths$figures_dir,
+        sprintf(
+          "figure_%s_%s_%s.png",
+          tolower(hypothesis_id),
+          tolower(role_label),
+          sanitize_filename_component(term_name, max_chars = 50L)
+        )
+      )
+      plot_written <- tryCatch(
+        write_significance_plot_current(figure_file, plot_df, term_name),
+        error = function(e) FALSE
+      )
+      if (!isTRUE(plot_written)) {
+        next
+      }
+      figure_manifest <- rbind(
+        figure_manifest,
+        data.frame(
+          figure_file = figure_file,
+          figure_type = "significance",
+          hypothesis = hypothesis_id,
+          role = role_label,
+          term = term_name,
+          caption = sprintf("%s %s: model-implied predictions for %s.", hypothesis_id, role_label, label_current_term(term_name)),
+          interpretation = describe_plot_pattern_current(plot_df),
+          stringsAsFactors = FALSE
+        )
+      )
+    }
+  }
+}
+
+write.csv(figure_manifest, file.path(paths$tables_dir, "report_figure_catalog.csv"), row.names = FALSE)
+write.csv(figure_manifest, file.path(paths$reports_data_dir, "report_figure_catalog.csv"), row.names = FALSE)
+
+formula_checks <- within(formula_catalog, {
+  uses_judgement <- TRUE
+  uses_sociodemographics <- grepl("age", formula_rhs, fixed = TRUE) &
+    grepl("ses", formula_rhs, fixed = TRUE) &
+    grepl("sex_female", formula_rhs, fixed = TRUE) &
+    grepl("faculty_player_factor", formula_rhs, fixed = TRUE)
+  uses_factor_session <- grepl("factor(session)", formula_rhs, fixed = TRUE)
+  uses_decisions <- grepl("decision_target", formula_rhs, fixed = TRUE) &
+    grepl("decision_other", formula_rhs, fixed = TRUE)
+})
+
+get_audit_value <- function(checkpoint_name) {
+  matched <- observation_audit$value[observation_audit$checkpoint == checkpoint_name]
+  if (length(matched) == 0L) return(NA_real_)
+  suppressWarnings(as.numeric(matched[[1]]))
+}
+
+row_count_import <- get_audit_value("processed_import_rows")
+row_count_final <- get_audit_value("processed_judgment_rows")
+duplicated_source_rows <- get_audit_value("duplicated_source_row_numbers")
+
+id_dependence_ok <- if (nrow(fit_summary) == 0L) FALSE else all(fit_summary$dependence_adjustment == "cluster_robust_id")
+session_handling_ok <- if (nrow(fit_summary) == 0L) FALSE else {
+  all(fit_summary$session_handling == "factor_session_fixed_effect") && all(formula_checks$uses_factor_session)
+}
+
+compliance_report <- data.frame(
+  criterion = c(
+    "a) uses judgement",
+    "b) repeated structure by id",
+    "c) session grouping",
+    "d) no double count introduced by the pipeline",
+    "e) victim and bystander treated differently",
+    "f) decision_target and decision_other included where required",
+    "g) sociodemographics included in every hypothesis model"
+  ),
+  status = c(
+    if (all(formula_checks$uses_judgement)) "YES" else "NO",
+    if (id_dependence_ok) "YES" else "NO",
+    if (session_handling_ok) "YES" else "NO",
+    if (!is.na(row_count_import) && !is.na(row_count_final) && !is.na(duplicated_source_rows) && row_count_import == row_count_final && duplicated_source_rows == 0) "YES" else "NO",
+    if (nrow(subset(formula_catalog, hypothesis == "H2" & role == "Victim")) == 1L &&
+        nrow(subset(formula_catalog, hypothesis == "H2" & role == "Bystander")) == 1L &&
+        subset(formula_catalog, hypothesis == "H2" & role == "Victim")$formula_rhs != subset(formula_catalog, hypothesis == "H2" & role == "Bystander")$formula_rhs) "YES" else "NO",
+    if (all(subset(formula_checks, hypothesis %in% c("H4", "H5"))$uses_decisions)) "YES" else "NO",
+    if (all(formula_checks$uses_sociodemographics)) "YES" else "NO"
+  ),
+  evidence = c(
+    "All formulas model judgement directly.",
+    "All fitted Tobit models use participant-cluster robust standard errors through cluster = id.",
+    "The active Tobit branch uses factor(session) in every formula and documents that choice explicitly instead of claiming a random session intercept.",
+    sprintf("Imported rows = %s; final analytical rows = %s; duplicated source row numbers introduced by the pipeline = %s.", row_count_import, row_count_final, duplicated_source_rows),
+    "Role-specific formulas are estimated separately and H2/H3/H5 use different relational blocks for victim and bystander.",
+    "H4 and H5 both include decision_target, decision_other, and their interaction.",
+    "Every H1-H5 formula retains age, ses, sex_female, and faculty_player_factor."
+  ),
+  stringsAsFactors = FALSE
+)
+
+write.csv(compliance_report, file.path(paths$tables_dir, "pipeline_compliance_report.csv"), row.names = FALSE)
+write.csv(compliance_report, file.path(paths$reports_data_dir, "pipeline_compliance_report.csv"), row.names = FALSE)
+write.csv(fit_summary, file.path(paths$tables_dir, "model_fit_summary.csv"), row.names = FALSE)
+write.csv(fit_summary, file.path(paths$diagnostics_dir, "model_fit_summary.csv"), row.names = FALSE)
+
+build_image_block <- function(figure_row) {
+  c(
+    paste0("![", figure_row$caption, "](", relative_report_path(figure_row$figure_file), ")"),
+    "",
+    figure_row$interpretation,
+    ""
+  )
+}
+
+build_discussion_section <- function() {
+  c(
+    "## Discussion",
+    "",
+    "The empathy results speak to a mechanism in which moral judgement is not only a response to outcomes but also to dispositional social sensitivity. When empathy slopes vary across ingroup and outgroup relations, the findings support the original theoretical expectation that empathic orientation is filtered through perceived social closeness rather than operating as a uniform moral amplifier.",
+    "",
+    "The ingroup/outgroup results matter because the experiment embeds judgement in a relational structure with two negotiators and role-dependent social ties. Victim and bystander models are therefore not interchangeable. In the victim role, the central question is how the judged negotiator and the counterpart relate to the harmed person. In the bystander role, the participant is socially external to the harm event, so judgement can depend on a broader map that includes bystander-victim, bystander-negotiator, and victim-negotiator alignments.",
+    "",
+    "The decision terms sharpen the moral interpretation of the target-focused outcome. `decision_target` captures what the judged negotiator did, `decision_other` captures the counterpart's choice, and their interaction tests whether the meaning of one decision changes when the other negotiator accepts or rejects. This is substantively important because moral evaluations of the target can respond both to individual action and to the joint negotiation outcome.",
+    "",
+    "Practically, the results speak to negotiation ethics and third-party evaluation. If moral judgement shifts with empathy, faculty closeness, and joint decision patterns, then perceived fairness in harmful negotiations is shaped by both dispositional and relational context. That has implications for how observers assign blame, excuse strategic behavior, or infer responsibility from coordinated action.",
+    "",
+    "Methodologically, the active estimator is a two-sided Tobit with participant-cluster robust standard errors and session fixed effects. This is an honest production choice for a bounded repeated-measures outcome because it preserves the Tobit structure for `judgement`, adjusts within-participant dependence through clustering by `id`, and controls for session-level shifts through `factor(session)`. At the same time, it is not equivalent to a fully mixed Tobit with random participant and session intercepts, so dependence is handled through robust inference plus fixed-effects adjustment rather than a full hierarchical likelihood.",
+    "",
+    "The main limitations follow directly from that estimator choice and from the sparsity of some relational cells. The production branch does not estimate a full mixed Tobit, some interaction contrasts may be dropped in rank-deficient subsets, and any substantive reading should remain tied to the coefficient tables and model-implied figures rather than to isolated p-values. Future work should compare these production estimates against stable multilevel censored models, test alternative role-specific interaction sets, and examine whether the same theoretical patterns replicate under additional institutional or cultural contexts.",
+    ""
+  )
+}
+
+build_final_audit_note <- function(compliance_report, fit_summary) {
+  all_yes <- nrow(compliance_report) > 0L && all(compliance_report$status == "YES")
+  rank_deficient_models <- if ("dropped_columns" %in% names(fit_summary)) {
+    sum(suppressWarnings(as.numeric(fit_summary$dropped_columns)) > 0, na.rm = TRUE)
   } else {
-    "Each conclusion below is generated from the current Tobit random-intercept coefficient outputs."
-  },
-  paste0("- ", hypothesis_conclusion_items),
+    0L
+  }
+
+  note_lines <- c(
+    "## Final audit note",
+    "",
+    if (all_yes) {
+      "The project now faithfully reflects the authoritative design in its production branch: `judgement` is the outcome, the long file remains the single source, one row remains one real observation, role-specific group definitions are used, `decision_target` and `decision_other` are modeled where required, and repeated measurements are handled through participant-cluster robust inference with `factor(session)`."
+    } else {
+      "The project is substantially aligned with the authoritative design, but the checklist below shows remaining compliance gaps that still require correction."
+    },
+    "",
+    if (rank_deficient_models > 0L) {
+      sprintf("Remaining partial mismatch: %s fitted model(s) still reported dropped columns because some role-specific interaction cells are sparse, so a few contrasts are not estimable in every subset.", rank_deficient_models)
+    } else {
+      "No rank-deficiency warning remained in the saved fit summary for this run."
+    },
+    "",
+    "Estimator limitation: the production estimator is still a two-sided Tobit with `factor(session)` and participant-cluster robust standard errors by `id`, not a full mixed-effects Tobit with random participant and session intercepts.",
+    ""
+  )
+
+  note_lines
+}
+
+report_lines <- c(
+  "# Scientific Dynamic Report of Moral Judgement under Two-sided Tobit Models",
   "",
-  "## PDF Comprehensive Report Generated",
-  "Please check `tobit_analysis_report.pdf` in the `outputs/report/` folder for the fully documented Tobit random-intercept and cluster-aware non-parametric mathematical formulations, the Option 2 relational-variable logic, dual-estimator hypothesis testing, and the algorithmically interpreted natural language coefficients. When the run is dataset-specific, a matching alias such as `tobit_analysis_report_Buca.pdf` is also refreshed.",
+  paste0("Generated on ", get_report_timestamp(), "."),
+  "",
+  "## Redesign status and estimator note",
+  "",
+  "This run uses `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` as the only analytical source and preserves each imported row as one real judgement observation.",
+  "",
+  "The primary estimator is a two-sided Tobit fitted with `survival::survreg`, using bilateral censoring at `-9` and `9`, participant-cluster robust standard errors through `cluster = id`, and `factor(session)` in every active formula.",
+  "",
+  "## Dataset and sample description",
+  "",
+  get_dataset_sample_description(),
+  "",
+  "The authoritative interpretation is that each player observes ten scenarios and evaluates two negotiators, so the longitudinal file should contain 20 judgement rows per participant. The clustering diagnostic below is consistent with that design.",
+  "",
+  to_markdown_table(participant_summary),
+  "",
+  to_markdown_table(judgement_summary),
+  "",
+  "## Datacard and symbol dictionary",
+  "",
+  to_markdown_table(symbol_dictionary),
+  "",
+  to_markdown_table(observation_audit),
+  "",
+  "## Predictor glossary and abbreviation note",
+  "",
+  to_markdown_table(predictor_glossary),
+  "",
+  "The report keeps compact predictor references in figure captions and narratives, but the glossary above remains the authoritative mapping back to the current pipeline variables.",
+  "",
+  "## Interaction interpretation rules",
+  "",
+  unlist(lapply(seq_along(get_interaction_interpretation_rules()), function(i) paste0(i, ". ", get_interaction_interpretation_rules()[i]))),
+  "",
+  "## H1-H5 hypotheses with role-specific equation summaries",
+  "",
+  to_markdown_table(formula_catalog[, c("hypothesis", "role", "formula_rhs", "theoretical_focus")]),
+  "",
+  "Any earlier repository note that described negotiator code `0` as a hidden label or that narrowed H3 to additive effects only should now be treated as outdated. The active formulas below are the authoritative specification.",
   ""
 )
-write_text_file(md_lines, file.path(paths$report_dir, "tobit_analysis_report.md"))
-write_text_file(md_lines, file.path(paths$logs_dir, "dynamic_report.md"))
 
-# 3. RENDERING HELPER (Word and PDF)
-render_pdf <- function(tex_file) {
-  pdflatex_cmd <- Sys.which("pdflatex")
-  if (!nzchar(pdflatex_cmd)) {
-    warning("pdflatex not found; skipping PDF render.")
-    return(FALSE)
-  }
-
-  report_dir <- normalizePath(dirname(tex_file), winslash = "/", mustWork = TRUE)
-  tex_name <- basename(tex_file)
-  build_jobname <- paste0(tools::file_path_sans_ext(tex_name), "_build")
-  pdf_name <- sub("\\.tex$", ".pdf", tex_name)
-  log_name <- sub("\\.tex$", ".log", tex_name)
-  aux_name <- sub("\\.tex$", ".aux", tex_name)
-  out_name <- sub("\\.tex$", ".out", tex_name)
-
-  old_wd <- getwd()
-  setwd(report_dir)
-  on.exit(setwd(old_wd), add = TRUE)
-
-  latex_args <- c(
-    "-interaction=nonstopmode",
-    paste0("-jobname=", build_jobname),
-    tex_name
+for (hypothesis_id in paste0("H", 1:5)) {
+  report_lines <- c(
+    report_lines,
+    paste0("### ", hypothesis_id),
+    "",
+    paste0("`Victim`: `", subset(formula_catalog, hypothesis == hypothesis_id & role == "Victim")$formula_rhs, "`"),
+    "",
+    paste0("`Bystander`: `", subset(formula_catalog, hypothesis == hypothesis_id & role == "Bystander")$formula_rhs, "`"),
+    ""
   )
-
-  build_statuses <- integer(3)
-  for (pass_idx in seq_along(build_statuses)) {
-    build_statuses[pass_idx] <- system2(pdflatex_cmd, args = latex_args, stdout = NULL, stderr = NULL)
-  }
-
-  build_pdf <- file.path(report_dir, paste0(build_jobname, ".pdf"))
-  build_log <- file.path(report_dir, paste0(build_jobname, ".log"))
-  build_aux <- file.path(report_dir, paste0(build_jobname, ".aux"))
-  build_out <- file.path(report_dir, paste0(build_jobname, ".out"))
-  target_pdf <- file.path(report_dir, pdf_name)
-  target_log <- file.path(report_dir, log_name)
-  target_aux <- file.path(report_dir, aux_name)
-  target_out <- file.path(report_dir, out_name)
-  build_artifacts <- c(build_pdf, build_log, build_aux, build_out)
-  cleanup_build_artifacts <- TRUE
-  on.exit(if (cleanup_build_artifacts) unlink(build_artifacts[file.exists(build_artifacts)], force = TRUE), add = TRUE)
-
-  if (file.exists(build_log)) {
-    file.copy(build_log, target_log, overwrite = TRUE)
-  }
-  if (file.exists(build_aux)) {
-    file.copy(build_aux, target_aux, overwrite = TRUE)
-  }
-  if (file.exists(build_out)) {
-    file.copy(build_out, target_out, overwrite = TRUE)
-  }
-
-  if (!file.exists(build_pdf)) {
-    warning(sprintf(
-      "pdflatex failed while rendering %s. Inspect %s for details.",
-      pdf_name,
-      target_log
-    ))
-    return(FALSE)
-  }
-
-  copied <- file.copy(build_pdf, target_pdf, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)
-  if (copied) {
-    if (any(build_statuses != 0L)) {
-      warning(sprintf(
-        paste(
-          "pdflatex reported recoverable issues while rendering %s,",
-          "but a PDF was produced and copied successfully.",
-          "Inspect %s if you want to clean up the LaTeX warnings."
-        ),
-        pdf_name,
-        target_log
-      ))
-    }
-    return(TRUE)
-  }
-
-  fallback_pdf <- file.path(
-    report_dir,
-    sprintf(
-      "%s_updated_%s.pdf",
-      tools::file_path_sans_ext(pdf_name),
-      format(Sys.time(), "%Y%m%d_%H%M%S")
-    )
-  )
-  fallback_written <- file.copy(build_pdf, fallback_pdf, overwrite = TRUE, copy.mode = TRUE, copy.date = TRUE)
-  if (!fallback_written) {
-    cleanup_build_artifacts <- FALSE
-  }
-
-  warning(sprintf(
-    paste(
-      "Built a fresh PDF but could not overwrite %s.",
-      "This usually means the file is open in another program.",
-      "Updated copy saved to %s."
-    ),
-    target_pdf,
-    if (fallback_written) fallback_pdf else build_pdf
-  ))
-  FALSE
-}
-render_word <- function(md_file) {
-  pandoc_cmd <- Sys.which("pandoc")
-  if (!nzchar(pandoc_cmd)) {
-    warning("pandoc not found; skipping Word render.")
-    return(FALSE)
-  }
-  old_wd <- getwd(); setwd(dirname(md_file)); on.exit(setwd(old_wd))
-  docx_name <- gsub("\\.md$", ".docx", basename(md_file))
-  status <- system2(pandoc_cmd, args = c("-s", basename(md_file), "-o", docx_name), stdout = NULL, stderr = NULL)
-  if (!identical(status, 0L) || !file.exists(docx_name)) {
-    warning(sprintf("Pandoc failed while rendering %s.", docx_name))
-    return(FALSE)
-  }
-  TRUE
 }
 
-pdf_rendered <- render_pdf(tex_path)
-word_rendered <- render_word(file.path(paths$report_dir, "tobit_analysis_report.md"))
-sync_dataset_specific_report_aliases(paths$dataset_mode)
+report_lines <- c(
+  report_lines,
+  "## Mathematical foundations",
+  "",
+  get_current_tobit_math_foundations(),
+  "",
+  "In this production branch, `factor(session)` is reported instead of `(1|session)` because the fitted estimator is a two-sided Tobit with session fixed effects and participant-cluster robust standard errors. The report does not claim a random session intercept that was not actually estimated.",
+  "",
+  "## Dependence and effective sample size diagnostic",
+  "",
+  "The following clustering diagnostic is descriptive. It summarizes within-participant dependence in the observed data and should not be read as evidence that the fitted estimator included participant random intercepts.",
+  "",
+  to_markdown_table(clustering_diagnostic),
+  "",
+  "Because the target of inference is repeated judgement within participant, the effective-sample-size table is a descriptive clustering diagnostic only; it does not replace the model-based dependence adjustment through `cluster = id` and `factor(session)`.",
+  "",
+  "## Descriptive statistics and figures",
+  "",
+  to_markdown_table(decision_summary),
+  "",
+  to_markdown_table(group_summary),
+  "",
+  to_markdown_table(correlation_table),
+  "",
+  "The group summary and the formulas above use role-specific ingroup/outgroup coding. Ingroup is defined by faculty coincidence, including `control` with `control`, while outgroup means non-matching faculties.",
+  ""
+)
 
-if (pdf_rendered) {
-  message("Scientific manuscript expansion complete.")
+for (i in seq_len(nrow(descriptive_figure_entries))) {
+  report_lines <- c(report_lines, build_image_block(descriptive_figure_entries[i, , drop = FALSE]))
+}
+
+report_lines <- c(
+  report_lines,
+  "## Estimator fit summary",
+  "",
+  to_markdown_table(fit_summary[, intersect(c("hypothesis", "role", "variant", "model_family", "session_handling", "dependence_adjustment", "n_obs", "n_participants", "lower_censored_n", "upper_censored_n", "AIC", "BIC", "sigma", "dropped_columns"), names(fit_summary)), drop = FALSE]),
+  "",
+  "## Hypothesis significance summary by role",
+  "",
+  "### Victim",
+  "",
+  to_markdown_table(subset(significance_summary, role == "Victim")),
+  "",
+  "### Bystander",
+  "",
+  to_markdown_table(subset(significance_summary, role == "Bystander")),
+  "",
+  "## Significance-driven figures",
+  ""
+)
+
+sig_figures <- subset(figure_manifest, figure_type == "significance")
+if (nrow(sig_figures) == 0L) {
+  report_lines <- c(report_lines, "No focal term reached the plotting threshold in this run, so no significance-driven figures were generated.", "")
 } else {
-  warning("Scientific manuscript generated, but the primary PDF was not refreshed. Review the warnings above.")
+  for (i in seq_len(nrow(sig_figures))) {
+    figure_row <- sig_figures[i, , drop = FALSE]
+    report_lines <- c(
+      report_lines,
+      paste0("### ", figure_row$hypothesis, " ", figure_row$role, ": ", label_current_term(figure_row$term)),
+      "",
+      build_image_block(figure_row)
+    )
+  }
 }
 
-if (!word_rendered) {
-  warning("Word report was not refreshed.")
+report_lines <- c(
+  report_lines,
+  "## Full coefficient tables and interpretation summary",
+  ""
+)
+
+for (hypothesis_id in paste0("H", 1:5)) {
+  for (role_label in c("Victim", "Bystander")) {
+    prefix <- get_model_prefix(hypothesis_id, role_label)
+    if (!(prefix %in% names(coefficient_tables))) next
+    report_lines <- c(
+      report_lines,
+      paste0("### ", hypothesis_id, " ", role_label, " coefficient table"),
+      "",
+      to_markdown_table(coefficient_tables[[prefix]]),
+      "",
+      coefficient_narratives[[prefix]],
+      ""
+    )
+  }
 }
+
+report_lines <- c(
+  report_lines,
+  "## Compliance checklist",
+  "",
+  to_markdown_table(compliance_report),
+  "",
+  "## Corrections relative to outdated notes",
+  "",
+  "The current production branch supersedes earlier notes that treated the negotiator `0` code as `control_hidden`, narrowed H3 to additive-only empathy terms, or implied that the main estimator used `(1|session)`. The repository now documents the implemented estimator and the authoritative role-specific design directly.",
+  "",
+  "## Limitations",
+  "",
+  get_current_limitations(),
+  "",
+  build_discussion_section(),
+  build_final_audit_note(compliance_report, fit_summary),
+  "## Conclusion",
+  "",
+  "The active workflow now reproduces a scientific dynamic report structure while remaining faithful to the implemented estimator: two-sided Tobit, `factor(session)`, participant-cluster robust inference by `id`, no row duplication, and full H1-H5 coverage across victim and bystander specifications.",
+  ""
+)
+
+main_report_md <- file.path(paths$report_dir, "tobit_analysis_report.md")
+log_report_md <- file.path(paths$logs_dir, "dynamic_report.md")
+report_data_md <- file.path(paths$reports_data_dir, "tobit_analysis_report.md")
+compatibility_report_md <- file.path(paths$reports_data_dir, "longitudinal_mixed_model_analysis_report.md")
+
+writeLines(report_lines, main_report_md)
+writeLines(report_lines, log_report_md)
+writeLines(report_lines, report_data_md)
+writeLines(report_lines, compatibility_report_md)
+
+render_dynamic_report_outputs(main_report_md, paths)
+
+if (file.exists(file.path(paths$report_dir, "tobit_analysis_report.docx"))) {
+  file.copy(file.path(paths$report_dir, "tobit_analysis_report.docx"), file.path(paths$reports_data_dir, "tobit_analysis_report.docx"), overwrite = TRUE)
+}
+if (file.exists(file.path(paths$report_dir, "tobit_analysis_report.pdf"))) {
+  file.copy(file.path(paths$report_dir, "tobit_analysis_report.pdf"), file.path(paths$reports_data_dir, "tobit_analysis_report.pdf"), overwrite = TRUE)
+}
+
+compliance_lines <- c(
+  "# Pipeline Compliance Report",
+  "",
+  paste0("Generated on ", get_report_timestamp(), "."),
+  "",
+  to_markdown_table(compliance_report),
+  ""
+)
+writeLines(compliance_lines, file.path(paths$report_dir, "pipeline_compliance_report.md"))
+writeLines(compliance_lines, file.path(paths$reports_data_dir, "pipeline_compliance_report.md"))

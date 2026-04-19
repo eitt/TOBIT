@@ -1,99 +1,99 @@
 # Workflow Logic
 
-This document explains the sequential logic of the TOBIT data analysis pipeline. The project is designed with a strict function-oriented structure and avoids object-oriented complexity.
+## Overview
 
-## Execution Sequence
+The active workflow no longer reshapes a participant-wide file into a new negotiator-level dataset. Instead, it imports the already longitudinal Version 2.0 file, validates it, preserves each source row, adds role-specific relational variables, and fits H1-H5 two-sided Tobit models.
 
-The pipeline can be executed completely via the `run_pipeline.R` master orchestrator, which sequentially runs the following scripts:
+Each participant is expected to contribute 20 rows in the long file: ten scenarios multiplied by two target-negotiator judgements. The workflow preserves that structure instead of rebuilding it from a wide file.
 
-Before the analytical steps begin, `run_pipeline.R` clears the existing generated artifacts inside `outputs/tables/`, `outputs/figures/`, `outputs/models/`, `outputs/logs/`, and `outputs/report/` so each fresh full run writes a clean set of outputs.
+## Execution sequence
 
-### 1. Data Import (`R/01_import_data.R`)
-- Loads configuration paths and safely identifies the Python Excel fallback script if `readxl` is missing.
-- Reads `data_final_FLORIDA.xlsx` from `data/raw/`.
-- Validates that all required columns are present.
-- Applies a reproducible random participant-level sample after validation. The default from `R/00_config.R` is `10%` of the imported dataset for quicker test runs, but this can be overridden back to the full dataset.
-- Exports the `data/processed/01_imported.csv` file.
+### 1. Import
 
-### 2. Data Cleaning (`R/02_clean_data.R`)
-- Ingests `01_imported.csv`.
-- Fixes factor labels for sex, faculty, and treatment groups.
-- Evaluates attention check results (`ac1` and `ac2`).
-- Saves the step to `02_cleaned.csv`.
+`R/01_import_data.R`
 
-### 3. Data Transformation (`R/03_transform_data.R`)
-- Loads psychological item variables.
-- Uses `row_mean_with_floor` to score the four Interpersonal Reactivity Index (IRI) subscales and the final composite.
-- Retains the IRI composite and subscale predictors on their original scales; no z-score normalization is applied to predictors.
-- Configures the `analysis_include` filter flag based on attention checks and missing values.
-- Exports `03_transformed_participants.csv`.
+- Reads `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx`
+- Verifies required columns
+- Adds `source_row_number`
+- Writes `data/processed/01_imported.csv`
 
-### 4. Variable Generation (`R/04_generate_variables.R`)
-- Reshapes the wide format (participant-level) into long-format (negotiator-level).
-- Each participant contributes 10 stages x 2 negotiators = 20 judgment rows.
-- Builds the dependent variable `judgement` by copying `judgement_n1_sX` into the long row where `negotiator_slot = 1` and `judgement_n2_sX` into the long row where `negotiator_slot = 2`.
-- The pipeline also creates `condemnation = -judgement`, but the current hypothesis scripts use `judgement` as the modeled bounded outcome.
-- Derives legacy identity indicators such as `perp_outgroup`, `perp_control`, and `same_group_harm` for backward comparison.
-- Derives legacy **case-configuration variables** for backward compatibility:
-  - `case_configuration`
-  - `case_configuration_role`
-  - `case_configuration_decision`
-  - `case_configuration_context`
-- These shorthand variables are retained only for compatibility with older descriptive artifacts; the executable hypotheses now rely on the negotiator-level relational predictors below.
-- Derives the **judgment-level relational predictors** used directly in H2 and H3:
-  - `group_negotiator_judged`
-  - `group_negotiator_counterpart`
-  - `group_victim`
-  - `judged_ingroup`
-  - `judged_outgroup`
-  - `counterpart_ingroup`
-  - `counterpart_outgroup`
-  - `observer_victim_outgroup`
-  - `h2_negotiator_structure`
-  - `player_victim_alignment`
-  - `player_victim_outgroup`
-- These variables encode the judged negotiator's ingroup/outgroup/control status, the counterpart negotiator's corresponding status, and, for observer rows, whether the victim is ingroup or outgroup relative to the participant. In the active H1/H3 formulas, control is the omitted baseline for negotiator status. `h2_negotiator_structure` makes the judged-plus-counterpart configuration explicit for H2.
-- Splits the long data into `judgments_analysis.csv` (full sample), `judgments_victim.csv` (victim subset), `judgments_bystander.csv` (observer subset), and `judgments_accept_only.csv` (accepted-decision subset used by H1).
+### 2. Cleaning
 
-### 5. Descriptive Statistics (`R/05_descriptive_statistics.R`)
-- Implements grouped summaries using strict missing-value safety functions (`safe_mean`, `safe_sd`).
-- Generates histograms and plots matching high-contrast aesthetic requirements.
-- Generates `empathy_summary.csv`, `participant_summary.csv`, `judgement_summary.csv`, and the remaining descriptive summary tables.
+`R/02_clean_data.R`
 
-### 6. Run Hypothesis-Specific Models (`R/hypotheses/*`)
-Each of the 3 hypothesis families has its own isolated script that sets up its explicit bounded-outcome formula and estimates a clustered Tobit model using interval boundaries (-9 and 9). The active workflow uses only the four empathy constructs (`iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`) and skips the aggregated-empathy specification. The archived non-parametric robustness branch remains available in the codebase, but it is not run in the default pipeline. Repeated observations from the same participant are handled through participant-clustered Tobit inference, with `id` serving only as the clustering unit.
+- Sorts and preserves the imported rows
+- Writes `data/processed/02_cleaned.csv`
+- Writes a cleaning audit confirming row preservation
 
-- `H1_test.R`: Uses empathy plus role-specific judged-negotiator, counterpart, and observer-side victim relational controls to estimate the empathy effect under Option 2, with control as the negotiator-status baseline when available.
-- `H2_test.R`: Uses `h2_negotiator_structure` in both subsets. In the victim subset, H2 tests the judged-plus-counterpart structure directly. In the bystander subset, it additionally includes `player_victim_outgroup` and the interaction between `player_victim_outgroup` and the negotiator-side structure block.
-- `H3_test.R`: Uses empathy x judged-negotiator-status interactions while retaining decision outcome, judged-status x decision terms, counterpart status, and observer-side victim alignment.
+### 3. Participant bridge
 
-### 7. Export Tables and Figures (`Outputs directory`)
+`R/03_transform_data.R`
 
-- Figures are sent to `outputs/figures/`.
-- Regression coefficients, fit summaries, and LaTeX representations for the active Tobit workflow are sent to `outputs/models/` and `outputs/tables/`.
+- Reconstructs a participant-level wide bridge from the long dataset
+- Keeps compatibility artifacts:
+  - `data/processed/03_transformed_participants.csv`
+  - `data/processed/participants_scored.csv`
+- Writes the first version of the variable dictionary
 
-### 7. Bootstrap-Only Refresh Utility (`R/07_run_nonparametric_bootstrap_phase.R`)
+### 4. Relational-variable construction
 
-- Sets the pipeline into bootstrap-only mode for the non-parametric branch.
-- Skips Tobit refits so only the non-parametric outputs are refreshed.
-- Runs participant-level cluster bootstrap inference only for specifications whose full-sample non-parametric fit converged.
-- Regenerates the report after the bootstrap-enhanced robustness outputs are saved.
-- If too few participant-level bootstrap refits converge, the refreshed outputs are marked as sparse bootstrap inference.
-- The central bootstrap default currently lives in `R/00_config.R` and is set to `10`. Change `get_default_clad_bootstrap_reps()` there if you want a different default.
+`R/04_generate_variables.R`
 
-### 8. Dynamic Reporting (`R/06_generate_report.R`)
+- Reconstructs N1 and N2 faculty and decision context from each existing row
+- Keeps one row as one real target-directed judgement observation, so N1 and N2 remain contextual entities rather than duplicated records
+- Builds:
+  - `victim_N1_group`
+  - `victim_N2_group`
+  - `bystander_victim_group`
+  - `bystander_N1_group`
+  - `bystander_N2_group`
+  - `N1_N2_same_faculty`
+  - `decision_pattern`
+- Splits:
+  - `judgments_analysis.csv`
+  - `judgments_victim.csv`
+  - `judgments_bystander.csv`
+- Writes the H1-H5 formula catalog
 
-- Automates clustered statistical power analysis estimating the Intraclass Correlation Coefficient (ICC) and translating repeated measures into an Effective Sample Size (ESS).
-- Reads the output tables natively, detects hypothesis-relevant empathy and relational predictors that reach at least `p < .10`, generates the most suitable dynamic figure for each such predictor, then also generates an additional figure set for every significant predictor below `p < .10` in the H-model families, including significant controls such as `age`.
-- The report now states Option 2 explicitly and centers the hypothesis sections on negotiator-level relational predictors rather than descriptive case labels.
-- Writes compiled narrative markdown reports to `outputs/report/tobit_analysis_report.md` and `outputs/logs/dynamic_report.md`.
+### 5. Descriptive outputs
 
-### 9. Journal-Style Dynamic Reporting (`R/09_generate_behavioral_economics_report.R`)
+`R/05_descriptive_statistics.R`
 
-- Builds an additional compact report in a behavioral-economics article style with only four sections: Materials and Methods, Results, Limitations, and Conclusion.
-- Uses the pooled analytical narrative only, while still reporting victim and bystander estimates inside the same article flow.
-- Enforces a compact output plan: one design table, one concise result table per hypothesis family, and a robustness table only when the non-parametric branch is enabled.
-- Reuses the 300-DPI figure assets already generated by the pipeline and selects one focal H1, H2, and H3 figure dynamically from the significance catalog.
-- Writes the journal report to `outputs/report/tobit_behavioral_economics_report.md`, renders `outputs/report/tobit_behavioral_economics_report.docx`, and mirrors the markdown to `outputs/logs/behavioral_economics_report.md`.
+- Produces participant, judgment, decision, missingness, and group summaries
+- Writes observation-audit tables
+- Generates basic EDA figures
 
-This guarantees reproducibility from a fresh R session without requiring workspace state. All steps communicate securely through the artifacts generated in `data/processed/`.
+### 6. H1-H5 estimation
+
+`R/hypotheses/H1_test.R` through `R/hypotheses/H5_test.R`
+
+- Estimate victim and bystander models separately
+- Use `judgement` as the response in all cases
+- Interpret `judgement` as the moral evaluation of the target negotiator while allowing `decision_target` and `decision_other` to explain that evaluation jointly
+- Convert `judgement` into bilateral Tobit endpoints through `lower_endpoint` and `upper_endpoint`
+- Fit `survival::survreg` with participant-cluster robust standard errors by `id`
+- Represent session with `factor(session)` in every active formula
+- Use role-specific ingroup/outgroup definitions, with ingroup defined by matching faculties including `control` with `control`
+- Let H3 and H5 test targeted empathy x ingroup/outgroup interactions rather than only additive empathy terms
+- Export a robustness note explaining why `factor(id_case)` is not run by default in the Tobit branch
+
+### 7. Reporting
+
+- `R/06_generate_report.R`
+- `R/08_generate_plain_language_report.R`
+- `R/09_generate_behavioral_economics_report.R`
+
+These scripts assemble the fit summaries, hypothesis summaries, compliance checklist, and final dynamic reports. The main analytical report is written in markdown and then rendered to `docx` and `pdf` when Pandoc and LaTeX are available locally.
+
+## Output structure
+
+The pipeline writes both the traditional output folders and compatibility subfolders under `outputs/data/`:
+
+- `01_harmonized`
+- `02_eda`
+- `03_sem`
+- `04_qca`
+- `05_clustering`
+- `06_reports`
+
+These are used as staging folders for the redesigned artifacts, not as a return to the old analytical logic.

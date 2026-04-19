@@ -1,20 +1,26 @@
 @echo off
-REM Windows batch script to run the Tobit pipeline.
-REM This makes it easy for double-clicking or running from CMD.
+REM Windows batch helper for the longitudinal mixed-model pipeline.
 
-echo ==========================================
-echo Starting Tobit Pipeline Execution
-echo ==========================================
-
-where Rscript >nul 2>nul
-if %errorlevel% neq 0 (
-    echo Error: Rscript was not found in your PATH.
-    echo Please ensure R is installed and Rscript.exe is in your environment variables.
-    pause
-    exit /b 1
+set "RSCRIPT_CMD="
+for /f "delims=" %%I in ('where Rscript 2^>nul') do (
+    set "RSCRIPT_CMD=%%I"
+    goto :run_pipeline
 )
 
-Rscript run_pipeline.R
+for /f "delims=" %%I in ('dir /b /s "C:\Program Files\R\Rscript.exe" 2^>nul') do (
+    set "RSCRIPT_CMD=%%I"
+    goto :run_pipeline
+)
+
+echo Error: Rscript.exe was not found in PATH or under C:\Program Files\R.
+pause
+exit /b 1
+
+:run_pipeline
+echo ==========================================
+echo Starting longitudinal judgement pipeline
+echo ==========================================
+"%RSCRIPT_CMD%" run_pipeline.R
 if %errorlevel% neq 0 (
     echo.
     echo Error: Pipeline execution failed.
@@ -24,6 +30,6 @@ if %errorlevel% neq 0 (
 
 echo.
 echo ==========================================
-echo Pipeline Execution Finished Successfully.
+echo Pipeline execution finished successfully
 echo ==========================================
 pause

@@ -1,0 +1,2 @@
+"hypothesis","role","note"
+"H4","Bystander","The default redesign now prioritizes a two-sided Tobit with factor(session) and participant-cluster robust standard errors. A second id_case-saturated Tobit specification is not run by default because it would add more than one thousand fixed effects and destabilize the interval-censored fit."

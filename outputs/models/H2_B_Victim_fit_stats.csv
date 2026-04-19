@@ -1,2 +1,0 @@
-"Model","Approach","Observations","Participants","LowerBoundCensored","UpperBoundCensored","LogLik","AIC","PseudoR2","Quantile","Converged","Iterations","Inference","ClusterUnit","BootstrapReplicates","BootstrapSuccessful","BootstrapFailed","BootstrapSuccessRate","ConfidenceLevel","Status","ErrorMessage"
-"H2_B_Victim_Constructs_Tobit","Tobit",2430,243,377,744,-8025.10778898976,16090.2155779795,NA,NA,TRUE,NA,"Tobit branch with random intercepts (1 | id_case) + (1 | id)","id_case + id",NA,NA,NA,NA,0.95,"completed",NA

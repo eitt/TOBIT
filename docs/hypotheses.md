@@ -1,229 +1,188 @@
 # Hypotheses Overview
 
-This document links each theoretical hypothesis to the executable pipeline scripts under Option 2: judgment-level relational modeling.
+## Outcome and unit
 
-Option 2 means the analysis is defined at the judgment-by-negotiator level. Each participant evaluates two negotiators per scenario, so each participant-scenario pair contributes two judgment observations.
+- Outcome: `judgement`
+- Imported unit: one recorded moral judgment per row
+- The pipeline preserves that row count one-to-one
+- Each participant contributes 20 rows in principle: ten scenarios x two target-negotiator evaluations
+- `judgement` is directed toward the target negotiator named in the row, but some hypotheses also use the other negotiator's decision to explain that target-directed evaluation
 
-## Judgment Unit and Moral-Judgment Severity
+## Core covariates in every model
 
-Let:
+- `age`
+- `ses`
+- `sex_female`
+- `faculty_player_factor`
 
-- `i` = participant
-- `s` = scenario
-- `j in {1, 2}` = judged negotiator
-- `r in {Victim, Bystander}` = participant role in that scenario
+## Estimation structure
 
-The dependent variable is:
-
-- `judgement_{isjr}`
-
-It is observed on the bounded scale `-9` to `9`.
-
-- Lower values mean more severe condemnation.
-- Higher values mean greater appropriateness / lower severity.
-
-For each participant-scenario pair:
-
-- `judgement_{is1r}` = judgment of negotiator 1
-- `judgement_{is2r}` = judgment of negotiator 2
-
-Thus the same vignette contributes two judgment rows because each negotiator is evaluated separately.
-
-The Tobit and non-parametric censored models treat this as a bounded judgment outcome:
-
-- `judgement = -9` when the latent judgment is at or below the lower bound
-- `judgement = 9` when the latent judgment is at or above the upper bound
-- interior values are treated as exact
-
-## Role-Dependent Relational Coding
-
-The meaning of ingroup and outgroup depends on the participant role.
-
-### Victim subset
-
-When the participant is the victim, ingroup/outgroup/control is defined relative to the victim-player.
-
-The core relational pieces are:
-
-- `group_negotiator_judged in {In, Out, Cont}`
-- `group_negotiator_counterpart in {In, Out, Cont}`
-
-### Bystander subset
-
-When the participant is an observer, ingroup/outgroup/control for negotiators is defined relative to `faculty_player`, and the victim is also coded relative to that same player.
-
-The core relational pieces are:
-
-- `group_negotiator_judged in {In, Out, Cont}`
-- `group_negotiator_counterpart in {In, Out, Cont}`
-- `group_victim in {In, Out}`
-
-Only negotiators can be `Cont`. The victim is always coded only as `In` or `Out`.
-
-## Generated Relational Variables Used in the Code
-
-The preprocessing pipeline creates these H2-relevant variables in `R/04_generate_variables.R`:
-
-- `h2_negotiator_structure`
-  Joint structure of the judged negotiator and the counterpart negotiator within the same judgment row.
-- `player_victim_alignment`
-  Observer-side victim relation to the player (`In` or `Out`).
-- `player_victim_outgroup`
-  Binary version of the player-victim relation for the bystander H2 interaction.
-- `faculty_player_obs`
-  Alias for the observing player's faculty in observer rows, kept explicit so the bystander-side H2 coding is easy to audit.
-
-The reference structure for `h2_negotiator_structure` is:
-
-- `J_Cont__C_Cont`
-
-meaning judged negotiator control-labeled and counterpart negotiator control-labeled.
+- Estimator: two-sided Tobit through `survival::survreg`
+- Bilateral censoring:
+  - lower side: `judgement <= -9`
+  - upper side: `judgement >= 9`
+- Participant dependence adjustment: `cluster = id`, `robust = TRUE`
+- Session adjustment in every active formula: `factor(session)`
+- Default robustness note: `factor(id_case)` is documented but not run by default because the saturated Tobit would be unstable
 
 ## H1
 
-- Script: `R/hypotheses/H1_test.R`
-- Dependent variable: `judgement`
-- Main idea: empathy predicts judgment severity after conditioning on judged-negotiator status, counterpart status, decision outcome, and observer-side victim alignment when applicable.
-- Estimation: separate models for the `Victim` and `Bystander` subsets with subset-specific formulas
+### Victim
 
-H1 always retains the sociodemographic controls:
+```r
+survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
+  iri_fs + iri_ec + iri_pt + iri_pd +
+  age + ses + sex_female + faculty_player_factor +
+  factor(session)
+```
 
-- `sex_man`
-- `age`
-- `economic_status`
+### Bystander
 
-Victim-subset H1 keeps:
-
-- `judged_ingroup`
-- `judged_outgroup`
-- `counterpart_ingroup`
-- `counterpart_outgroup`
-- `decision_accept`
-- `participant_engineering`
-- `sex_man`
-- `age`
-- `economic_status`
-- `factor(negotiator_slot)`
-
-Bystander-subset H1 keeps the same block plus:
-
-- `observer_victim_outgroup`
-
-This means H1 no longer carries observer-only predictors into victim-only models.
+```r
+survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
+  iri_fs + iri_ec + iri_pt + iri_pd +
+  age + ses + sex_female + faculty_player_factor +
+  factor(session)
+```
 
 ## H2
 
-- Script: `R/hypotheses/H2_test.R`
-- Dependent variable: `judgement`
-- Estimation: separate models for the `Victim` and `Bystander` subsets
-- Judgment unit: one row per judged negotiator, so every scenario contributes two H2 observations
+### Victim
 
-### H2 in the Victim subset
-
-The victim-subset H2 model tests whether judgment severity varies with the joint ingroup/outgroup/control structure of:
-
-- the judged negotiator
-- the counterpart negotiator
-
-relative to the victim-player.
-
-Victim-subset equation:
-
-```text
-judgement*_{isj,Victim} = beta0 + beta1 * Empathy_i + gamma' * S^(V)_{isj} + delta' * Z_i + error
+```r
+survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
+  victim_N1_group + victim_N2_group +
+  victim_N1_group:victim_N2_group +
+  N1_N2_same_faculty +
+  age + ses + sex_female + faculty_player_factor +
+  factor(session)
 ```
 
-where:
+### Bystander
 
-- `S^(V)_{isj}` = dummies for `h2_negotiator_structure`
-- `Z_i` = participant controls
-
-In the active executable code:
-
-- The model uses `iri_fs + iri_ec + iri_pt + iri_pd`
-- It retains `participant_engineering`, `sex_man`, `age`, `economic_status`, and `factor(negotiator_slot)`
-
-### H2 in the Bystander subset
-
-The bystander-subset H2 model tests whether judgment severity varies with:
-
-1. the negotiator-side structure of the judged negotiator plus the counterpart negotiator
-2. the ingroup/outgroup relation between the player and the victim
-3. the interaction between those two relational components
-
-Bystander-subset equation:
-
-```text
-judgement*_{isj,Obs} = beta0 + beta1 * Empathy_i + gamma' * S^(O)_{isj} + eta * V_{is} + theta' * (S^(O)_{isj} x V_{is}) + delta' * Z_i + error
+```r
+survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
+  bystander_victim_group +
+  bystander_N1_group + bystander_N2_group +
+  victim_N1_group + victim_N2_group +
+  bystander_N1_group:bystander_N2_group +
+  victim_N1_group:victim_N2_group +
+  N1_N2_same_faculty +
+  age + ses + sex_female + faculty_player_factor +
+  factor(session)
 ```
-
-where:
-
-- `S^(O)_{isj}` = bystander-side dummies for `h2_negotiator_structure`
-- `V_{is}` = `player_victim_outgroup`
-- `Z_i` = participant controls
-
-In the active executable code:
-
-- The model uses `iri_fs + iri_ec + iri_pt + iri_pd`
-- It retains `participant_engineering`, `sex_man`, `age`, `economic_status`, and `factor(negotiator_slot)`
-
-### Interpretation of H2
-
-H2 is no longer a judged-status-by-decision hypothesis.
-
-It is now a relational-structure hypothesis:
-
-- In `Victim`, H2 compares joint judged-plus-counterpart structures relative to the victim-player.
-- In `Bystander`, H2 compares those same joint negotiator structures and asks whether their effect changes when the player and victim are aligned versus misaligned.
 
 ## H3
 
-- Script: `R/hypotheses/H3_test.R`
-- Dependent variable: `judgement`
-- Main idea: empathy slopes vary across judged-negotiator status after retaining the judged-status, decision, judged-status-by-decision, and relational-control block
-- Estimation: separate models for the `Victim` and `Bystander` subsets with subset-specific formulas
+### Victim
 
-H3 still uses:
+```r
+survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
+  iri_fs + iri_ec + iri_pt + iri_pd +
+  victim_N1_group + victim_N2_group +
+  victim_N1_group:victim_N2_group +
+  iri_fs:victim_N1_group + iri_fs:victim_N2_group +
+  iri_ec:victim_N1_group + iri_ec:victim_N2_group +
+  iri_pt:victim_N1_group + iri_pt:victim_N2_group +
+  iri_pd:victim_N1_group + iri_pd:victim_N2_group +
+  N1_N2_same_faculty +
+  age + ses + sex_female + faculty_player_factor +
+  factor(session)
+```
 
-- `judged_ingroup`
-- `judged_outgroup`
-- `decision_accept`
-- `decision_accept:judged_ingroup`
-- `decision_accept:judged_outgroup`
-- empathy-by-judged-status interactions
+### Bystander
 
-In addition:
+```r
+survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
+  iri_fs + iri_ec + iri_pt + iri_pd +
+  bystander_victim_group +
+  bystander_N1_group + bystander_N2_group +
+  victim_N1_group + victim_N2_group +
+  bystander_N1_group:bystander_N2_group +
+  victim_N1_group:victim_N2_group +
+  iri_fs:bystander_victim_group + iri_fs:bystander_N1_group + iri_fs:bystander_N2_group +
+  iri_ec:bystander_victim_group + iri_ec:bystander_N1_group + iri_ec:bystander_N2_group +
+  iri_pt:bystander_victim_group + iri_pt:bystander_N1_group + iri_pt:bystander_N2_group +
+  iri_pd:bystander_victim_group + iri_pd:bystander_N1_group + iri_pd:bystander_N2_group +
+  N1_N2_same_faculty +
+  age + ses + sex_female + faculty_player_factor +
+  factor(session)
+```
 
-- both subsets retain `counterpart_ingroup`, `counterpart_outgroup`, `participant_engineering`, `sex_man`, `age`, `economic_status`, and `factor(negotiator_slot)`
-- only the bystander subset retains `observer_victim_outgroup`
+## H4
 
-So, as with H1, H3 avoids carrying observer-only predictors into victim-only estimation.
+### Victim
 
-## Dynamic Report and Summary Tables
+```r
+survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
+  decision_target * decision_other +
+  age + ses + sex_female + faculty_player_factor +
+  factor(session)
+```
 
-The dynamic report and exported hypothesis summary tables are generated from the saved model outputs and the hypothesis metadata in `R/utils/hypothesis_metadata.R`.
+### Bystander
 
-For the updated H2 definition, the summary tables and figures can now surface:
+```r
+survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
+  decision_target * decision_other +
+  age + ses + sex_female + faculty_player_factor +
+  factor(session)
+```
 
-- negotiator-side structure contrasts from `h2_negstruct_*`
-- `player_victim_outgroup`
-- `player_victim_outgroup:h2_negstruct_*` interactions
+## H5
 
-This keeps the H2 tables, figures, and narrative aligned with the actual subset-specific formulas used by the pipeline.
+### Victim
 
-## Compact Labels in Tables and Figures
+```r
+survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
+  iri_fs + iri_ec + iri_pt + iri_pd +
+  victim_N1_group + victim_N2_group +
+  victim_N1_group:victim_N2_group +
+  iri_fs:victim_N1_group + iri_fs:victim_N2_group +
+  iri_ec:victim_N1_group + iri_ec:victim_N2_group +
+  iri_pt:victim_N1_group + iri_pt:victim_N2_group +
+  iri_pd:victim_N1_group + iri_pd:victim_N2_group +
+  N1_N2_same_faculty +
+  decision_target * decision_other +
+  age + ses + sex_female + faculty_player_factor +
+  factor(session)
+```
 
-The dynamic report shortens predictor labels inside regression tables and figures so H2 and H3 remain readable. The main conventions are:
+### Bystander
 
-- `N1` = judged negotiator
-- `N2` = counterpart negotiator
-- `V` = victim-side player-victim relation in observer models
-- `Vic` = victim subset
-- `Obs` = bystander / observer subset
-- `In`, `Out`, `Ctl` = ingroup, outgroup, control label hidden
-- `Acc`, `Rej` = accepted or rejected harmful deal
-- `FS`, `EC`, `PT`, `PD` = the four IRI subscales
-- `SES` = economic status
+```r
+survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
+  iri_fs + iri_ec + iri_pt + iri_pd +
+  bystander_victim_group +
+  bystander_N1_group + bystander_N2_group +
+  victim_N1_group + victim_N2_group +
+  bystander_N1_group:bystander_N2_group +
+  victim_N1_group:victim_N2_group +
+  iri_fs:bystander_victim_group + iri_fs:bystander_N1_group + iri_fs:bystander_N2_group +
+  iri_ec:bystander_victim_group + iri_ec:bystander_N1_group + iri_ec:bystander_N2_group +
+  iri_pt:bystander_victim_group + iri_pt:bystander_N1_group + iri_pt:bystander_N2_group +
+  iri_pd:bystander_victim_group + iri_pd:bystander_N1_group + iri_pd:bystander_N2_group +
+  N1_N2_same_faculty +
+  decision_target * decision_other +
+  age + ses + sex_female + faculty_player_factor +
+  factor(session)
+```
 
-The auto report includes a predictor glossary table and repeats the abbreviation note immediately below each regression table.
+## Coding notes
+
+- `decision_target`: `0 = reject`, `1 = accept`
+- `decision_other`: `0 = reject`, `1 = accept`
+- `victim_N1_group`, `victim_N2_group`, `bystander_N1_group`, `bystander_N2_group`:
+  - `ingroup`
+  - `outgroup`
+- ingroup is defined by faculty coincidence, including `control` with `control`
+- `bystander_victim_group`:
+  - `ingroup`
+  - `outgroup`
+- `N1_N2_same_faculty`:
+  - `same`
+  - `different`
+
+## Documentation note
+
+Earlier notes that treated negotiator faculty code `0` as `control_hidden` or described H3 as additive-only are outdated. The active specification now treats `0` as the `control` faculty category and uses targeted empathy x group interactions in H3 and H5.
