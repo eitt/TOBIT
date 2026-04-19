@@ -11,7 +11,7 @@ compliance_report <- read.csv(file.path(paths$tables_dir, "pipeline_compliance_r
 behavioral_lines <- c(
   "# Behavioral-Economics Style Dynamic Report",
   "",
-  paste0("Generated on ", get_report_timestamp(), "."),
+  paste0("By Leonardo H. Talero-Sarmiento; Date  ", get_report_timestamp(), "."),
   "",
   "## Materials and Methods",
   "",
@@ -19,17 +19,17 @@ behavioral_lines <- c(
   "",
   "Primary estimation now uses a two-sided Tobit fitted with `survival::survreg`. The lower and upper observed limits of `judgement` are treated as bilateral censoring points, participant dependence is handled with `cluster = id` and `robust = TRUE`, and session differences are represented with `factor(session)` rather than a claimed random session intercept. Victim and bystander models are estimated separately.",
   "",
-  to_markdown_table(judgement_summary),
+  build_table_block(judgement_summary),
   "",
   "## Results",
   "",
   "The table below lists the terms that reached at least `p < 0.10` in the primary Tobit models. Empty cells mean that the corresponding hypothesis-role combination did not produce a focal term below that threshold.",
   "",
-  to_markdown_table(hypothesis_summary),
+  build_table_block(hypothesis_summary),
   "",
   "## Fit Snapshot",
   "",
-  to_markdown_table(fit_summary[, intersect(c("hypothesis", "role", "model_family", "session_handling", "dependence_adjustment", "lower_censored_n", "upper_censored_n", "AIC", "BIC"), names(fit_summary)), drop = FALSE]),
+  build_table_block(fit_summary[, intersect(c("hypothesis", "role", "model_family", "session_handling", "dependence_adjustment", "lower_censored_n", "upper_censored_n", "AIC", "BIC"), names(fit_summary)), drop = FALSE]),
   "",
   "## Limitations",
   "",
@@ -41,7 +41,7 @@ behavioral_lines <- c(
   "",
   "## Compliance Snapshot",
   "",
-  to_markdown_table(compliance_report),
+  build_table_block(compliance_report),
   ""
 )
 

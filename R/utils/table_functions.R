@@ -14,8 +14,12 @@ format_pct <- function(x, digits = 1) {
 
 #' Format p-values safely
 format_p_value <- function(p) {
-  if (is.na(p)) return("NA")
-  if (p < 0.001) return("<0.001")
+  if (is.na(p)) {
+    return("NA")
+  }
+  if (p < 0.001) {
+    return("<0.001")
+  }
   formatC(p, digits = 3, format = "f")
 }
 
@@ -24,11 +28,21 @@ significance_symbol <- function(p) {
   if (length(p) > 1L) {
     return(vapply(p, significance_symbol, character(1), USE.NAMES = FALSE))
   }
-  if (is.na(p)) return("")
-  if (p < 0.001) return("***")
-  if (p < 0.01) return("**")
-  if (p < 0.05) return("*")
-  if (p < 0.10) return("+")
+  if (is.na(p)) {
+    return("")
+  }
+  if (p < 0.001) {
+    return("***")
+  }
+  if (p < 0.01) {
+    return("**")
+  }
+  if (p < 0.05) {
+    return("*")
+  }
+  if (p < 0.10) {
+    return("+")
+  }
   ""
 }
 
@@ -55,10 +69,47 @@ format_ci <- function(low, high, digits = 2) {
   paste0("[", format_number(low, digits), ", ", format_number(high, digits), "]")
 }
 
+# Build a markdown-ready table block.
+# Backward compatible modes:
+# - build_table_block(df): plain table (legacy behavior).
+# - build_table_block(df, caption = "..."): table + Pandoc caption.
+# - build_table_block(df, digits = 2, empty_message = "..."): legacy formatting args.
+build_table_block <- function(
+  table_df,
+  caption = NULL,
+  label = NULL,
+  digits = 3,
+  empty_message = "_No table data available._"
+) {
+  table_md <- to_markdown_table(table_df, digits = digits)
+
+  if (length(table_md) == 0L || all(!nzchar(table_md))) {
+    return(empty_message)
+  }
+
+  if (is.null(caption) || !nzchar(caption)) {
+    return(table_md)
+  }
+
+  caption_line <- if (!is.null(label) && nzchar(label)) {
+    paste0("Table: ", caption, " {#", label, "}")
+  } else {
+    paste0("Table: ", caption)
+  }
+
+  c(
+    table_md,
+    caption_line,
+    ""
+  )
+}
+
 #' Convert a data frame into simple GitHub-flavored Markdown.
 to_markdown_table <- function(df, digits = 3) {
-  if (!is.data.frame(df) || ncol(df) == 0L) return("")
-  
+  if (!is.data.frame(df) || ncol(df) == 0L) {
+    return("")
+  }
+
   format_cell <- function(x) {
     if (is.numeric(x)) {
       if (all(is.na(x) | abs(x - round(x)) < .Machine$double.eps^0.5)) {
@@ -73,7 +124,7 @@ to_markdown_table <- function(df, digits = 3) {
     x[is.na(x)] <- "NA"
     x
   }
-  
+
   formatted <- lapply(df, format_cell)
   formatted_df <- as.data.frame(formatted, stringsAsFactors = FALSE, check.names = FALSE)
   header <- paste0("| ", paste(names(formatted_df), collapse = " | "), " |")
@@ -81,7 +132,7 @@ to_markdown_table <- function(df, digits = 3) {
   rows <- apply(formatted_df, 1, function(row) {
     paste0("| ", paste(row, collapse = " | "), " |")
   })
-  
+
   c(header, separator, rows)
 }
 
@@ -89,7 +140,7 @@ to_markdown_table <- function(df, digits = 3) {
 escape_latex <- function(x, escape_math = TRUE) {
   x <- as.character(x)
   x[is.na(x)] <- "NA"
-  
+
   if (!escape_math) {
     # If the user explicitly provides LaTeX math, we assume they know what they are doing.
     # We do NOT escape math-related characters.
@@ -137,14 +188,17 @@ escape_latex <- function(x, escape_math = TRUE) {
 
 #' Build a LaTeX table optimized for letter-page width
 to_latex_table <- function(
-    df,
-    caption,
-    label,
-    digits = 3,
-    longtable = FALSE,
-    escape_math = TRUE,
-    preserve_font_size = FALSE) {
-  if (!is.data.frame(df) || ncol(df) == 0L) return("")
+  df,
+  caption,
+  label,
+  digits = 3,
+  longtable = FALSE,
+  escape_math = TRUE,
+  preserve_font_size = FALSE
+) {
+  if (!is.data.frame(df) || ncol(df) == 0L) {
+    return("")
+  }
 
   format_cell <- function(x) {
     if (is.numeric(x)) {
@@ -158,7 +212,7 @@ to_latex_table <- function(
     }
     as.character(x)
   }
-  
+
   formatted <- lapply(df, format_cell)
   formatted_df <- as.data.frame(formatted, stringsAsFactors = FALSE, check.names = FALSE)
   formatted_df[] <- lapply(formatted_df, escape_latex, escape_math = escape_math)
@@ -175,7 +229,7 @@ to_latex_table <- function(
   }
   header <- paste(vapply(names(formatted_df), escape_latex, character(1), escape_math = escape_math), collapse = " & ")
   body <- apply(formatted_df, 1, function(row) paste(row, collapse = " & "))
-  
+
   if (longtable) {
     return(c(
       paste0("\\begin{longtable}{", col_spec, "}"),
@@ -213,7 +267,7 @@ to_latex_table <- function(
       "\\end{table}"
     ))
   }
-  
+
   c(
     "\\begin{table}[H]",
     "\\centering",

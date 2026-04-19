@@ -1,6 +1,6 @@
 # Guia sencilla del pipeline TOBIT longitudinal
 
-Generado el 2026-04-18 19:24:13.
+Generado el 2026-04-18 21:06:44.
 
 ## Que representa una fila
 

@@ -256,7 +256,7 @@ barplot(
   t(decision_plot_table),
   beside = TRUE,
   legend.text = TRUE,
-  col = c("#56799c", "#8fbc8f"),
+  col = c("#56799c", "#8fbc8f", "#e6a23c", "#c06c84"),
   main = "Decision patterns by role",
   ylab = "Number of judgments"
 )

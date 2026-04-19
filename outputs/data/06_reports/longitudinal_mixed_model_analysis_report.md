@@ -1,12 +1,43 @@
-# Scientific Dynamic Report of Moral Judgement under Two-sided Tobit Models
+# Working Paper Report of Moral Judgement under Two-sided Tobit Models
 
-Generated on 2026-04-18 19:24:52.
+By Leonardo H. Talero-Sarmiento
+Date: 2026-04-18 21:09:45
 
-## Redesign status and estimator note
+This run uses `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` as the only analytical source and preserves each imported row as one real judgement observation. The production estimator is a two-sided Tobit fitted with `survival::survreg`, using bilateral censoring at `-9` and `9`, participant-cluster robust standard errors through `cluster = id`, and `factor(session)` in every active formula.
 
-This run uses `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` as the only analytical source and preserves each imported row as one real judgement observation.
+## Understanding the modeling strategy
 
-The primary estimator is a two-sided Tobit fitted with `survival::survreg`, using bilateral censoring at `-9` and `9`, participant-cluster robust standard errors through `cluster = id`, and `factor(session)` in every active formula.
+The purpose of the pipeline is to explain how participants assign moral judgement to a focal negotiator within a structured experimental setting. The objective is not limited to describing average responses. Rather, the pipeline is designed to estimate how judgement changes as a function of empathy, group alignment, negotiation decisions, and role-specific relational structure. The outcome of interest is `judgement`, interpreted as the participant's moral evaluation of the target negotiator. Because each participant contributes repeated evaluations across scenarios and targets, the modeling strategy must satisfy three conditions simultaneously: it must preserve one row per real observation, respect the bounded structure of the outcome, and account for within-participant dependence. For these reasons, the production workflow uses a two-sided Tobit model with participant-cluster robust inference and session adjustment.
+
+The need for a Tobit specification follows directly from the nature of the dependent variable. `judgement` is continuous in interpretation but bounded in measurement. Values at the extremes are therefore not ordinary unrestricted observations; they are limits imposed by the response scale. A standard linear model assumes an outcome that can vary freely over the real line, which is inappropriate when responses accumulate at lower and upper boundaries. The Tobit framework addresses this by assuming an underlying latent moral evaluation, denoted here by `y_i^*`, that is only observed through a bounded realized score:
+
+$$
+y_i^* = X_i\beta + \varepsilon_i
+$$
+
+and
+
+$$
+judgement_i = \max(-9, \min(9, y_i^*)).
+$$
+
+Under this specification, the model jointly represents three kinds of outcomes: interior continuous values, lower-bound pile-up, and upper-bound pile-up. In this context, censoring does not mean that data are missing. It means that the observed score is recorded at the measurement boundary whenever the latent evaluation would extend beyond the scale. The Tobit model is therefore not a technical convenience but a direct response to the design of the judgement variable itself.
+
+A second methodological challenge arises from the repeated-measures structure of the experiment. Each participant contributes multiple rows, so the observations are not independent. Ignoring this dependence would tend to underestimate standard errors and overstate statistical significance. The current pipeline addresses this issue through participant-cluster robust standard errors using `id` as the clustering variable. Session is also incorporated because different experimental sessions may vary in context, timing, or implementation details. This is handled through `factor(session)`, which absorbs systematic session-level shifts. In the active production branch, session is therefore modeled as a fixed-effect adjustment rather than as a random session intercept. The implemented estimator is best described as a two-sided Tobit with participant-cluster robust inference and session fixed effects.
+
+The predictors are organized into theoretically meaningful blocks. The first block contains empathy dimensions, represented by `iri_fs`, `iri_ec`, `iri_pt`, and `iri_pd`, and provides the basis for H1. The second block captures role-specific ingroup/outgroup structure and underlies H2. The third block incorporates negotiation decisions through `decision_target`, `decision_other`, and their interaction, forming the core of H4. Finally, all models include sociodemographic controls such as age, SES, sex, and player faculty. This structure allows the pipeline to evaluate distinct explanatory mechanisms while preserving a coherent hypothesis architecture.
+
+Interactions are especially important in this design because additive effects alone are unlikely to capture the logic of the experiment. In H3, empathy-by-group interactions test whether the effect of empathy depends on social alignment. In H4 and H5, the interaction between `decision_target` and `decision_other` evaluates whether the moral meaning of one negotiator's decision depends on the counterpart's decision. These interaction terms are theoretically motivated and reflect the fact that moral evaluation is shaped not only by isolated attributes but also by combinations of dispositions, relationships, and actions.
+
+The distinction between victim and bystander roles is central to the entire modeling strategy. Victim models focus on victim-negotiator alignment and therefore operate with a more direct relational structure. Bystander models, by contrast, require a broader map that includes bystander-victim, bystander-negotiator, and victim-negotiator relations. Because these mechanisms differ substantively, the victim and bystander specifications cannot be treated as interchangeable. Role-specific models are therefore necessary both statistically and theoretically.
+
+The five hypothesis families follow naturally from this structure. H1 models `judgement` as a function of empathy and controls. H2 focuses on role-specific group alignment. H3 combines empathy and group structure with theoretically motivated interactions. H4 models judgement as a function of `decision_target`, `decision_other`, and their interaction. H5 integrates all previous components into a single specification. This progression allows the analysis to move from simpler explanations toward a more comprehensive account of moral judgement.
+
+A key principle of the workflow is that one row remains one real target-judgement observation. The pipeline does not duplicate rows into separate pseudo-observations for negotiators, because doing so would artificially inflate the sample size and distort inference. Instead, the relational context involving N1, N2, victim, and bystander is reconstructed within each existing row. This preserves the integrity of the long-format design while maintaining the proper unit of analysis.
+
+Taken together, the current production strategy has several strengths. It respects the bounded structure of the outcome, preserves the long-format observational design, adjusts inference for repeated observations, controls for session-level heterogeneity, separates victim and bystander mechanisms, and maps directly onto the theoretical architecture of H1 through H5. At the same time, its limitations must also be recognized. The estimator is not a full mixed-effects Tobit with random participant and session intercepts. In addition, sparse role-specific cells may still produce rank-deficient contrasts in interaction-heavy models. For that reason, interpretation should rely on the full combination of coefficient tables and model-implied figures rather than on isolated p-values.
+
+Overall, the current production pipeline is statistically and conceptually aligned with the experiment. It treats bounded continuous moral judgement with a two-sided Tobit model, handles repeated observations through participant-cluster robust inference, adjusts session heterogeneity through fixed effects, and preserves role-specific relational theory within model specification. This makes the present workflow a defensible production framework, while also leaving a clear path for future multilevel Tobit extensions.
 
 ## Dataset and sample description
 
@@ -18,6 +49,8 @@ Victim and bystander analyses are estimated separately so that relational coding
 
 The authoritative interpretation is that each player observes ten scenarios and evaluates two negotiators, so the longitudinal file should contain 20 judgement rows per participant. The clustering diagnostic below is consistent with that design.
 
+**Table 1. Participant summary**
+
 | metric | value |
 | --- | --- |
 | participants | 243.000 |
@@ -26,13 +59,18 @@ The authoritative interpretation is that each player observes ten scenarios and 
 | women_share | 0.426 |
 | engineering_share | 0.568 |
 
+**Table 2. Judgement summary**
+
 | sample | rows | participants | mean_judgement | sd_judgement |
 | --- | --- | --- | --- | --- |
 | All | 4860 | 243 | 1.623 | 6.674 |
 | Victim | 2430 | 243 | 1.504 | 6.842 |
 | Bystander | 2430 | 243 | 1.741 | 6.500 |
 
+
 ## Datacard and symbol dictionary
+
+**Table 3. Datacard symbol dictionary**
 
 | symbol | definition |
 | --- | --- |
@@ -48,6 +86,8 @@ The authoritative interpretation is that each player observes ten scenarios and 
 | cluster = id | Participant-level clustering used for robust standard errors and repeated-measures adjustment. |
 | Log(scale) | Estimated Tobit log-scale parameter summarizing latent residual dispersion. |
 
+**Table 4. Observation audit**
+
 | checkpoint | value |
 | --- | --- |
 | base_excel_rows | 4860 |
@@ -56,7 +96,10 @@ The authoritative interpretation is that each player observes ten scenarios and 
 | unique_source_row_numbers | 4860 |
 | duplicated_source_row_numbers | 0 |
 
+
 ## Predictor glossary and abbreviation note
+
+**Table 5. Predictor glossary**
 
 | predictor | compact_label | meaning |
 | --- | --- | --- |
@@ -86,6 +129,7 @@ The authoritative interpretation is that each player observes ten scenarios and 
 | age | Age | Participant age. |
 | ses | SES | Participant socioeconomic status. |
 
+
 The report keeps compact predictor references in figure captions and narratives, but the glossary above remains the authoritative mapping back to the current pipeline variables.
 
 ## Interaction interpretation rules
@@ -97,6 +141,8 @@ The report keeps compact predictor references in figure captions and narratives,
 5. Session effects are adjustment terms only and are not interpreted as substantive experimental mechanisms.
 
 ## H1-H5 hypotheses with role-specific equation summaries
+
+**Table 6. H1-H5 role-specific formulas and theoretical focus**
 
 | hypothesis | role | formula_rhs | theoretical_focus |
 | --- | --- | --- | --- |
@@ -110,6 +156,7 @@ The report keeps compact predictor references in figure captions and narratives,
 | H4 | Bystander | decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) | Target and other negotiator decisions with their interaction, plus sociodemographics. |
 | H5 | Victim | iri_fs + iri_ec + iri_pt + iri_pd + victim_N1_group + victim_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:victim_N1_group + iri_fs:victim_N2_group + iri_ec:victim_N1_group + iri_ec:victim_N2_group + iri_pt:victim_N1_group + iri_pt:victim_N2_group + iri_pd:victim_N1_group + iri_pd:victim_N2_group + decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) | Integrated model with empathy, victim-side relations, empathy x group interactions, decisions, and the victim-side relational interaction. |
 | H5 | Bystander | iri_fs + iri_ec + iri_pt + iri_pd + bystander_victim_group + bystander_N1_group + bystander_N2_group + victim_N1_group + victim_N2_group + bystander_N1_group:bystander_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:bystander_victim_group + iri_fs:bystander_N1_group + iri_fs:bystander_N2_group + iri_ec:bystander_victim_group + iri_ec:bystander_N1_group + iri_ec:bystander_N2_group + iri_pt:bystander_victim_group + iri_pt:bystander_N1_group + iri_pt:bystander_N2_group + iri_pd:bystander_victim_group + iri_pd:bystander_N1_group + iri_pd:bystander_N2_group + decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) | Integrated model with empathy, bystander-side relations, empathy x group interactions, decisions, and the role-specific relational interactions. |
+
 
 Any earlier repository note that described negotiator code `0` as a hidden label or that narrowed H3 to additive effects only should now be treated as outdated. The active formulas below are the authoritative specification.
 
@@ -160,6 +207,8 @@ In this production branch, `factor(session)` is reported instead of `(1|session)
 
 The following clustering diagnostic is descriptive. It summarizes within-participant dependence in the observed data and should not be read as evidence that the fitted estimator included participant random intercepts.
 
+**Table 7. Descriptive clustering diagnostic**
+
 | metric | value |
 | --- | --- |
 | participants | 243.000 |
@@ -169,9 +218,12 @@ The following clustering diagnostic is descriptive. It summarizes within-partici
 | design_effect | 3.537 |
 | effective_sample_size | 1373.909 |
 
+
 Because the target of inference is repeated judgement within participant, the effective-sample-size table is a descriptive clustering diagnostic only; it does not replace the model-based dependence adjustment through `cluster = id` and `factor(session)`.
 
 ## Descriptive statistics and figures
+
+**Table 8. Decision summary by role**
 
 | role_label | decision_pattern | n | mean_judgement |
 | --- | --- | --- | --- |
@@ -183,6 +235,8 @@ Because the target of inference is repeated judgement within participant, the ef
 | victim | target_accept_other_reject | 579 | -3.803 |
 | bystander | target_reject_other_accept | 568 | 4.958 |
 | victim | target_reject_other_accept | 579 | 5.378 |
+
+**Table 9. Role-specific ingroup/outgroup summary**
 
 | variable | level | n |
 | --- | --- | --- |
@@ -199,6 +253,8 @@ Because the target of inference is repeated judgement within participant, the ef
 | N1_N2_same_faculty | different | 3276 |
 | N1_N2_same_faculty | same | 1584 |
 
+**Table 10. Participant-level empathy and mean judgement correlation matrix**
+
 | term | iri_fs | iri_ec | iri_pt | iri_pd | judgement |
 | --- | --- | --- | --- | --- | --- |
 | iri_fs | 1.000 | 0.409 | 0.154 | 0.282 | 0.051 |
@@ -206,6 +262,7 @@ Because the target of inference is repeated judgement within participant, the ef
 | iri_pt | 0.154 | 0.482 | 1.000 | -0.177 | 0.111 |
 | iri_pd | 0.282 | 0.219 | -0.177 | 1.000 | -0.046 |
 | judgement | 0.051 | -0.017 | 0.111 | -0.046 | 1.000 |
+
 
 The group summary and the formulas above use role-specific ingroup/outgroup coding. Ingroup is defined by faculty coincidence, including `control` with `control`, while outgroup means non-matching faculties.
 
@@ -227,22 +284,48 @@ This figure summarizes how the four joint decision contexts are distributed acro
 
 ## Estimator fit summary
 
-| hypothesis | role | variant | model_family | session_handling | dependence_adjustment | n_obs | n_participants | lower_censored_n | upper_censored_n | AIC | BIC | sigma | dropped_columns |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| H1 | Bystander | primary | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 2420 | 243 | 300 | 723 | 12558.780 | 12703.568 | 10.264 | 0 |
-| H1 | Victim | primary | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 2420 | 243 | 377 | 744 | 12280.557 | 12425.345 | 11.564 | 0 |
-| H2 | Bystander | primary | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 2420 | 243 | 300 | 723 | 12557.426 | 12725.380 | 10.242 | 0 |
-| H2 | Victim | primary | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 2420 | 243 | 377 | 744 | 12297.645 | 12442.433 | 11.607 | 0 |
-| H3 | Bystander | primary | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 2420 | 243 | 300 | 723 | 12569.153 | 12829.772 | 10.193 | 0 |
-| H3 | Victim | primary | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 2420 | 243 | 377 | 744 | 12296.035 | 12510.321 | 11.541 | 0 |
-| H4 | Bystander | primary | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 2420 | 243 | 300 | 723 | 11060.312 | 11199.308 | 6.917 | 0 |
-| H4 | Victim | primary | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 2420 | 243 | 377 | 744 | 10747.901 | 10886.898 | 7.626 | 0 |
-| H5 | Bystander | primary | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 2420 | 243 | 300 | 723 | 11080.219 | 11358.212 | 6.876 | 0 |
-| H5 | Victim | primary | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 2420 | 243 | 377 | 744 | 10749.255 | 10980.916 | 7.570 | 0 |
+Bystander models use 2,420 observations from 243 participants.
+Victim models use 2,420 observations from 243 participants.
+
+All production models use the estimator configuration shown below.
+
+**Table 11. Estimator configuration**
+
+| Estimator | Session handling | Dependence |
+| --- | --- | --- |
+| Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id |
+
+### Model-level fit and censoring summary
+
+#### Bystander models
+
+**Table 12. Bystander model fit and censoring summary**
+
+| H | L. cens. | U. cens. | AIC | BIC | Sigma |
+| --- | --- | --- | --- | --- | --- |
+| H1 | 300 | 723 | 12558.800 | 12703.600 | 10.264 |
+| H2 | 300 | 723 | 12557.400 | 12725.400 | 10.242 |
+| H3 | 300 | 723 | 12569.200 | 12829.800 | 10.193 |
+| H4 | 300 | 723 | 11060.300 | 11199.300 | 6.917 |
+| H5 | 300 | 723 | 11080.200 | 11358.200 | 6.876 |
+
+#### Victim models
+
+**Table 13. Victim model fit and censoring summary**
+
+| H | L. cens. | U. cens. | AIC | BIC | Sigma |
+| --- | --- | --- | --- | --- | --- |
+| H1 | 377 | 744 | 12280.600 | 12425.300 | 11.564 |
+| H2 | 377 | 744 | 12297.600 | 12442.400 | 11.607 |
+| H3 | 377 | 744 | 12296.000 | 12510.300 | 11.541 |
+| H4 | 377 | 744 | 10747.900 | 10886.900 | 7.626 |
+| H5 | 377 | 744 | 10749.300 | 10980.900 | 7.570 |
 
 ## Hypothesis significance summary by role
 
 ### Victim
+
+**Table 14. Victim focal support terms (p < 0.10)**
 
 | hypothesis | role | support |
 | --- | --- | --- |
@@ -253,6 +336,8 @@ This figure summarizes how the four joint decision contexts are distributed acro
 | H5 | Victim | Empathy: Fantasy*; Victim-N2 outgroup vs ingroup+; Target accepted***; Other negotiator accepted***; Empathy: Fantasy x Victim-N1 outgroup vs ingroup+; Target accepted x Other accepted*** |
 
 ### Bystander
+
+**Table 15. Bystander focal support terms (p < 0.10)**
 
 | hypothesis | role | support |
 | --- | --- | --- |
@@ -478,6 +563,8 @@ The plotted lines summarize how the fitted predicted judgement changes across th
 
 ### H1 Victim coefficient table
 
+**Table 16. H1 Victim coefficient estimates**
+
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
 | Intercept | -0.874 | 3.297 | -7.337 | 5.589 | 0.791 |
@@ -494,6 +581,8 @@ The plotted lines summarize how the fitted predicted judgement changes across th
 The H1 Victim model shows focal evidence for one hypothesis terms. Empathy: Perspective taking is associated with higher predicted judgement (estimate = 1.77, p = 0.004**). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
 ### H1 Bystander coefficient table
+
+**Table 17. H1 Bystander coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -512,6 +601,8 @@ In the H1 Bystander model, no focal hypothesis term reached p < 0.10. The report
 
 ### H2 Victim coefficient table
 
+**Table 18. H2 Victim coefficient estimates**
+
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
 | Intercept | 2.846 | 3.504 | -4.023 | 9.715 | 0.417 |
@@ -528,6 +619,8 @@ In the H1 Bystander model, no focal hypothesis term reached p < 0.10. The report
 In the H2 Victim model, no focal hypothesis term reached p < 0.10. The report therefore retains the coefficient table for auditability but does not attach a significance-driven substantive interpretation beyond the descriptive prediction plots.
 
 ### H2 Bystander coefficient table
+
+**Table 19. H2 Bystander coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -549,6 +642,8 @@ In the H2 Victim model, no focal hypothesis term reached p < 0.10. The report th
 The H2 Bystander model shows focal evidence for 5 hypothesis terms. Victim-N2 outgroup vs ingroup is associated with lower predicted judgement (estimate = -2.33, p = 0.055+). Bystander-N2 outgroup vs ingroup is associated with higher predicted judgement (estimate = 2.08, p = 0.063+). Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup is associated with higher predicted judgement (estimate = 2.88, p = 0.068+). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
 ### H3 Victim coefficient table
+
+**Table 20. H3 Victim coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -578,6 +673,8 @@ The H2 Bystander model shows focal evidence for 5 hypothesis terms. Victim-N2 ou
 The H3 Victim model shows focal evidence for 2 hypothesis terms. Empathy: Fantasy is associated with higher predicted judgement (estimate = 2.04, p = 0.017*). Empathy: Perspective taking is associated with higher predicted judgement (estimate = 1.68, p = 0.087+). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
 ### H3 Bystander coefficient table
+
+**Table 21. H3 Bystander coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -616,6 +713,8 @@ The H3 Bystander model shows focal evidence for 8 hypothesis terms. Empathy: Per
 
 ### H4 Victim coefficient table
 
+**Table 22. H4 Victim coefficient estimates**
+
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
 | Intercept | 9.771 | 2.575 | 4.723 | 14.819 | <0.001*** |
@@ -632,6 +731,8 @@ The H4 Victim model shows focal evidence for 3 hypothesis terms. Target accepted
 
 ### H4 Bystander coefficient table
 
+**Table 23. H4 Bystander coefficient estimates**
+
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
 | Intercept | 7.699 | 2.718 | 2.371 | 13.026 | 0.005** |
@@ -647,6 +748,8 @@ The H4 Victim model shows focal evidence for 3 hypothesis terms. Target accepted
 The H4 Bystander model shows focal evidence for 3 hypothesis terms. Target accepted is associated with lower predicted judgement (estimate = -15.35, p = <0.001***). Other negotiator accepted is associated with lower predicted judgement (estimate = -4.26, p = <0.001***). Target accepted x Other accepted is associated with higher predicted judgement (estimate = 4.85, p = <0.001***). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
 ### H5 Victim coefficient table
+
+**Table 24. H5 Victim coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -679,6 +782,8 @@ The H4 Bystander model shows focal evidence for 3 hypothesis terms. Target accep
 The H5 Victim model shows focal evidence for 6 hypothesis terms. Target accepted is associated with lower predicted judgement (estimate = -16.91, p = <0.001***). Target accepted x Other accepted is associated with higher predicted judgement (estimate = 4.44, p = <0.001***). Other negotiator accepted is associated with lower predicted judgement (estimate = -3.88, p = <0.001***). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
 ### H5 Bystander coefficient table
+
+**Table 25. H5 Bystander coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -720,6 +825,8 @@ The H5 Bystander model shows focal evidence for 7 hypothesis terms. Target accep
 
 ## Compliance checklist
 
+**Table 26. Pipeline compliance checklist**
+
 | criterion | status | evidence |
 | --- | --- | --- |
 | a) uses judgement | YES | All formulas model judgement directly. |
@@ -729,6 +836,7 @@ The H5 Bystander model shows focal evidence for 7 hypothesis terms. Target accep
 | e) victim and bystander treated differently | YES | Role-specific formulas are estimated separately and H2/H3/H5 use different relational blocks for victim and bystander. |
 | f) decision_target and decision_other included where required | YES | H4 and H5 both include decision_target, decision_other, and their interaction. |
 | g) sociodemographics included in every hypothesis model | YES | Every H1-H5 formula retains age, ses, sex_female, and faculty_player_factor. |
+
 
 ## Corrections relative to outdated notes
 

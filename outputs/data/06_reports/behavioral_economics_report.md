@@ -1,6 +1,6 @@
 # Behavioral-Economics Style Dynamic Report
 
-Generated on 2026-04-18 19:24:13.
+By Leonardo H. Talero-Sarmiento; Date  2026-04-18 21:06:44.
 
 ## Materials and Methods
 

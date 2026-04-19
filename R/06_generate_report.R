@@ -1,6 +1,7 @@
 source("R/00_config.R")
 source("R/hypotheses/H_formulas.R")
 source("R/utils/report_dynamic_helpers.R")
+source("R/utils/table_functions.R")
 
 paths <- get_project_paths()
 
@@ -277,7 +278,9 @@ formula_checks <- within(formula_catalog, {
 
 get_audit_value <- function(checkpoint_name) {
   matched <- observation_audit$value[observation_audit$checkpoint == checkpoint_name]
-  if (length(matched) == 0L) return(NA_real_)
+  if (length(matched) == 0L) {
+    return(NA_real_)
+  }
   suppressWarnings(as.numeric(matched[[1]]))
 }
 
@@ -286,7 +289,9 @@ row_count_final <- get_audit_value("processed_judgment_rows")
 duplicated_source_rows <- get_audit_value("duplicated_source_row_numbers")
 
 id_dependence_ok <- if (nrow(fit_summary) == 0L) FALSE else all(fit_summary$dependence_adjustment == "cluster_robust_id")
-session_handling_ok <- if (nrow(fit_summary) == 0L) FALSE else {
+session_handling_ok <- if (nrow(fit_summary) == 0L) {
+  FALSE
+} else {
   all(fit_summary$session_handling == "factor_session_fixed_effect") && all(formula_checks$uses_factor_session)
 }
 
@@ -306,8 +311,12 @@ compliance_report <- data.frame(
     if (session_handling_ok) "YES" else "NO",
     if (!is.na(row_count_import) && !is.na(row_count_final) && !is.na(duplicated_source_rows) && row_count_import == row_count_final && duplicated_source_rows == 0) "YES" else "NO",
     if (nrow(subset(formula_catalog, hypothesis == "H2" & role == "Victim")) == 1L &&
-        nrow(subset(formula_catalog, hypothesis == "H2" & role == "Bystander")) == 1L &&
-        subset(formula_catalog, hypothesis == "H2" & role == "Victim")$formula_rhs != subset(formula_catalog, hypothesis == "H2" & role == "Bystander")$formula_rhs) "YES" else "NO",
+      nrow(subset(formula_catalog, hypothesis == "H2" & role == "Bystander")) == 1L &&
+      subset(formula_catalog, hypothesis == "H2" & role == "Victim")$formula_rhs != subset(formula_catalog, hypothesis == "H2" & role == "Bystander")$formula_rhs) {
+      "YES"
+    } else {
+      "NO"
+    },
     if (all(subset(formula_checks, hypothesis %in% c("H4", "H5"))$uses_decisions)) "YES" else "NO",
     if (all(formula_checks$uses_sociodemographics)) "YES" else "NO"
   ),
@@ -333,6 +342,18 @@ build_image_block <- function(figure_row) {
     paste0("![", figure_row$caption, "](", relative_report_path(figure_row$figure_file), ")"),
     "",
     figure_row$interpretation,
+    ""
+  )
+}
+
+table_caption_counter <- 0L
+
+build_numbered_table_block <- function(df, title, digits = 3, empty_message = "_No table data available._") {
+  table_caption_counter <<- table_caption_counter + 1L
+  c(
+    paste0("**Table ", table_caption_counter, ". ", title, "**"),
+    "",
+    build_table_block(df, digits = digits, empty_message = empty_message),
     ""
   )
 }
@@ -387,15 +408,14 @@ build_final_audit_note <- function(compliance_report, fit_summary) {
 }
 
 report_lines <- c(
-  "# Scientific Dynamic Report of Moral Judgement under Two-sided Tobit Models",
+  "# Working Paper Report of Moral Judgement under Two-sided Tobit Models",
   "",
-  paste0("Generated on ", get_report_timestamp(), "."),
+  "By Leonardo H. Talero-Sarmiento",
+  paste0("Date: ", get_report_timestamp()),
   "",
-  "## Redesign status and estimator note",
+  "This run uses `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` as the only analytical source and preserves each imported row as one real judgement observation. The production estimator is a two-sided Tobit fitted with `survival::survreg`, using bilateral censoring at `-9` and `9`, participant-cluster robust standard errors through `cluster = id`, and `factor(session)` in every active formula.",
   "",
-  "This run uses `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` as the only analytical source and preserves each imported row as one real judgement observation.",
-  "",
-  "The primary estimator is a two-sided Tobit fitted with `survival::survreg`, using bilateral censoring at `-9` and `9`, participant-cluster robust standard errors through `cluster = id`, and `factor(session)` in every active formula.",
+  build_introductory_theoretical_chapter(),
   "",
   "## Dataset and sample description",
   "",
@@ -403,19 +423,17 @@ report_lines <- c(
   "",
   "The authoritative interpretation is that each player observes ten scenarios and evaluates two negotiators, so the longitudinal file should contain 20 judgement rows per participant. The clustering diagnostic below is consistent with that design.",
   "",
-  to_markdown_table(participant_summary),
-  "",
-  to_markdown_table(judgement_summary),
+  build_numbered_table_block(participant_summary, "Participant summary"),
+  build_numbered_table_block(judgement_summary, "Judgement summary"),
   "",
   "## Datacard and symbol dictionary",
   "",
-  to_markdown_table(symbol_dictionary),
-  "",
-  to_markdown_table(observation_audit),
+  build_numbered_table_block(symbol_dictionary, "Datacard symbol dictionary"),
+  build_numbered_table_block(observation_audit, "Observation audit"),
   "",
   "## Predictor glossary and abbreviation note",
   "",
-  to_markdown_table(predictor_glossary),
+  build_numbered_table_block(predictor_glossary, "Predictor glossary"),
   "",
   "The report keeps compact predictor references in figure captions and narratives, but the glossary above remains the authoritative mapping back to the current pipeline variables.",
   "",
@@ -425,7 +443,10 @@ report_lines <- c(
   "",
   "## H1-H5 hypotheses with role-specific equation summaries",
   "",
-  to_markdown_table(formula_catalog[, c("hypothesis", "role", "formula_rhs", "theoretical_focus")]),
+  build_numbered_table_block(
+    formula_catalog[, c("hypothesis", "role", "formula_rhs", "theoretical_focus")],
+    "H1-H5 role-specific formulas and theoretical focus"
+  ),
   "",
   "Any earlier repository note that described negotiator code `0` as a hidden label or that narrowed H3 to additive effects only should now be treated as outdated. The active formulas below are the authoritative specification.",
   ""
@@ -455,49 +476,184 @@ report_lines <- c(
   "",
   "The following clustering diagnostic is descriptive. It summarizes within-participant dependence in the observed data and should not be read as evidence that the fitted estimator included participant random intercepts.",
   "",
-  to_markdown_table(clustering_diagnostic),
+  build_numbered_table_block(clustering_diagnostic, "Descriptive clustering diagnostic"),
   "",
   "Because the target of inference is repeated judgement within participant, the effective-sample-size table is a descriptive clustering diagnostic only; it does not replace the model-based dependence adjustment through `cluster = id` and `factor(session)`.",
   "",
   "## Descriptive statistics and figures",
   "",
-  to_markdown_table(decision_summary),
-  "",
-  to_markdown_table(group_summary),
-  "",
-  to_markdown_table(correlation_table),
+  build_numbered_table_block(decision_summary, "Decision summary by role"),
+  build_numbered_table_block(group_summary, "Role-specific ingroup/outgroup summary"),
+  build_numbered_table_block(correlation_table, "Participant-level empathy and mean judgement correlation matrix"),
   "",
   "The group summary and the formulas above use role-specific ingroup/outgroup coding. Ingroup is defined by faculty coincidence, including `control` with `control`, while outgroup means non-matching faculties.",
   ""
 )
-
+# Append all descriptive figures to the report in the order stored in the catalog.
 for (i in seq_len(nrow(descriptive_figure_entries))) {
-  report_lines <- c(report_lines, build_image_block(descriptive_figure_entries[i, , drop = FALSE]))
+  report_lines <- c(
+    report_lines,
+    build_image_block(descriptive_figure_entries[i, , drop = FALSE])
+  )
 }
 
+# Create a compact copy of the fit summary for reporting purposes.
+# We round long numeric columns to avoid overly wide markdown/PDF tables.
+compact_fit_summary <- fit_summary
+
+if ("AIC" %in% names(compact_fit_summary)) {
+  compact_fit_summary$AIC <- round(as.numeric(compact_fit_summary$AIC), 1)
+}
+if ("BIC" %in% names(compact_fit_summary)) {
+  compact_fit_summary$BIC <- round(as.numeric(compact_fit_summary$BIC), 1)
+}
+if ("sigma" %in% names(compact_fit_summary)) {
+  compact_fit_summary$sigma <- round(as.numeric(compact_fit_summary$sigma), 3)
+}
+
+# Extract the estimator design metadata.
+# These fields are usually constant across models, so we report them separately.
+fit_design_table <- unique(
+  compact_fit_summary[, intersect(
+    c("model_family", "session_handling", "dependence_adjustment"),
+    names(compact_fit_summary)
+  ), drop = FALSE]
+)
+
+if (ncol(fit_design_table) > 0L) {
+  names(fit_design_table) <- c("Estimator", "Session handling", "Dependence")
+}
+
+# Build a dynamic note by role so that observation and participant counts
+# are not hard-coded in the report.
+fit_note_by_role <- character(0)
+
+if (nrow(fit_summary) > 0L && all(c("role", "n_obs", "n_participants") %in% names(fit_summary))) {
+  fit_note_by_role <- unlist(
+    lapply(split(fit_summary, fit_summary$role), function(df_role) {
+      n_obs_role <- unique(df_role$n_obs)
+      n_id_role <- unique(df_role$n_participants)
+      role_name <- unique(df_role$role)
+
+      if (length(n_obs_role) == 1L && length(n_id_role) == 1L) {
+        sprintf(
+          "%s models use %s observations from %s participants.",
+          role_name,
+          format(n_obs_role, big.mark = ","),
+          format(n_id_role, big.mark = ",")
+        )
+      } else {
+        sprintf(
+          "%s models vary in their observation and participant counts; see the tables below.",
+          role_name
+        )
+      }
+    })
+  )
+}
+
+# Build a narrower fit table by role.
+# We intentionally drop columns that are constant across rows (e.g., N obs, N id, dropped columns)
+# because they are now communicated in the dynamic note above.
+fit_main_table <- compact_fit_summary[, intersect(
+  c("hypothesis", "role", "lower_censored_n", "upper_censored_n", "AIC", "BIC", "sigma"),
+  names(compact_fit_summary)
+), drop = FALSE]
+
+fit_bystander <- data.frame()
+fit_victim <- data.frame()
+
+if (nrow(fit_main_table) > 0L) {
+  fit_bystander <- subset(fit_main_table, role == "Bystander")[, c(
+    "hypothesis", "lower_censored_n", "upper_censored_n", "AIC", "BIC", "sigma"
+  ), drop = FALSE]
+
+  fit_victim <- subset(fit_main_table, role == "Victim")[, c(
+    "hypothesis", "lower_censored_n", "upper_censored_n", "AIC", "BIC", "sigma"
+  ), drop = FALSE]
+
+  if (ncol(fit_bystander) > 0L) {
+    names(fit_bystander) <- c("H", "L. cens.", "U. cens.", "AIC", "BIC", "Sigma")
+  }
+  if (ncol(fit_victim) > 0L) {
+    names(fit_victim) <- c("H", "L. cens.", "U. cens.", "AIC", "BIC", "Sigma")
+  }
+}
+
+# Build the estimator fit section.
+# The estimator metadata and the role-specific fit tables are separated
+# so that the PDF table layout stays readable.
 report_lines <- c(
   report_lines,
   "## Estimator fit summary",
   "",
-  to_markdown_table(fit_summary[, intersect(c("hypothesis", "role", "variant", "model_family", "session_handling", "dependence_adjustment", "n_obs", "n_participants", "lower_censored_n", "upper_censored_n", "AIC", "BIC", "sigma", "dropped_columns"), names(fit_summary)), drop = FALSE]),
-  "",
+  fit_note_by_role,
+  ""
+)
+
+if (nrow(fit_design_table) > 0L) {
+  report_lines <- c(
+    report_lines,
+    "All production models use the estimator configuration shown below.",
+    "",
+    build_numbered_table_block(fit_design_table, "Estimator configuration")
+  )
+}
+
+report_lines <- c(
+  report_lines,
+  "### Model-level fit and censoring summary",
+  ""
+)
+
+if (nrow(fit_bystander) > 0L) {
+  report_lines <- c(
+    report_lines,
+    "#### Bystander models",
+    "",
+    build_numbered_table_block(fit_bystander, "Bystander model fit and censoring summary")
+  )
+}
+
+if (nrow(fit_victim) > 0L) {
+  report_lines <- c(
+    report_lines,
+    "#### Victim models",
+    "",
+    build_numbered_table_block(fit_victim, "Victim model fit and censoring summary")
+  )
+}
+
+# Append the hypothesis significance summary by role.
+report_lines <- c(
+  report_lines,
   "## Hypothesis significance summary by role",
   "",
   "### Victim",
   "",
-  to_markdown_table(subset(significance_summary, role == "Victim")),
-  "",
+  build_numbered_table_block(
+    subset(significance_summary, role == "Victim"),
+    "Victim focal support terms (p < 0.10)"
+  ),
   "### Bystander",
   "",
-  to_markdown_table(subset(significance_summary, role == "Bystander")),
-  "",
+  build_numbered_table_block(
+    subset(significance_summary, role == "Bystander"),
+    "Bystander focal support terms (p < 0.10)"
+  ),
   "## Significance-driven figures",
   ""
 )
 
+# Add only the significance-driven figures that were actually generated.
 sig_figures <- subset(figure_manifest, figure_type == "significance")
+
 if (nrow(sig_figures) == 0L) {
-  report_lines <- c(report_lines, "No focal term reached the plotting threshold in this run, so no significance-driven figures were generated.", "")
+  report_lines <- c(
+    report_lines,
+    "No focal term reached the plotting threshold in this run, so no significance-driven figures were generated.",
+    ""
+  )
 } else {
   for (i in seq_len(nrow(sig_figures))) {
     figure_row <- sig_figures[i, , drop = FALSE]
@@ -510,6 +666,7 @@ if (nrow(sig_figures) == 0L) {
   }
 }
 
+# Add the full coefficient tables and their short interpretation narratives.
 report_lines <- c(
   report_lines,
   "## Full coefficient tables and interpretation summary",
@@ -520,23 +677,27 @@ for (hypothesis_id in paste0("H", 1:5)) {
   for (role_label in c("Victim", "Bystander")) {
     prefix <- get_model_prefix(hypothesis_id, role_label)
     if (!(prefix %in% names(coefficient_tables))) next
+
     report_lines <- c(
       report_lines,
       paste0("### ", hypothesis_id, " ", role_label, " coefficient table"),
       "",
-      to_markdown_table(coefficient_tables[[prefix]]),
-      "",
+      build_numbered_table_block(
+        coefficient_tables[[prefix]],
+        sprintf("%s %s coefficient estimates", hypothesis_id, role_label)
+      ),
       coefficient_narratives[[prefix]],
       ""
     )
   }
 }
 
+# Close the report with compliance, corrections, limitations, discussion, audit, and conclusion.
 report_lines <- c(
   report_lines,
   "## Compliance checklist",
   "",
-  to_markdown_table(compliance_report),
+  build_numbered_table_block(compliance_report, "Pipeline compliance checklist"),
   "",
   "## Corrections relative to outdated notes",
   "",
@@ -576,9 +737,9 @@ if (file.exists(file.path(paths$report_dir, "tobit_analysis_report.pdf"))) {
 compliance_lines <- c(
   "# Pipeline Compliance Report",
   "",
-  paste0("Generated on ", get_report_timestamp(), "."),
+  paste0("By Leonardo H. Talero-Sarmiento; Date  ", get_report_timestamp(), "."),
   "",
-  to_markdown_table(compliance_report),
+  build_table_block(compliance_report),
   ""
 )
 writeLines(compliance_lines, file.path(paths$report_dir, "pipeline_compliance_report.md"))
