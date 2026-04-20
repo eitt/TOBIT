@@ -1,0 +1,7 @@
+"variable","value","n","in_requested_levels"
+"role_panel","Bystander",2430,"yes"
+"role_panel","Victim",2430,"yes"
+"decision_pattern_clean","both_reject",1352,"yes"
+"decision_pattern_clean","both_accept",1214,"yes"
+"decision_pattern_clean","target_accept_other_reject",1147,"yes"
+"decision_pattern_clean","target_reject_other_accept",1147,"yes"

@@ -1,11 +1,13 @@
-# Working Paper Report of Moral Judgement under Two-sided Tobit Models
-
-By Leonardo H. Talero-Sarmiento
-Date: 2026-04-18 21:09:45
+---
+title: "Working Paper Report of Moral Judgement under Two-sided Tobit Models"
+author: "Leonardo H. Talero-Sarmiento"
+date: "2026-04-19 21:09:01"
+numbersections: true
+---
 
 This run uses `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` as the only analytical source and preserves each imported row as one real judgement observation. The production estimator is a two-sided Tobit fitted with `survival::survreg`, using bilateral censoring at `-9` and `9`, participant-cluster robust standard errors through `cluster = id`, and `factor(session)` in every active formula.
 
-## Understanding the modeling strategy
+# Understanding the modeling strategy
 
 The purpose of the pipeline is to explain how participants assign moral judgement to a focal negotiator within a structured experimental setting. The objective is not limited to describing average responses. Rather, the pipeline is designed to estimate how judgement changes as a function of empathy, group alignment, negotiation decisions, and role-specific relational structure. The outcome of interest is `judgement`, interpreted as the participant's moral evaluation of the target negotiator. Because each participant contributes repeated evaluations across scenarios and targets, the modeling strategy must satisfy three conditions simultaneously: it must preserve one row per real observation, respect the bounded structure of the outcome, and account for within-participant dependence. For these reasons, the production workflow uses a two-sided Tobit model with participant-cluster robust inference and session adjustment.
 
@@ -39,7 +41,7 @@ Taken together, the current production strategy has several strengths. It respec
 
 Overall, the current production pipeline is statistically and conceptually aligned with the experiment. It treats bounded continuous moral judgement with a two-sided Tobit model, handles repeated observations through participant-cluster robust inference, adjusts session heterogeneity through fixed effects, and preserves role-specific relational theory within model specification. This makes the present workflow a defensible production framework, while also leaving a clear path for future multilevel Tobit extensions.
 
-## Dataset and sample description
+# Dataset and sample description
 
 The report uses the consolidated long experimental dataset as the single analytical source.
 Each participant contributes 20 judgement rows in principle: ten scenarios multiplied by two target-negotiator evaluations.
@@ -68,7 +70,7 @@ The authoritative interpretation is that each player observes ten scenarios and 
 | Bystander | 2430 | 243 | 1.741 | 6.500 |
 
 
-## Datacard and symbol dictionary
+# Datacard and symbol dictionary
 
 **Table 3. Datacard symbol dictionary**
 
@@ -97,42 +99,44 @@ The authoritative interpretation is that each player observes ten scenarios and 
 | duplicated_source_row_numbers | 0 |
 
 
-## Predictor glossary and abbreviation note
+# Predictor glossary
 
-**Table 5. Predictor glossary**
+**Table 5. Predictor glossary (reader version)**
 
-| predictor | compact_label | meaning |
-| --- | --- | --- |
-| iri_fs | FS | Fantasy empathy dimension. |
-| iri_ec | EC | Empathic concern empathy dimension. |
-| iri_pt | PT | Perspective-taking empathy dimension. |
-| iri_pd | PD | Personal-distress empathy dimension. |
-| victim_N1_groupingroup | V-N1 In | Victim and N1 are from the same faculty, relative to the ingroup baseline. |
-| victim_N1_groupoutgroup | V-N1 Out | Victim and N1 are from different faculties, relative to the ingroup baseline. |
-| victim_N2_groupingroup | V-N2 In | Victim and N2 are from the same faculty, relative to the ingroup baseline. |
-| victim_N2_groupoutgroup | V-N2 Out | Victim and N2 are from different faculties, relative to the ingroup baseline. |
-| bystander_victim_groupoutgroup | B-V Out | Bystander and victim are from different faculties, relative to ingroup. |
-| bystander_N1_groupingroup | B-N1 In | Bystander and N1 are from the same faculty, relative to the ingroup baseline. |
-| bystander_N1_groupoutgroup | B-N1 Out | Bystander and N1 are from different faculties, relative to the ingroup baseline. |
-| bystander_N2_groupingroup | B-N2 In | Bystander and N2 are from the same faculty, relative to the ingroup baseline. |
-| bystander_N2_groupoutgroup | B-N2 Out | Bystander and N2 are from different faculties, relative to the ingroup baseline. |
-| N1_N2_same_facultysame | SameFac | N1 and N2 share faculty, relative to different-faculty context. |
-| iri_fs:victim_N1_groupoutgroup | FS x V-N1 Out | Fantasy slope difference when victim-N1 is outgroup rather than ingroup. |
-| iri_ec:victim_N2_groupoutgroup | EC x V-N2 Out | Empathic-concern slope difference when victim-N2 is outgroup rather than ingroup. |
-| iri_pt:bystander_victim_groupoutgroup | PT x B-V Out | Perspective-taking slope difference when the bystander-victim relation is outgroup rather than ingroup. |
-| iri_pd:bystander_N1_groupoutgroup | PD x B-N1 Out | Personal-distress slope difference when the bystander-N1 relation is outgroup rather than ingroup. |
-| decision_target | Target Acc | Target negotiator accepted the harmful deal. |
-| decision_other | Other Acc | Other negotiator accepted the harmful deal. |
-| decision_target:decision_other | Target x Other | Joint decision effect when both negotiator decisions are considered together. |
-| faculty_player_factorEngineering | Eng part. | Participant belongs to Engineering, relative to Humanities. |
-| sex_female | Woman | Participant is a woman. |
-| age | Age | Participant age. |
-| ses | SES | Participant socioeconomic status. |
+| Code | Interpretation |
+| --- | --- |
+| FS | Fantasy empathy dimension. |
+| EC | Empathic concern empathy dimension. |
+| PT | Perspective-taking empathy dimension. |
+| PD | Personal-distress empathy dimension. |
+| V-N1 In | Victim and N1 are from the same faculty. |
+| V-N1 Out | Victim and N1 are from different faculties. |
+| V-N2 In | Victim and N2 are from the same faculty. |
+| V-N2 Out | Victim and N2 are from different faculties. |
+| B-V Out | Bystander and victim are from different faculties. |
+| B-N1 In | Bystander and N1 are from the same faculty. |
+| B-N1 Out | Bystander and N1 are from different faculties. |
+| B-N2 In | Bystander and N2 are from the same faculty. |
+| B-N2 Out | Bystander and N2 are from different faculties. |
+| SameFac | N1 and N2 share faculty membership. |
+| FS x V-N1 Out | Fantasy slope difference when victim-N1 is outgroup rather than ingroup. |
+| EC x V-N2 Out | Empathic-concern slope difference when victim-N2 is outgroup rather than ingroup. |
+| PT x B-V Out | Perspective-taking slope difference when the bystander-victim relation is outgroup rather than ingroup. |
+| PD x B-N1 Out | Personal-distress slope difference when the bystander-N1 relation is outgroup rather than ingroup. |
+| Target Acc | Target negotiator accepted the harmful deal. |
+| Other Acc | Other negotiator accepted the harmful deal. |
+| Target x Other | Joint decision effect when both negotiator decisions are considered together. |
+| Eng part. | Participant belongs to Engineering, relative to Humanities. |
+| Woman | Participant is a woman. |
+| Age | Participant age. |
+| SES | Participant socioeconomic status. |
 
+
+Note. Group contrasts are interpreted against the ingroup baseline unless explicitly stated otherwise.
 
 The report keeps compact predictor references in figure captions and narratives, but the glossary above remains the authoritative mapping back to the current pipeline variables.
 
-## Interaction interpretation rules
+# Interaction interpretation rules
 
 1. When an interaction is statistically relevant, the main effects should be read as the baseline component of the relationship rather than the whole substantive story.
 2. Continuous-by-factor interactions indicate that the empathy slope changes across relational conditions.
@@ -140,57 +144,68 @@ The report keeps compact predictor references in figure captions and narratives,
 4. The target-by-other decision interaction indicates that the moral meaning of one negotiator's choice depends on what the counterpart did.
 5. Session effects are adjustment terms only and are not interpreted as substantive experimental mechanisms.
 
-## H1-H5 hypotheses with role-specific equation summaries
+# H1-H5 hypotheses with role-specific equation summaries
 
-**Table 6. H1-H5 role-specific formulas and theoretical focus**
-
-| hypothesis | role | formula_rhs | theoretical_focus |
-| --- | --- | --- | --- |
-| H1 | Victim | iri_fs + iri_ec + iri_pt + iri_pd + age + ses + sex_female + faculty_player_factor + factor(session) | Empathy dimensions only, always adjusted by sociodemographics. |
-| H1 | Bystander | iri_fs + iri_ec + iri_pt + iri_pd + age + ses + sex_female + faculty_player_factor + factor(session) | Empathy dimensions only, always adjusted by sociodemographics. |
-| H2 | Victim | victim_N1_group + victim_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + age + ses + sex_female + faculty_player_factor + factor(session) | Victim-side ingroup/outgroup structure with the allowed N1 x N2 relational interaction. |
-| H2 | Bystander | bystander_victim_group + bystander_N1_group + bystander_N2_group + victim_N1_group + victim_N2_group + bystander_N1_group:bystander_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + age + ses + sex_female + faculty_player_factor + factor(session) | Bystander-side relational structure with explicit bystander-victim, bystander-negotiator, victim-negotiator, and N1/N2 context terms. |
-| H3 | Victim | iri_fs + iri_ec + iri_pt + iri_pd + victim_N1_group + victim_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:victim_N1_group + iri_fs:victim_N2_group + iri_ec:victim_N1_group + iri_ec:victim_N2_group + iri_pt:victim_N1_group + iri_pt:victim_N2_group + iri_pd:victim_N1_group + iri_pd:victim_N2_group + age + ses + sex_female + faculty_player_factor + factor(session) | Empathy plus victim-side relational structure, including empathy x victim-N1 and empathy x victim-N2 interactions because empathy may depend on negotiator closeness. |
-| H3 | Bystander | iri_fs + iri_ec + iri_pt + iri_pd + bystander_victim_group + bystander_N1_group + bystander_N2_group + victim_N1_group + victim_N2_group + bystander_N1_group:bystander_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:bystander_victim_group + iri_fs:bystander_N1_group + iri_fs:bystander_N2_group + iri_ec:bystander_victim_group + iri_ec:bystander_N1_group + iri_ec:bystander_N2_group + iri_pt:bystander_victim_group + iri_pt:bystander_N1_group + iri_pt:bystander_N2_group + iri_pd:bystander_victim_group + iri_pd:bystander_N1_group + iri_pd:bystander_N2_group + age + ses + sex_female + faculty_player_factor + factor(session) | Empathy plus bystander-side relational structure, including empathy x bystander-victim and empathy x bystander-negotiator interactions because empathy may depend on group closeness in the bystander role. |
-| H4 | Victim | decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) | Target and other negotiator decisions with their interaction, plus sociodemographics. |
-| H4 | Bystander | decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) | Target and other negotiator decisions with their interaction, plus sociodemographics. |
-| H5 | Victim | iri_fs + iri_ec + iri_pt + iri_pd + victim_N1_group + victim_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:victim_N1_group + iri_fs:victim_N2_group + iri_ec:victim_N1_group + iri_ec:victim_N2_group + iri_pt:victim_N1_group + iri_pt:victim_N2_group + iri_pd:victim_N1_group + iri_pd:victim_N2_group + decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) | Integrated model with empathy, victim-side relations, empathy x group interactions, decisions, and the victim-side relational interaction. |
-| H5 | Bystander | iri_fs + iri_ec + iri_pt + iri_pd + bystander_victim_group + bystander_N1_group + bystander_N2_group + victim_N1_group + victim_N2_group + bystander_N1_group:bystander_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:bystander_victim_group + iri_fs:bystander_N1_group + iri_fs:bystander_N2_group + iri_ec:bystander_victim_group + iri_ec:bystander_N1_group + iri_ec:bystander_N2_group + iri_pt:bystander_victim_group + iri_pt:bystander_N1_group + iri_pt:bystander_N2_group + iri_pd:bystander_victim_group + iri_pd:bystander_N1_group + iri_pd:bystander_N2_group + decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) | Integrated model with empathy, bystander-side relations, empathy x group interactions, decisions, and the role-specific relational interactions. |
-
+\begingroup
+\setlength{\tabcolsep}{2pt}
+\scriptsize
+\begin{longtable}{@{}>{\raggedright\arraybackslash\hspace{0pt}}p{0.06\textwidth}>{\raggedright\arraybackslash\hspace{0pt}}p{0.12\textwidth}>{\raggedright\arraybackslash\hspace{0pt}}p{0.58\textwidth}>{\raggedright\arraybackslash\hspace{0pt}}p{0.24\textwidth}@{}}
+\caption{H1-H5 role-specific formulas and theoretical focus.}\label{tbl-formula-catalog}\\
+\toprule
+H & Role & Formula & Focus \\
+\midrule
+\endfirsthead
+\toprule
+H & Role & Formula & Focus \\
+\midrule
+\endhead
+H1 & Victim & iri\_fs  +  iri\_ec  +  iri\_pt  +  iri\_pd  +  age  +  ses  +  sex\_female  +  faculty\_player\_factor  +  factor(session) & Empathy dimensions only, always adjusted by sociodemographics. \\
+H1 & Bystander & iri\_fs  +  iri\_ec  +  iri\_pt  +  iri\_pd  +  age  +  ses  +  sex\_female  +  faculty\_player\_factor  +  factor(session) & Empathy dimensions only, always adjusted by sociodemographics. \\
+H2 & Victim & victim\_N1\_group  +  victim\_N2\_group  +  victim\_N1\_group : victim\_N2\_group  +  N1\_N2\_same\_faculty  +  age  +  ses  +  sex\_female  +  faculty\_player\_factor  +  factor(session) & Victim-side ingroup/outgroup structure with the allowed N1 x N2 relational interaction. \\
+H2 & Bystander & bystander\_victim\_group  +  bystander\_N1\_group  +  bystander\_N2\_group  +  victim\_N1\_group  +  victim\_N2\_group  +  bystander\_N1\_group : bystander\_N2\_group  +  victim\_N1\_group : victim\_N2\_group  +  N1\_N2\_same\_faculty  +  age  +  ses  +  sex\_female  +  faculty\_player\_factor  +  factor(session) & Bystander-side relational structure with explicit bystander-victim, bystander-negotiator, victim-negotiator, and N1/N2 context terms. \\
+H3 & Victim & iri\_fs  +  iri\_ec  +  iri\_pt  +  iri\_pd  +  victim\_N1\_group  +  victim\_N2\_group  +  victim\_N1\_group : victim\_N2\_group  +  N1\_N2\_same\_faculty  +  iri\_fs : victim\_N1\_group  +  iri\_fs : victim\_N2\_group  +  iri\_ec : victim\_N1\_group  +  iri\_ec : victim\_N2\_group  +  iri\_pt : victim\_N1\_group  +  iri\_pt : victim\_N2\_group  +  iri\_pd : victim\_N1\_group  +  iri\_pd : victim\_N2\_group  +  age  +  ses  +  sex\_female  +  faculty\_player\_factor  +  factor(session) & Empathy plus victim-side relational structure, including empathy x victim-N1 and empathy x victim-N2 interactions because empathy may depend on negotiator closeness. \\
+H3 & Bystander & iri\_fs  +  iri\_ec  +  iri\_pt  +  iri\_pd  +  bystander\_victim\_group  +  bystander\_N1\_group  +  bystander\_N2\_group  +  victim\_N1\_group  +  victim\_N2\_group  +  bystander\_N1\_group : bystander\_N2\_group  +  victim\_N1\_group : victim\_N2\_group  +  N1\_N2\_same\_faculty  +  iri\_fs : bystander\_victim\_group  +  iri\_fs : bystander\_N1\_group  +  iri\_fs : bystander\_N2\_group  +  iri\_ec : bystander\_victim\_group  +  iri\_ec : bystander\_N1\_group  +  iri\_ec : bystander\_N2\_group  +  iri\_pt : bystander\_victim\_group  +  iri\_pt : bystander\_N1\_group  +  iri\_pt : bystander\_N2\_group  +  iri\_pd : bystander\_victim\_group  +  iri\_pd : bystander\_N1\_group  +  iri\_pd : bystander\_N2\_group  +  age  +  ses  +  sex\_female  +  faculty\_player\_factor  +  factor(session) & Empathy plus bystander-side relational structure, including empathy x bystander-victim and empathy x bystander-negotiator interactions because empathy may depend on group closeness in the bystander role. \\
+H4 & Victim & decision\_target * decision\_other  +  age  +  ses  +  sex\_female  +  faculty\_player\_factor  +  factor(session) & Target and other negotiator decisions with their interaction, plus sociodemographics. \\
+H4 & Bystander & decision\_target * decision\_other  +  age  +  ses  +  sex\_female  +  faculty\_player\_factor  +  factor(session) & Target and other negotiator decisions with their interaction, plus sociodemographics. \\
+H5 & Victim & iri\_fs  +  iri\_ec  +  iri\_pt  +  iri\_pd  +  victim\_N1\_group  +  victim\_N2\_group  +  victim\_N1\_group : victim\_N2\_group  +  N1\_N2\_same\_faculty  +  iri\_fs : victim\_N1\_group  +  iri\_fs : victim\_N2\_group  +  iri\_ec : victim\_N1\_group  +  iri\_ec : victim\_N2\_group  +  iri\_pt : victim\_N1\_group  +  iri\_pt : victim\_N2\_group  +  iri\_pd : victim\_N1\_group  +  iri\_pd : victim\_N2\_group  +  decision\_target * decision\_other  +  age  +  ses  +  sex\_female  +  faculty\_player\_factor  +  factor(session) & Integrated model with empathy, victim-side relations, empathy x group interactions, decisions, and the victim-side relational interaction. \\
+H5 & Bystander & iri\_fs  +  iri\_ec  +  iri\_pt  +  iri\_pd  +  bystander\_victim\_group  +  bystander\_N1\_group  +  bystander\_N2\_group  +  victim\_N1\_group  +  victim\_N2\_group  +  bystander\_N1\_group : bystander\_N2\_group  +  victim\_N1\_group : victim\_N2\_group  +  N1\_N2\_same\_faculty  +  iri\_fs : bystander\_victim\_group  +  iri\_fs : bystander\_N1\_group  +  iri\_fs : bystander\_N2\_group  +  iri\_ec : bystander\_victim\_group  +  iri\_ec : bystander\_N1\_group  +  iri\_ec : bystander\_N2\_group  +  iri\_pt : bystander\_victim\_group  +  iri\_pt : bystander\_N1\_group  +  iri\_pt : bystander\_N2\_group  +  iri\_pd : bystander\_victim\_group  +  iri\_pd : bystander\_N1\_group  +  iri\_pd : bystander\_N2\_group  +  decision\_target * decision\_other  +  age  +  ses  +  sex\_female  +  faculty\_player\_factor  +  factor(session) & Integrated model with empathy, bystander-side relations, empathy x group interactions, decisions, and the role-specific relational interactions. \\
+\bottomrule
+\end{longtable}
+\endgroup
 
 Any earlier repository note that described negotiator code `0` as a hidden label or that narrowed H3 to additive effects only should now be treated as outdated. The active formulas below are the authoritative specification.
 
-### H1
+## H1
 
 `Victim`: `iri_fs + iri_ec + iri_pt + iri_pd + age + ses + sex_female + faculty_player_factor + factor(session)`
 
 `Bystander`: `iri_fs + iri_ec + iri_pt + iri_pd + age + ses + sex_female + faculty_player_factor + factor(session)`
 
-### H2
+## H2
 
 `Victim`: `victim_N1_group + victim_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + age + ses + sex_female + faculty_player_factor + factor(session)`
 
 `Bystander`: `bystander_victim_group + bystander_N1_group + bystander_N2_group + victim_N1_group + victim_N2_group + bystander_N1_group:bystander_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + age + ses + sex_female + faculty_player_factor + factor(session)`
 
-### H3
+## H3
 
 `Victim`: `iri_fs + iri_ec + iri_pt + iri_pd + victim_N1_group + victim_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:victim_N1_group + iri_fs:victim_N2_group + iri_ec:victim_N1_group + iri_ec:victim_N2_group + iri_pt:victim_N1_group + iri_pt:victim_N2_group + iri_pd:victim_N1_group + iri_pd:victim_N2_group + age + ses + sex_female + faculty_player_factor + factor(session)`
 
 `Bystander`: `iri_fs + iri_ec + iri_pt + iri_pd + bystander_victim_group + bystander_N1_group + bystander_N2_group + victim_N1_group + victim_N2_group + bystander_N1_group:bystander_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:bystander_victim_group + iri_fs:bystander_N1_group + iri_fs:bystander_N2_group + iri_ec:bystander_victim_group + iri_ec:bystander_N1_group + iri_ec:bystander_N2_group + iri_pt:bystander_victim_group + iri_pt:bystander_N1_group + iri_pt:bystander_N2_group + iri_pd:bystander_victim_group + iri_pd:bystander_N1_group + iri_pd:bystander_N2_group + age + ses + sex_female + faculty_player_factor + factor(session)`
 
-### H4
+## H4
 
 `Victim`: `decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session)`
 
 `Bystander`: `decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session)`
 
-### H5
+## H5
 
 `Victim`: `iri_fs + iri_ec + iri_pt + iri_pd + victim_N1_group + victim_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:victim_N1_group + iri_fs:victim_N2_group + iri_ec:victim_N1_group + iri_ec:victim_N2_group + iri_pt:victim_N1_group + iri_pt:victim_N2_group + iri_pd:victim_N1_group + iri_pd:victim_N2_group + decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session)`
 
 `Bystander`: `iri_fs + iri_ec + iri_pt + iri_pd + bystander_victim_group + bystander_N1_group + bystander_N2_group + victim_N1_group + victim_N2_group + bystander_N1_group:bystander_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:bystander_victim_group + iri_fs:bystander_N1_group + iri_fs:bystander_N2_group + iri_ec:bystander_victim_group + iri_ec:bystander_N1_group + iri_ec:bystander_N2_group + iri_pt:bystander_victim_group + iri_pt:bystander_N1_group + iri_pt:bystander_N2_group + iri_pd:bystander_victim_group + iri_pd:bystander_N1_group + iri_pd:bystander_N2_group + decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session)`
 
-## Mathematical foundations
+# Mathematical foundations
 
 The primary estimator is a two-sided Tobit fitted with `survival::survreg`.
 
@@ -203,11 +218,11 @@ This report therefore treats session as an implemented fixed-effect adjustment, 
 
 In this production branch, `factor(session)` is reported instead of `(1|session)` because the fitted estimator is a two-sided Tobit with session fixed effects and participant-cluster robust standard errors. The report does not claim a random session intercept that was not actually estimated.
 
-## Dependence and effective sample size diagnostic
+# Dependence and effective sample size diagnostic
 
 The following clustering diagnostic is descriptive. It summarizes within-participant dependence in the observed data and should not be read as evidence that the fitted estimator included participant random intercepts.
 
-**Table 7. Descriptive clustering diagnostic**
+**Table 6. Descriptive clustering diagnostic**
 
 | metric | value |
 | --- | --- |
@@ -221,9 +236,9 @@ The following clustering diagnostic is descriptive. It summarizes within-partici
 
 Because the target of inference is repeated judgement within participant, the effective-sample-size table is a descriptive clustering diagnostic only; it does not replace the model-based dependence adjustment through `cluster = id` and `factor(session)`.
 
-## Descriptive statistics and figures
+# Descriptive statistics and figures
 
-**Table 8. Decision summary by role**
+**Table 7. Decision summary by role**
 
 | role_label | decision_pattern | n | mean_judgement |
 | --- | --- | --- | --- |
@@ -236,7 +251,7 @@ Because the target of inference is repeated judgement within participant, the ef
 | bystander | target_reject_other_accept | 568 | 4.958 |
 | victim | target_reject_other_accept | 579 | 5.378 |
 
-**Table 9. Role-specific ingroup/outgroup summary**
+**Table 8. Role-specific ingroup/outgroup summary**
 
 | variable | level | n |
 | --- | --- | --- |
@@ -253,7 +268,7 @@ Because the target of inference is repeated judgement within participant, the ef
 | N1_N2_same_faculty | different | 3276 |
 | N1_N2_same_faculty | same | 1584 |
 
-**Table 10. Participant-level empathy and mean judgement correlation matrix**
+**Table 9. Participant-level empathy and mean judgement correlation matrix**
 
 | term | iri_fs | iri_ec | iri_pt | iri_pd | judgement |
 | --- | --- | --- | --- | --- | --- |
@@ -278,28 +293,64 @@ These scatterplots show the participant-level descriptive relationship between e
 
 This figure shows the raw shape of the bounded judgement outcome in the victim and bystander subsets.
 
-![Observed decision patterns by role.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_decision_pattern_by_role.png)
+![Observed judgement distributions by role and target negotiator.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_judgement_distribution_by_role_and_target.png)
 
-This figure summarizes how the four joint decision contexts are distributed across roles.
+This figure shows whether the raw bounded judgement distribution differs depending on whether the evaluated target is N1 or N2 within victim and bystander settings.
 
-## Estimator fit summary
+![Observed judgement distributions by role and target decision.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_judgement_distribution_by_role_and_target_decision.png)
+
+This figure isolates whether the target's own acceptance or rejection is associated with different raw judgement profiles within each role.
+
+![Observed judgement distributions by role and counterpart decision.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_judgement_distribution_by_role_and_other_decision.png)
+
+This figure shows whether judgement of the target varies with the acceptance or rejection of the other negotiator.
+
+![Observed judgement distributions by role and joint decision pattern.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_judgement_distribution_by_role_and_decision_pattern.png)
+
+This figure shows how the target-focused judgement distribution changes across the four joint negotiation outcomes in victim and bystander settings.
+
+![Observed decision-pattern counts by role.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_decision_pattern_by_role.png)
+
+This figure summarizes how often each joint decision pattern appears in victim and bystander subsets.
+
+![Victim-role judgement distributions across N1 x N2 faculty pairings.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_judgement_distribution_victim_n1n2_faculty_grid.png)
+
+This figure shows how the raw judgement distribution varies across the full relational space defined by the faculty pairing of N1 and N2.
+
+![Bystander-role judgement distributions across N1 x N2 faculty pairings.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_judgement_distribution_bystander_n1n2_faculty_grid.png)
+
+This figure shows how the raw judgement distribution varies across the full relational space defined by the faculty pairing of N1 and N2.
+
+![Victim-role judgement distributions across victim-N1 and victim-N2 ingroup/outgroup combinations.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_judgement_distribution_victim_group_grid.png)
+
+This optional figure highlights how raw victim-role judgement varies across victim-centered ingroup/outgroup combinations.
+
+![Bystander-role judgement distributions across bystander-N1 and bystander-N2 ingroup/outgroup combinations.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_judgement_distribution_bystander_playerN1_playerN2_grid.png)
+
+This optional figure emphasizes bystander-side relational combinations directly tied to N1 and N2 group alignment.
+
+![Bystander-role judgement distributions across victim-N1 and victim-N2 ingroup/outgroup combinations.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_judgement_distribution_bystander_victimN1_victimN2_grid.png)
+
+This optional figure shows how bystander judgement co-varies with victim-centered relational combinations in the same observed rows.
+
+# Estimator fit summary
 
 Bystander models use 2,420 observations from 243 participants.
 Victim models use 2,420 observations from 243 participants.
 
 All production models use the estimator configuration shown below.
 
-**Table 11. Estimator configuration**
+**Table 10. Estimator configuration**
 
 | Estimator | Session handling | Dependence |
 | --- | --- | --- |
 | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id |
 
-### Model-level fit and censoring summary
+## Model-level fit and censoring summary
 
-#### Bystander models
+### Bystander models
 
-**Table 12. Bystander model fit and censoring summary**
+**Table 11. Bystander model fit and censoring summary**
 
 | H | L. cens. | U. cens. | AIC | BIC | Sigma |
 | --- | --- | --- | --- | --- | --- |
@@ -309,9 +360,9 @@ All production models use the estimator configuration shown below.
 | H4 | 300 | 723 | 11060.300 | 11199.300 | 6.917 |
 | H5 | 300 | 723 | 11080.200 | 11358.200 | 6.876 |
 
-#### Victim models
+### Victim models
 
-**Table 13. Victim model fit and censoring summary**
+**Table 12. Victim model fit and censoring summary**
 
 | H | L. cens. | U. cens. | AIC | BIC | Sigma |
 | --- | --- | --- | --- | --- | --- |
@@ -321,11 +372,11 @@ All production models use the estimator configuration shown below.
 | H4 | 377 | 744 | 10747.900 | 10886.900 | 7.626 |
 | H5 | 377 | 744 | 10749.300 | 10980.900 | 7.570 |
 
-## Hypothesis significance summary by role
+# Hypothesis significance summary by role
 
-### Victim
+## Victim
 
-**Table 14. Victim focal support terms (p < 0.10)**
+**Table 13. Victim focal support terms (p < 0.10)**
 
 | hypothesis | role | support |
 | --- | --- | --- |
@@ -335,9 +386,9 @@ All production models use the estimator configuration shown below.
 | H4 | Victim | Target accepted***; Other negotiator accepted***; Target accepted x Other accepted*** |
 | H5 | Victim | Empathy: Fantasy*; Victim-N2 outgroup vs ingroup+; Target accepted***; Other negotiator accepted***; Empathy: Fantasy x Victim-N1 outgroup vs ingroup+; Target accepted x Other accepted*** |
 
-### Bystander
+## Bystander
 
-**Table 15. Bystander focal support terms (p < 0.10)**
+**Table 14. Bystander focal support terms (p < 0.10)**
 
 | hypothesis | role | support |
 | --- | --- | --- |
@@ -347,223 +398,223 @@ All production models use the estimator configuration shown below.
 | H4 | Bystander | Target accepted***; Other negotiator accepted***; Target accepted x Other accepted*** |
 | H5 | Bystander | Victim-N1 outgroup vs ingroup*; Victim-N2 outgroup vs ingroup*; Target accepted***; Other negotiator accepted***; Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup*; Empathy: Fantasy x Bystander-victim outgroup vs ingroup*; Target accepted x Other accepted*** |
 
-## Significance-driven figures
+# Significance-driven figures
 
-### H1 Victim: Empathy: Perspective taking
+## H1 Victim: Empathy: Perspective taking
 
 ![H1 Victim: model-implied predictions for Empathy: Perspective taking.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h1_victim_iri_pt.png)
 
 Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.
 
-### H2 Bystander: Bystander-N2 outgroup vs ingroup
+## H2 Bystander: Bystander-N2 outgroup vs ingroup
 
 ![H2 Bystander: model-implied predictions for Bystander-N2 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h2_bystander_bystander_n2_groupoutgroup.png)
 
 Across the displayed contrast, the model implies lower predicted judgement toward the right-hand side of the plot.
 
-### H2 Bystander: Victim-N1 outgroup vs ingroup
+## H2 Bystander: Victim-N1 outgroup vs ingroup
 
 ![H2 Bystander: model-implied predictions for Victim-N1 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h2_bystander_victim_n1_groupoutgroup.png)
 
 Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.
 
-### H2 Bystander: Victim-N2 outgroup vs ingroup
+## H2 Bystander: Victim-N2 outgroup vs ingroup
 
 ![H2 Bystander: model-implied predictions for Victim-N2 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h2_bystander_victim_n2_groupoutgroup.png)
 
 Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.
 
-### H2 Bystander: Bystander-N1 outgroup vs ingroup x Bystander-N2 outgroup vs ingroup
+## H2 Bystander: Bystander-N1 outgroup vs ingroup x Bystander-N2 outgroup vs ingroup
 
 ![H2 Bystander: model-implied predictions for Bystander-N1 outgroup vs ingroup x Bystander-N2 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h2_bystander_bystander_n1_groupoutgroup_bystander_n2_groupoutgr.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-### H2 Bystander: Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup
+## H2 Bystander: Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup
 
 ![H2 Bystander: model-implied predictions for Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h2_bystander_victim_n1_groupoutgroup_victim_n2_groupoutgroup.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-### H3 Victim: Empathy: Fantasy
+## H3 Victim: Empathy: Fantasy
 
 ![H3 Victim: model-implied predictions for Empathy: Fantasy.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h3_victim_iri_fs.png)
 
 Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.
 
-### H3 Victim: Empathy: Perspective taking
+## H3 Victim: Empathy: Perspective taking
 
 ![H3 Victim: model-implied predictions for Empathy: Perspective taking.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h3_victim_iri_pt.png)
 
 Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.
 
-### H3 Bystander: Empathy: Empathic concern
+## H3 Bystander: Empathy: Empathic concern
 
 ![H3 Bystander: model-implied predictions for Empathy: Empathic concern.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h3_bystander_iri_ec.png)
 
 Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.
 
-### H3 Bystander: Empathy: Personal distress
+## H3 Bystander: Empathy: Personal distress
 
 ![H3 Bystander: model-implied predictions for Empathy: Personal distress.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h3_bystander_iri_pd.png)
 
 Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.
 
-### H3 Bystander: Victim-N1 outgroup vs ingroup
+## H3 Bystander: Victim-N1 outgroup vs ingroup
 
 ![H3 Bystander: model-implied predictions for Victim-N1 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h3_bystander_victim_n1_groupoutgroup.png)
 
 Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.
 
-### H3 Bystander: Victim-N2 outgroup vs ingroup
+## H3 Bystander: Victim-N2 outgroup vs ingroup
 
 ![H3 Bystander: model-implied predictions for Victim-N2 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h3_bystander_victim_n2_groupoutgroup.png)
 
 Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.
 
-### H3 Bystander: Bystander-N1 outgroup vs ingroup x Bystander-N2 outgroup vs ingroup
+## H3 Bystander: Bystander-N1 outgroup vs ingroup x Bystander-N2 outgroup vs ingroup
 
 ![H3 Bystander: model-implied predictions for Bystander-N1 outgroup vs ingroup x Bystander-N2 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h3_bystander_bystander_n1_groupoutgroup_bystander_n2_groupoutgr.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-### H3 Bystander: Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup
+## H3 Bystander: Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup
 
 ![H3 Bystander: model-implied predictions for Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h3_bystander_victim_n1_groupoutgroup_victim_n2_groupoutgroup.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-### H3 Bystander: Empathy: Fantasy x Bystander-victim outgroup vs ingroup
+## H3 Bystander: Empathy: Fantasy x Bystander-victim outgroup vs ingroup
 
 ![H3 Bystander: model-implied predictions for Empathy: Fantasy x Bystander-victim outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h3_bystander_iri_fs_bystander_victim_groupoutgroup.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-### H3 Bystander: Empathy: Personal distress x Bystander-victim outgroup vs ingroup
+## H3 Bystander: Empathy: Personal distress x Bystander-victim outgroup vs ingroup
 
 ![H3 Bystander: model-implied predictions for Empathy: Personal distress x Bystander-victim outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h3_bystander_iri_pd_bystander_victim_groupoutgroup.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-### H4 Victim: Target accepted
+## H4 Victim: Target accepted
 
 ![H4 Victim: model-implied predictions for Target accepted.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h4_victim_decision_target.png)
 
 Across the displayed contrast, the model implies lower predicted judgement toward the right-hand side of the plot.
 
-### H4 Victim: Other negotiator accepted
+## H4 Victim: Other negotiator accepted
 
 ![H4 Victim: model-implied predictions for Other negotiator accepted.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h4_victim_decision_other.png)
 
 Across the displayed contrast, the model implies lower predicted judgement toward the right-hand side of the plot.
 
-### H4 Victim: Target accepted x Other accepted
+## H4 Victim: Target accepted x Other accepted
 
 ![H4 Victim: model-implied predictions for Target accepted x Other accepted.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h4_victim_decision_target_decision_other.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-### H4 Bystander: Target accepted
+## H4 Bystander: Target accepted
 
 ![H4 Bystander: model-implied predictions for Target accepted.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h4_bystander_decision_target.png)
 
 Across the displayed contrast, the model implies lower predicted judgement toward the right-hand side of the plot.
 
-### H4 Bystander: Other negotiator accepted
+## H4 Bystander: Other negotiator accepted
 
 ![H4 Bystander: model-implied predictions for Other negotiator accepted.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h4_bystander_decision_other.png)
 
 Across the displayed contrast, the model implies lower predicted judgement toward the right-hand side of the plot.
 
-### H4 Bystander: Target accepted x Other accepted
+## H4 Bystander: Target accepted x Other accepted
 
 ![H4 Bystander: model-implied predictions for Target accepted x Other accepted.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h4_bystander_decision_target_decision_other.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-### H5 Victim: Empathy: Fantasy
+## H5 Victim: Empathy: Fantasy
 
 ![H5 Victim: model-implied predictions for Empathy: Fantasy.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_victim_iri_fs.png)
 
 Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.
 
-### H5 Victim: Victim-N2 outgroup vs ingroup
+## H5 Victim: Victim-N2 outgroup vs ingroup
 
 ![H5 Victim: model-implied predictions for Victim-N2 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_victim_victim_n2_groupoutgroup.png)
 
 Across the displayed contrast, the model implies lower predicted judgement toward the right-hand side of the plot.
 
-### H5 Victim: Target accepted
+## H5 Victim: Target accepted
 
 ![H5 Victim: model-implied predictions for Target accepted.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_victim_decision_target.png)
 
 Across the displayed contrast, the model implies lower predicted judgement toward the right-hand side of the plot.
 
-### H5 Victim: Other negotiator accepted
+## H5 Victim: Other negotiator accepted
 
 ![H5 Victim: model-implied predictions for Other negotiator accepted.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_victim_decision_other.png)
 
 Across the displayed contrast, the model implies lower predicted judgement toward the right-hand side of the plot.
 
-### H5 Victim: Empathy: Fantasy x Victim-N1 outgroup vs ingroup
+## H5 Victim: Empathy: Fantasy x Victim-N1 outgroup vs ingroup
 
 ![H5 Victim: model-implied predictions for Empathy: Fantasy x Victim-N1 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_victim_iri_fs_victim_n1_groupoutgroup.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-### H5 Victim: Target accepted x Other accepted
+## H5 Victim: Target accepted x Other accepted
 
 ![H5 Victim: model-implied predictions for Target accepted x Other accepted.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_victim_decision_target_decision_other.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-### H5 Bystander: Victim-N1 outgroup vs ingroup
+## H5 Bystander: Victim-N1 outgroup vs ingroup
 
 ![H5 Bystander: model-implied predictions for Victim-N1 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_bystander_victim_n1_groupoutgroup.png)
 
 Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.
 
-### H5 Bystander: Victim-N2 outgroup vs ingroup
+## H5 Bystander: Victim-N2 outgroup vs ingroup
 
 ![H5 Bystander: model-implied predictions for Victim-N2 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_bystander_victim_n2_groupoutgroup.png)
 
 Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.
 
-### H5 Bystander: Target accepted
+## H5 Bystander: Target accepted
 
 ![H5 Bystander: model-implied predictions for Target accepted.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_bystander_decision_target.png)
 
 Across the displayed contrast, the model implies lower predicted judgement toward the right-hand side of the plot.
 
-### H5 Bystander: Other negotiator accepted
+## H5 Bystander: Other negotiator accepted
 
 ![H5 Bystander: model-implied predictions for Other negotiator accepted.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_bystander_decision_other.png)
 
 Across the displayed contrast, the model implies lower predicted judgement toward the right-hand side of the plot.
 
-### H5 Bystander: Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup
+## H5 Bystander: Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup
 
 ![H5 Bystander: model-implied predictions for Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_bystander_victim_n1_groupoutgroup_victim_n2_groupoutgroup.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-### H5 Bystander: Empathy: Fantasy x Bystander-victim outgroup vs ingroup
+## H5 Bystander: Empathy: Fantasy x Bystander-victim outgroup vs ingroup
 
 ![H5 Bystander: model-implied predictions for Empathy: Fantasy x Bystander-victim outgroup vs ingroup.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_bystander_iri_fs_bystander_victim_groupoutgroup.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-### H5 Bystander: Target accepted x Other accepted
+## H5 Bystander: Target accepted x Other accepted
 
 ![H5 Bystander: model-implied predictions for Target accepted x Other accepted.](C:/Users/LEONA/Documents/GitHub/TOBIT/outputs/figures/figure_h5_bystander_decision_target_decision_other.png)
 
-The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile.
+The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.
 
-## Full coefficient tables and interpretation summary
+# Full coefficient tables and interpretation summary
 
-### H1 Victim coefficient table
+## H1 Victim coefficient table
 
-**Table 16. H1 Victim coefficient estimates**
+**Table 15. H1 Victim coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -580,9 +631,9 @@ The plotted lines summarize how the fitted predicted judgement changes across th
 
 The H1 Victim model shows focal evidence for one hypothesis terms. Empathy: Perspective taking is associated with higher predicted judgement (estimate = 1.77, p = 0.004**). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
-### H1 Bystander coefficient table
+## H1 Bystander coefficient table
 
-**Table 17. H1 Bystander coefficient estimates**
+**Table 16. H1 Bystander coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -599,9 +650,9 @@ The H1 Victim model shows focal evidence for one hypothesis terms. Empathy: Pers
 
 In the H1 Bystander model, no focal hypothesis term reached p < 0.10. The report therefore retains the coefficient table for auditability but does not attach a significance-driven substantive interpretation beyond the descriptive prediction plots.
 
-### H2 Victim coefficient table
+## H2 Victim coefficient table
 
-**Table 18. H2 Victim coefficient estimates**
+**Table 17. H2 Victim coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -618,9 +669,9 @@ In the H1 Bystander model, no focal hypothesis term reached p < 0.10. The report
 
 In the H2 Victim model, no focal hypothesis term reached p < 0.10. The report therefore retains the coefficient table for auditability but does not attach a significance-driven substantive interpretation beyond the descriptive prediction plots.
 
-### H2 Bystander coefficient table
+## H2 Bystander coefficient table
 
-**Table 19. H2 Bystander coefficient estimates**
+**Table 18. H2 Bystander coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -641,9 +692,9 @@ In the H2 Victim model, no focal hypothesis term reached p < 0.10. The report th
 
 The H2 Bystander model shows focal evidence for 5 hypothesis terms. Victim-N2 outgroup vs ingroup is associated with lower predicted judgement (estimate = -2.33, p = 0.055+). Bystander-N2 outgroup vs ingroup is associated with higher predicted judgement (estimate = 2.08, p = 0.063+). Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup is associated with higher predicted judgement (estimate = 2.88, p = 0.068+). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
-### H3 Victim coefficient table
+## H3 Victim coefficient table
 
-**Table 20. H3 Victim coefficient estimates**
+**Table 19. H3 Victim coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -672,9 +723,9 @@ The H2 Bystander model shows focal evidence for 5 hypothesis terms. Victim-N2 ou
 
 The H3 Victim model shows focal evidence for 2 hypothesis terms. Empathy: Fantasy is associated with higher predicted judgement (estimate = 2.04, p = 0.017*). Empathy: Perspective taking is associated with higher predicted judgement (estimate = 1.68, p = 0.087+). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
-### H3 Bystander coefficient table
+## H3 Bystander coefficient table
 
-**Table 21. H3 Bystander coefficient estimates**
+**Table 20. H3 Bystander coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -711,9 +762,9 @@ The H3 Victim model shows focal evidence for 2 hypothesis terms. Empathy: Fantas
 
 The H3 Bystander model shows focal evidence for 8 hypothesis terms. Empathy: Personal distress x Bystander-victim outgroup vs ingroup is associated with higher predicted judgement (estimate = 1.65, p = 0.032*). Victim-N2 outgroup vs ingroup is associated with lower predicted judgement (estimate = -2.32, p = 0.057+). Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup is associated with higher predicted judgement (estimate = 2.83, p = 0.072+). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
-### H4 Victim coefficient table
+## H4 Victim coefficient table
 
-**Table 22. H4 Victim coefficient estimates**
+**Table 21. H4 Victim coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -729,9 +780,9 @@ The H3 Bystander model shows focal evidence for 8 hypothesis terms. Empathy: Per
 
 The H4 Victim model shows focal evidence for 3 hypothesis terms. Target accepted is associated with lower predicted judgement (estimate = -16.98, p = <0.001***). Target accepted x Other accepted is associated with higher predicted judgement (estimate = 4.56, p = <0.001***). Other negotiator accepted is associated with lower predicted judgement (estimate = -3.95, p = <0.001***). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
-### H4 Bystander coefficient table
+## H4 Bystander coefficient table
 
-**Table 23. H4 Bystander coefficient estimates**
+**Table 22. H4 Bystander coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -747,9 +798,9 @@ The H4 Victim model shows focal evidence for 3 hypothesis terms. Target accepted
 
 The H4 Bystander model shows focal evidence for 3 hypothesis terms. Target accepted is associated with lower predicted judgement (estimate = -15.35, p = <0.001***). Other negotiator accepted is associated with lower predicted judgement (estimate = -4.26, p = <0.001***). Target accepted x Other accepted is associated with higher predicted judgement (estimate = 4.85, p = <0.001***). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
-### H5 Victim coefficient table
+## H5 Victim coefficient table
 
-**Table 24. H5 Victim coefficient estimates**
+**Table 23. H5 Victim coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -781,9 +832,9 @@ The H4 Bystander model shows focal evidence for 3 hypothesis terms. Target accep
 
 The H5 Victim model shows focal evidence for 6 hypothesis terms. Target accepted is associated with lower predicted judgement (estimate = -16.91, p = <0.001***). Target accepted x Other accepted is associated with higher predicted judgement (estimate = 4.44, p = <0.001***). Other negotiator accepted is associated with lower predicted judgement (estimate = -3.88, p = <0.001***). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
-### H5 Bystander coefficient table
+## H5 Bystander coefficient table
 
-**Table 25. H5 Bystander coefficient estimates**
+**Table 24. H5 Bystander coefficient estimates**
 
 | term_label | estimate | std_error | conf_low | conf_high | p_value_display |
 | --- | --- | --- | --- | --- | --- |
@@ -823,9 +874,9 @@ The H5 Victim model shows focal evidence for 6 hypothesis terms. Target accepted
 
 The H5 Bystander model shows focal evidence for 7 hypothesis terms. Target accepted is associated with lower predicted judgement (estimate = -15.38, p = <0.001***). Other negotiator accepted is associated with lower predicted judgement (estimate = -4.31, p = <0.001***). Target accepted x Other accepted is associated with higher predicted judgement (estimate = 4.89, p = <0.001***). Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative.
 
-## Compliance checklist
+# Compliance checklist
 
-**Table 26. Pipeline compliance checklist**
+**Table 25. Pipeline compliance checklist**
 
 | criterion | status | evidence |
 | --- | --- | --- |
@@ -838,17 +889,17 @@ The H5 Bystander model shows focal evidence for 7 hypothesis terms. Target accep
 | g) sociodemographics included in every hypothesis model | YES | Every H1-H5 formula retains age, ses, sex_female, and faculty_player_factor. |
 
 
-## Corrections relative to outdated notes
+# Corrections relative to outdated notes
 
 The current production branch supersedes earlier notes that treated the negotiator `0` code as `control_hidden`, narrowed H3 to additive-only empathy terms, or implied that the main estimator used `(1|session)`. The repository now documents the implemented estimator and the authoritative role-specific design directly.
 
-## Limitations
+# Limitations
 
 The production branch does not fit a full multilevel Tobit with explicit random participant and session intercepts inside the same estimator.
 Sparse relational cells can produce rank-deficient design matrices, so some interaction contrasts are dropped automatically and reported as such.
 The dynamic figures visualize model-implied predictions from the saved primary Tobit fits and should be interpreted jointly with the coefficient tables rather than as standalone causal effects.
 
-## Discussion
+# Discussion
 
 The empathy results speak to a mechanism in which moral judgement is not only a response to outcomes but also to dispositional social sensitivity. When empathy slopes vary across ingroup and outgroup relations, the findings support the original theoretical expectation that empathic orientation is filtered through perceived social closeness rather than operating as a uniform moral amplifier.
 
@@ -862,7 +913,7 @@ Methodologically, the active estimator is a two-sided Tobit with participant-clu
 
 The main limitations follow directly from that estimator choice and from the sparsity of some relational cells. The production branch does not estimate a full mixed Tobit, some interaction contrasts may be dropped in rank-deficient subsets, and any substantive reading should remain tied to the coefficient tables and model-implied figures rather than to isolated p-values. Future work should compare these production estimates against stable multilevel censored models, test alternative role-specific interaction sets, and examine whether the same theoretical patterns replicate under additional institutional or cultural contexts.
 
-## Final audit note
+# Final audit note
 
 The project now faithfully reflects the authoritative design in its production branch: `judgement` is the outcome, the long file remains the single source, one row remains one real observation, role-specific group definitions are used, `decision_target` and `decision_other` are modeled where required, and repeated measurements are handled through participant-cluster robust inference with `factor(session)`.
 
@@ -870,7 +921,90 @@ No rank-deficiency warning remained in the saved fit summary for this run.
 
 Estimator limitation: the production estimator is still a two-sided Tobit with `factor(session)` and participant-cluster robust standard errors by `id`, not a full mixed-effects Tobit with random participant and session intercepts.
 
-## Conclusion
+# Technical appendix: predictor code map
 
-The active workflow now reproduces a scientific dynamic report structure while remaining faithful to the implemented estimator: two-sided Tobit, `factor(session)`, participant-cluster robust inference by `id`, no row duplication, and full H1-H5 coverage across victim and bystander specifications.
+**Table 26. Predictor-to-code map (technical appendix)**
+
+| Predictor | Code |
+| --- | --- |
+| iri_fs | FS |
+| iri_ec | EC |
+| iri_pt | PT |
+| iri_pd | PD |
+| victim_N1_groupingroup | V-N1 In |
+| victim_N1_groupoutgroup | V-N1 Out |
+| victim_N2_groupingroup | V-N2 In |
+| victim_N2_groupoutgroup | V-N2 Out |
+| bystander_victim_groupoutgroup | B-V Out |
+| bystander_N1_groupingroup | B-N1 In |
+| bystander_N1_groupoutgroup | B-N1 Out |
+| bystander_N2_groupingroup | B-N2 In |
+| bystander_N2_groupoutgroup | B-N2 Out |
+| N1_N2_same_facultysame | SameFac |
+| iri_fs:victim_N1_groupoutgroup | FS x V-N1 Out |
+| iri_ec:victim_N2_groupoutgroup | EC x V-N2 Out |
+| iri_pt:bystander_victim_groupoutgroup | PT x B-V Out |
+| iri_pd:bystander_N1_groupoutgroup | PD x B-N1 Out |
+| decision_target | Target Acc |
+| decision_other | Other Acc |
+| decision_target:decision_other | Target x Other |
+| faculty_player_factorEngineering | Eng part. |
+| sex_female | Woman |
+| age | Age |
+| ses | SES |
+
+
+# Conclusion
+
+The conclusions presented here should be interpreted as associational rather than causal. In this report, moral judgement was estimated with a two-sided Tobit model that handles censoring, repeated participant observations, and session adjustment through `factor(session)` with participant-cluster robust inference.
+
+This conclusion section cross-references the full report structure. It should be read together with the H1-H5 equation summaries, the hypothesis significance summary by role, the full coefficient tables and interpretation summary, and the significance-driven figures.
+
+## Hypothesis-by-hypothesis synthesis
+
+### H1
+
+H1 evaluates empathy as a direct predictor of moral judgement while retaining common controls. For cross-reference, see the H1 equation summary and the H1 role-specific coefficient tables and figures. In the victim role,
+the role-specific support summary highlighted: Empathy: Perspective taking**.
+In the bystander role,
+no focal term reached the p < 0.10 threshold in the role-specific summary table.
+Taken together, H1 suggests that the role position conditions how clearly empathy appears in the fitted judgement pattern.
+
+### H2
+
+H2 focuses on role-specific ingroup/outgroup structure. For cross-reference, see the H2 equation summary and the H2 role-specific coefficient tables and figures. In the victim role,
+no focal term reached the p < 0.10 threshold in the role-specific summary table.
+In the bystander role,
+the role-specific support summary highlighted: Bystander-N2 outgroup vs ingroup+; Victim-N1 outgroup vs ingroup+; Victim-N2 outgroup vs ingroup+; Bystander-N1 outgroup vs ingroup x Bystander-N2 outgroup vs ingroup+; Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup+.
+This comparison indicates that relational alignment cues are not equally informative across roles, and they can become more visible when participants evaluate as observers rather than as directly harmed actors.
+
+### H3
+
+H3 combines empathy, group structure, and interaction terms. For cross-reference, see the H3 equation summary, the H3 coefficient tables, and the H3 interaction figures. In the victim role,
+the role-specific support summary highlighted: Empathy: Fantasy*; Empathy: Perspective taking+.
+In the bystander role,
+the role-specific support summary highlighted: Empathy: Empathic concern+; Empathy: Personal distress+; Victim-N1 outgroup vs ingroup+; Victim-N2 outgroup vs ingroup+; Bystander-N1 outgroup vs ingroup x Bystander-N2 outgroup vs ingroup+; Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup+; Empathy: Fantasy x Bystander-victim outgroup vs ingroup+; Empathy: Personal distress x Bystander-victim outgroup vs ingroup*.
+The H3 evidence should therefore be interpreted as a test of contextual moderation: empathy does not necessarily operate as a uniform slope when social distance changes.
+
+### H4
+
+H4 tests decision terms directly through `decision_target`, `decision_other`, and their interaction. For cross-reference, see the H4 equation summary and the H4 role-specific coefficient tables and significance figures. In the victim role,
+the role-specific support summary highlighted: Target accepted***; Other negotiator accepted***; Target accepted x Other accepted***.
+In the bystander role,
+the role-specific support summary highlighted: Target accepted***; Other negotiator accepted***; Target accepted x Other accepted***.
+Across both roles, H4 is typically where the decisional mechanism is most clearly visible, because the target judgement is explicitly conditioned by joint negotiation outcomes.
+
+### H5
+
+H5 is the integrated specification combining empathy, relational terms, decisions, and interactions. For cross-reference, see the H5 equation summary, H5 coefficient tables, and H5 significance figures. In the victim role,
+the role-specific support summary highlighted: Empathy: Fantasy*; Victim-N2 outgroup vs ingroup+; Target accepted***; Other negotiator accepted***; Empathy: Fantasy x Victim-N1 outgroup vs ingroup+; Target accepted x Other accepted***.
+In the bystander role,
+the role-specific support summary highlighted: Victim-N1 outgroup vs ingroup*; Victim-N2 outgroup vs ingroup*; Target accepted***; Other negotiator accepted***; Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup*; Empathy: Fantasy x Bystander-victim outgroup vs ingroup*; Target accepted x Other accepted***.
+H5 should be read as a synthesis rather than a replacement of previous hypotheses: it shows how dispositional, relational, and decisional components coexist in one model.
+
+## Overall interpretation
+
+Taken as a whole, the five hypotheses indicate that moral judgement in this experiment is multi-mechanistic rather than one-dimensional. Empathy-related terms can matter, relational alignment can matter, and decision terms can matter strongly, but their visibility changes by role and model context.
+
+In practical terms, the report supports a role-contingent interpretation: victim-side judgement retains stronger dispositional content in some specifications, while bystander-side judgement often shows greater dependence on relational context, and both roles remain sensitive to the joint decisions made by negotiators.
 

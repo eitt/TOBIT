@@ -286,6 +286,64 @@ to_latex_table <- function(
   )
 }
 
+# Build a LaTeX table with fixed-width columns for the H1-H5 formula catalog.
+# Narrow first columns (H/Role), wide formula/focus columns.
+to_latex_formula_catalog_table <- function(df, caption, label) {
+  if (!is.data.frame(df) || ncol(df) == 0L) {
+    return(character(0))
+  }
+
+  format_cell <- function(x) {
+    x <- as.character(x)
+    x[is.na(x)] <- "NA"
+    x
+  }
+
+  formatted <- lapply(df, format_cell)
+  formatted_df <- as.data.frame(formatted, stringsAsFactors = FALSE, check.names = FALSE)
+  if ("Formula" %in% names(formatted_df)) {
+    # Add natural wrap opportunities using visible separators only (no inline TeX commands).
+    formula_text <- as.character(df$Formula)
+    formula_text[is.na(formula_text)] <- "NA"
+    formula_text <- gsub(":", " : ", formula_text, fixed = TRUE)
+    formula_text <- gsub("\\+", " + ", formula_text)
+    formatted_df$Formula <- formula_text
+  }
+  formatted_df[] <- lapply(formatted_df, escape_latex, escape_math = TRUE)
+
+  header <- paste(vapply(names(formatted_df), escape_latex, character(1), escape_math = TRUE), collapse = " & ")
+  body <- apply(formatted_df, 1, function(row) paste(row, collapse = " & "))
+
+  col_spec <- paste0(
+    "@{}",
+    ">{\\raggedright\\arraybackslash\\hspace{0pt}}p{0.06\\textwidth}",
+    ">{\\raggedright\\arraybackslash\\hspace{0pt}}p{0.12\\textwidth}",
+    ">{\\raggedright\\arraybackslash\\hspace{0pt}}p{0.58\\textwidth}",
+    ">{\\raggedright\\arraybackslash\\hspace{0pt}}p{0.24\\textwidth}",
+    "@{}"
+  )
+
+  c(
+    "\\begingroup",
+    "\\setlength{\\tabcolsep}{2pt}",
+    "\\scriptsize",
+    paste0("\\begin{longtable}{", col_spec, "}"),
+    paste0("\\caption{", escape_latex(caption), "}\\label{", label, "}\\\\"),
+    "\\toprule",
+    paste0(header, " \\\\"),
+    "\\midrule",
+    "\\endfirsthead",
+    "\\toprule",
+    paste0(header, " \\\\"),
+    "\\midrule",
+    "\\endhead",
+    paste0(body, " \\\\"),
+    "\\bottomrule",
+    "\\end{longtable}",
+    "\\endgroup"
+  )
+}
+
 #' Insert a previously written PNG into the LaTeX report.
 latex_include_graphic <- function(file_path, caption, label, width = "0.92\\textwidth", escape = TRUE) {
   rel_path <- gsub("\\\\", "/", file_path)

@@ -102,16 +102,16 @@ get_current_predictor_glossary <- function() {
       "Empathic concern empathy dimension.",
       "Perspective-taking empathy dimension.",
       "Personal-distress empathy dimension.",
-      "Victim and N1 are from the same faculty, relative to the ingroup baseline.",
-      "Victim and N1 are from different faculties, relative to the ingroup baseline.",
-      "Victim and N2 are from the same faculty, relative to the ingroup baseline.",
-      "Victim and N2 are from different faculties, relative to the ingroup baseline.",
-      "Bystander and victim are from different faculties, relative to ingroup.",
-      "Bystander and N1 are from the same faculty, relative to the ingroup baseline.",
-      "Bystander and N1 are from different faculties, relative to the ingroup baseline.",
-      "Bystander and N2 are from the same faculty, relative to the ingroup baseline.",
-      "Bystander and N2 are from different faculties, relative to the ingroup baseline.",
-      "N1 and N2 share faculty, relative to different-faculty context.",
+      "Victim and N1 are from the same faculty.",
+      "Victim and N1 are from different faculties.",
+      "Victim and N2 are from the same faculty.",
+      "Victim and N2 are from different faculties.",
+      "Bystander and victim are from different faculties.",
+      "Bystander and N1 are from the same faculty.",
+      "Bystander and N1 are from different faculties.",
+      "Bystander and N2 are from the same faculty.",
+      "Bystander and N2 are from different faculties.",
+      "N1 and N2 share faculty membership.",
       "Fantasy slope difference when victim-N1 is outgroup rather than ingroup.",
       "Empathic-concern slope difference when victim-N2 is outgroup rather than ingroup.",
       "Perspective-taking slope difference when the bystander-victim relation is outgroup rather than ingroup.",
@@ -193,7 +193,7 @@ get_dataset_sample_description <- function() {
 
 build_introductory_theoretical_chapter <- function() {
   c(
-    "## Understanding the modeling strategy",
+    "# Understanding the modeling strategy",
     "",
     "The purpose of the pipeline is to explain how participants assign moral judgement to a focal negotiator within a structured experimental setting. The objective is not limited to describing average responses. Rather, the pipeline is designed to estimate how judgement changes as a function of empathy, group alignment, negotiation decisions, and role-specific relational structure. The outcome of interest is `judgement`, interpreted as the participant's moral evaluation of the target negotiator. Because each participant contributes repeated evaluations across scenarios and targets, the modeling strategy must satisfy three conditions simultaneously: it must preserve one row per real observation, respect the bounded structure of the outcome, and account for within-participant dependence. For these reasons, the production workflow uses a two-sided Tobit model with participant-cluster robust inference and session adjustment.",
     "",
@@ -584,8 +584,19 @@ build_plot_data_for_term <- function(model_fit, data, term_name) {
       return(NULL)
     }
     reference <- build_reference_profile(data)
-    x_component <- if (identical(comp_a$type, "continuous")) comp_a else comp_a
-    moderator_component <- comp_b
+
+    # Prefer a continuous focal predictor on x when present.
+    if (identical(comp_a$type, "continuous") && !identical(comp_b$type, "continuous")) {
+      x_component <- comp_a
+      moderator_component <- comp_b
+    } else if (!identical(comp_a$type, "continuous") && identical(comp_b$type, "continuous")) {
+      x_component <- comp_b
+      moderator_component <- comp_a
+    } else {
+      x_component <- comp_a
+      moderator_component <- comp_b
+    }
+
     x_values <- if (x_component$type == "continuous") {
       seq(min(data[[x_component$var]], na.rm = TRUE), max(data[[x_component$var]], na.rm = TRUE), length.out = 60L)
     } else {
@@ -597,6 +608,13 @@ build_plot_data_for_term <- function(model_fit, data, term_name) {
       c(moderator_component$reference, moderator_component$focus)
     }
     moderator_labels <- as.character(moderator_values)
+    if (moderator_component$type == "binary") {
+      if (moderator_component$var %in% c("decision_target", "decision_other")) {
+        moderator_labels <- ifelse(as.character(moderator_values) == "1", "accept", "reject")
+      } else if (moderator_component$var == "sex_female") {
+        moderator_labels <- ifelse(as.character(moderator_values) == "1", "woman", "man")
+      }
+    }
 
     blocks <- lapply(seq_along(moderator_values), function(idx) {
       block <- reference[rep(1, length(x_values)), , drop = FALSE]
@@ -607,12 +625,28 @@ build_plot_data_for_term <- function(model_fit, data, term_name) {
         x_value = if (x_component$type == "continuous") x_values else seq_along(x_values),
         x_label = as.character(x_values),
         moderator_label = moderator_labels[[idx]],
+        x_axis_label = label_current_term(x_component$var),
         pred_df,
         stringsAsFactors = FALSE
       )
     })
     do.call(rbind, blocks)
   }
+}
+
+get_plot_x_axis_label <- function(term_name, plot_df) {
+  if (!is.null(plot_df$x_axis_label) && length(unique(stats::na.omit(plot_df$x_axis_label))) > 0L) {
+    return(unique(stats::na.omit(plot_df$x_axis_label))[1])
+  }
+  if (grepl(":", term_name, fixed = TRUE)) {
+    parts <- strsplit(term_name, ":", fixed = TRUE)[[1]]
+    components <- lapply(parts, get_term_component_spec)
+    is_cont <- vapply(components, function(x) !is.null(x) && identical(x$type, "continuous"), logical(1))
+    if (sum(is_cont) == 1L) {
+      return(label_current_term(parts[which(is_cont)[1]]))
+    }
+  }
+  label_current_term(term_name)
 }
 
 write_significance_plot_current <- function(file_path, plot_df, term_name) {
@@ -626,6 +660,7 @@ write_significance_plot_current <- function(file_path, plot_df, term_name) {
 
   y_limits <- get_judgment_observed_bounds()
   y_ticks <- get_judgment_axis_ticks()
+  x_axis_label <- get_plot_x_axis_label(term_name, plot_df)
 
   if (all(is.na(plot_df$moderator_label))) {
     if (length(unique(plot_df$x_value)) > 10L) {
@@ -634,7 +669,7 @@ write_significance_plot_current <- function(file_path, plot_df, term_name) {
         ordered_df$x_value,
         ordered_df$predicted,
         type = "n",
-        xlab = label_current_term(term_name),
+        xlab = x_axis_label,
         ylab = "Predicted judgement",
         main = wrap_title(paste("Effect plot for", label_current_term(term_name)), width = 34),
         ylim = y_limits,
@@ -656,7 +691,7 @@ write_significance_plot_current <- function(file_path, plot_df, term_name) {
         ordered_df$predicted,
         type = "n",
         xaxt = "n",
-        xlab = label_current_term(term_name),
+        xlab = x_axis_label,
         ylab = "Predicted judgement",
         main = wrap_title(paste("Grouped prediction for", label_current_term(term_name)), width = 34),
         ylim = y_limits,
@@ -673,19 +708,20 @@ write_significance_plot_current <- function(file_path, plot_df, term_name) {
     groups <- split(plot_df, plot_df$moderator_label)
     palette <- c(style$primary_dark, "#B55B15", "#2E8540")
     all_x <- sort(unique(plot_df$x_value))
+    is_continuous_x <- length(all_x) > 10L
     graphics::plot(
       all_x,
       rep(NA_real_, length(all_x)),
       type = "n",
-      xlab = label_current_term(term_name),
+      xlab = x_axis_label,
       ylab = "Predicted judgement",
       main = wrap_title(paste("Interaction plot for", label_current_term(term_name)), width = 34),
       ylim = y_limits,
       yaxt = "n",
-      xaxt = if (length(unique(plot_df$x_value)) > 10L) "s" else "n"
+      xaxt = if (is_continuous_x) "s" else "n"
     )
     graphics::axis(2, at = y_ticks, labels = y_ticks)
-    if (length(unique(plot_df$x_value)) <= 10L) {
+    if (!is_continuous_x) {
       x_labels <- unique(plot_df[, c("x_value", "x_label")])
       x_labels <- x_labels[order(x_labels$x_value), , drop = FALSE]
       graphics::axis(1, at = x_labels$x_value, labels = x_labels$x_label)
@@ -696,12 +732,29 @@ write_significance_plot_current <- function(file_path, plot_df, term_name) {
       group_df <- groups[[group_name]]
       group_df <- group_df[order(group_df$x_value), , drop = FALSE]
       color <- palette[((idx - 1L) %% length(palette)) + 1L]
-      graphics::lines(group_df$x_value, group_df$predicted, col = color, lwd = 3)
-      graphics::points(group_df$x_value, group_df$predicted, col = color, pch = 19)
-      draw_confidence_interval_bars(group_df$x_value, group_df$conf_low, group_df$conf_high, color)
+      if (is_continuous_x) {
+        graphics::polygon(
+          c(group_df$x_value, rev(group_df$x_value)),
+          c(group_df$conf_low, rev(group_df$conf_high)),
+          col = grDevices::adjustcolor(color, alpha.f = 0.18),
+          border = NA
+        )
+        graphics::lines(group_df$x_value, group_df$predicted, col = color, lwd = 3)
+      } else {
+        graphics::lines(group_df$x_value, group_df$predicted, col = color, lwd = 3)
+        graphics::points(group_df$x_value, group_df$predicted, col = color, pch = 19)
+        draw_confidence_interval_bars(group_df$x_value, group_df$conf_low, group_df$conf_high, color)
+      }
       idx <- idx + 1L
     }
-    graphics::legend("topleft", legend = names(groups), col = palette[seq_along(groups)], lwd = 3, pch = 19, bty = "n")
+    graphics::legend(
+      "topleft",
+      legend = names(groups),
+      col = palette[seq_along(groups)],
+      lwd = 3,
+      pch = if (is_continuous_x) NA else 19,
+      bty = "n"
+    )
   }
 
   grDevices::dev.off()
@@ -720,5 +773,5 @@ describe_plot_pattern_current <- function(plot_df) {
     direction <- ifelse(tail(ordered_df$predicted, 1) >= ordered_df$predicted[1], "higher", "lower")
     return(sprintf("Across the displayed contrast, the model implies %s predicted judgement toward the right-hand side of the plot.", direction))
   }
-  "The plotted lines summarize how the fitted predicted judgement changes across the focal term while holding the remaining covariates at their reference profile."
+  "The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile."
 }

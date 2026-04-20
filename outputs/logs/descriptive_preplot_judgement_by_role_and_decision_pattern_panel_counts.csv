@@ -1,0 +1,9 @@
+"role_panel","decision_pattern_clean","n"
+"Bystander","both_reject",690
+"Victim","both_reject",662
+"Victim","both_accept",610
+"Bystander","both_accept",604
+"Victim","target_accept_other_reject",579
+"Victim","target_reject_other_accept",579
+"Bystander","target_accept_other_reject",568
+"Bystander","target_reject_other_accept",568

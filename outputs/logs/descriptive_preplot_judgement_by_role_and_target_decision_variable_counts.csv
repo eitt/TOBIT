@@ -1,0 +1,5 @@
+"variable","value","n","in_requested_levels"
+"role_panel","Bystander",2430,"yes"
+"role_panel","Victim",2430,"yes"
+"target_decision_only","reject",2499,"yes"
+"target_decision_only","accept",2361,"yes"

@@ -1,6 +1,8 @@
 # Pipeline Compliance Report
 
-By Leonardo H. Talero-Sarmiento; Date  2026-04-18 21:10:00.
+By Leonardo H. Talero-Sarmiento; Date  2026-04-19 21:09:20.
+
+**Table 1. Pipeline compliance checklist**
 
 | criterion | status | evidence |
 | --- | --- | --- |
@@ -11,4 +13,5 @@ By Leonardo H. Talero-Sarmiento; Date  2026-04-18 21:10:00.
 | e) victim and bystander treated differently | YES | Role-specific formulas are estimated separately and H2/H3/H5 use different relational blocks for victim and bystander. |
 | f) decision_target and decision_other included where required | YES | H4 and H5 both include decision_target, decision_other, and their interaction. |
 | g) sociodemographics included in every hypothesis model | YES | Every H1-H5 formula retains age, ses, sex_female, and faculty_player_factor. |
+
 
