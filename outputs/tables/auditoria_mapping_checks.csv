@@ -1,0 +1,5 @@
+"regla","filas_en_ambito","filas_con_datos","filas_que_cumplen","inconsistencias"
+"target == 1: N1_decision = decision_target y N2_decision = decision_other",2430,2430,2430,0
+"target == 2: N1_decision = decision_other y N2_decision = decision_target",2430,2430,2430,0
+"target == 1: N1_faculty = faculty_target y N2_faculty = faculty_other",2430,2430,2430,0
+"target == 2: N1_faculty = faculty_other y N2_faculty = faculty_target",2430,2430,2430,0

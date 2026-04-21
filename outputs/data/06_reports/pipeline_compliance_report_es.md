@@ -1,8 +1,8 @@
-# Pipeline Compliance Report
+# Reporte de Cumplimiento del Pipeline
 
-By Leonardo H. Talero-Sarmiento; Date  2026-04-20 20:35:17.
+Por Leonardo H. Talero-Sarmiento; Fecha  2026-04-20 20:35:17.
 
-**Table 1. Pipeline compliance checklist**
+**Table 1. Lista de verificacion de cumplimiento del pipeline**
 
 | criterion | status | evidence |
 | --- | --- | --- |

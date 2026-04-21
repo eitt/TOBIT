@@ -1,7 +1,7 @@
 ---
 title: "Working Paper Report of Moral Judgement under Two-sided Tobit Models"
 author: "Leonardo H. Talero-Sarmiento"
-date: "2026-04-20 19:57:21"
+date: "2026-04-20 20:34:33"
 numbersections: true
 ---
 

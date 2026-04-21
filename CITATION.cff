@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this repository, please cite it using this metadata."
+title: "TOBIT: Longitudinal Moral Judgement Two-Sided Tobit Pipeline"
+type: software
+authors:
+  - family-names: "Talero-Sarmiento"
+    given-names: "Leonardo H."
+  - family-names: "Vasquez-Caballero"
+    given-names: "Diego A."
+version: "2.0.0"
+date-released: "2026-04-21"
+license: "MIT"
+repository-code: "https://github.com/eitt/TOBIT"
+abstract: >-
+  Reproducible longitudinal moral judgement analysis pipeline based on
+  two-sided Tobit models with role-specific relational predictors (H1-H5),
+  dynamic row-level target/other semantics, and bilingual reporting outputs.
+keywords:
+  - tobit
+  - longitudinal
+  - moral judgement
+  - role-specific modeling
+  - reproducible pipeline

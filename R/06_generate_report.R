@@ -47,9 +47,10 @@ bind_csv_files <- function(file_paths) {
   do.call(rbind, data_frames)
 }
 
-render_dynamic_report_outputs <- function(markdown_path, paths = get_project_paths()) {
+render_dynamic_report_outputs <- function(markdown_path, paths = get_project_paths(), artifact_tag = "") {
   report_stem <- tools::file_path_sans_ext(basename(markdown_path))
   output_dir <- dirname(markdown_path)
+  tag_suffix <- if (nzchar(artifact_tag)) paste0("_", gsub("[^A-Za-z0-9_-]", "", artifact_tag)) else ""
   pandoc_path <- find_tool_path(
     "pandoc",
     c(file.path(Sys.getenv("LOCALAPPDATA"), "Pandoc", "pandoc.exe"))
@@ -103,11 +104,11 @@ render_dynamic_report_outputs <- function(markdown_path, paths = get_project_pat
     }
   }
 
-  write.csv(render_status, file.path(paths$logs_dir, "dynamic_report_render_status.csv"), row.names = FALSE)
-  write.csv(render_status, file.path(paths$reports_data_dir, "dynamic_report_render_status.csv"), row.names = FALSE)
+  write.csv(render_status, file.path(paths$logs_dir, paste0("dynamic_report_render_status", tag_suffix, ".csv")), row.names = FALSE)
+  write.csv(render_status, file.path(paths$reports_data_dir, paste0("dynamic_report_render_status", tag_suffix, ".csv")), row.names = FALSE)
 
-  if (file.exists(docx_path)) file.copy(docx_path, file.path(paths$logs_dir, "dynamic_report.docx"), overwrite = TRUE)
-  if (file.exists(pdf_path)) file.copy(pdf_path, file.path(paths$logs_dir, "dynamic_report.pdf"), overwrite = TRUE)
+  if (file.exists(docx_path)) file.copy(docx_path, file.path(paths$logs_dir, paste0("dynamic_report", tag_suffix, ".docx")), overwrite = TRUE)
+  if (file.exists(pdf_path)) file.copy(pdf_path, file.path(paths$logs_dir, paste0("dynamic_report", tag_suffix, ".pdf")), overwrite = TRUE)
 
   invisible(render_status)
 }
@@ -162,7 +163,8 @@ write.csv(subset(significance_summary, role == "Bystander"), file.path(paths$tab
 write.csv(significance_summary, file.path(paths$results_dir, "hypothesis_summary.csv"), row.names = FALSE)
 
 coefficient_tables <- list()
-coefficient_narratives <- list()
+coefficient_narratives_en <- list()
+coefficient_narratives_es <- list()
 figure_manifest <- data.frame(
   figure_file = character(0),
   figure_type = character(0),
@@ -1150,7 +1152,8 @@ for (hypothesis_id in paste0("H", 1:5)) {
     coef_df <- read.csv(coef_path, stringsAsFactors = FALSE)
     display_table <- prepare_report_coefficient_table(coef_df)
     coefficient_tables[[prefix]] <- display_table
-    coefficient_narratives[[prefix]] <- generate_model_narrative(coef_df, hypothesis_id, role_label)
+    coefficient_narratives_en[[prefix]] <- generate_model_narrative(coef_df, hypothesis_id, role_label, lang = "en")
+    coefficient_narratives_es[[prefix]] <- generate_model_narrative(coef_df, hypothesis_id, role_label, lang = "es")
 
     write.csv(display_table, file.path(paths$tables_dir, sprintf("report_%s_coefficients.csv", prefix)), row.names = FALSE)
 
@@ -1202,7 +1205,7 @@ for (hypothesis_id in paste0("H", 1:5)) {
           role = role_label,
           term = term_name,
           caption = sprintf("%s %s: model-implied predictions for %s.", hypothesis_id, role_label, label_current_term(term_name)),
-          interpretation = describe_plot_pattern_current(plot_df),
+          interpretation = describe_plot_pattern_current(plot_df, lang = "en"),
           stringsAsFactors = FALSE
         )
       )
@@ -1306,7 +1309,26 @@ build_numbered_table_block <- function(df, title, digits = 3, empty_message = "_
   )
 }
 
-build_discussion_section <- function() {
+build_discussion_section <- function(lang = "en") {
+  if (identical(lang, "es")) {
+    return(c(
+      "# Discusion",
+      "",
+      "Los resultados de empatia apuntan a un mecanismo en el que `judgement` no responde solo a resultados, sino tambien a sensibilidad social disposicional. Cuando las pendientes de empatia varian entre relaciones ingroup y outgroup, los hallazgos respaldan la expectativa teorica de que la orientacion empatica esta filtrada por cercania social percibida y no opera como un amplificador moral uniforme.",
+      "",
+      "Los resultados de ingroup/outgroup importan porque el experimento inserta `judgement` en una estructura relacional con dos negociadores y lazos sociales dependientes del rol. Por eso los modelos de Victim y Bystander no son intercambiables. En Victim, la pregunta central es como se relacionan el negociador evaluado y su contraparte con la persona afectada. En Bystander, el participante es externo al evento de dano y la evaluacion puede depender de un mapa mas amplio con relaciones bystander-victim, bystander-negotiator y victim-negotiator.",
+      "",
+      "Los terminos de decision afinan la interpretacion moral del outcome enfocado en target. `decision_target` captura que hizo el negociador evaluado, `decision_other` captura la decision de la contraparte y su interaccion prueba si el significado de una decision cambia cuando el otro negociador acepta o rechaza. Esto es sustantivamente relevante porque la evaluacion moral del target puede responder tanto a la accion individual como al resultado conjunto de la negociacion.",
+      "",
+      "En terminos practicos, los resultados aportan a etica de negociacion y evaluacion de terceros. Si `judgement` cambia con empatia, cercania de facultad y patrones conjuntos de decision, entonces la justicia percibida en negociaciones daninas esta moldeada por contexto disposicional y relacional. Esto tiene implicaciones para como observadores asignan culpa, justifican conducta estrategica o infieren responsabilidad desde accion coordinada.",
+      "",
+      "Metodologicamente, el estimador activo es un Tobit de dos lados con errores estandar robustos agrupados por participante y efectos fijos de sesion. Es una decision productiva honesta para un outcome acotado con medidas repetidas, porque preserva la estructura Tobit de `judgement`, ajusta dependencia intra-participante via `cluster = id`, y controla desplazamientos por sesion con `factor(session)`. Al mismo tiempo, no equivale a un Tobit mixto completo con interceptos aleatorios de participante y sesion.",
+      "",
+      "Las principales limitaciones se desprenden de esa eleccion del estimador y de la escasez en algunas celdas relacionales. La rama productiva no estima un Tobit mixto completo, algunos contrastes de interaccion pueden descartarse en subconjuntos con deficiencia de rango, y la lectura sustantiva debe mantenerse anclada en tablas de coeficientes y figuras implicadas por el modelo, no en p-values aislados. Trabajo futuro deberia comparar estos estimados con modelos censurados multinivel estables, evaluar interacciones alternativas por rol y probar replicacion en otros contextos institucionales o culturales.",
+      ""
+    ))
+  }
+
   c(
     "# Discussion",
     "",
@@ -1325,12 +1347,33 @@ build_discussion_section <- function() {
   )
 }
 
-build_final_audit_note <- function(compliance_report, fit_summary) {
+build_final_audit_note <- function(compliance_report, fit_summary, lang = "en") {
   all_yes <- nrow(compliance_report) > 0L && all(compliance_report$status == "YES")
   rank_deficient_models <- if ("dropped_columns" %in% names(fit_summary)) {
     sum(suppressWarnings(as.numeric(fit_summary$dropped_columns)) > 0, na.rm = TRUE)
   } else {
     0L
+  }
+
+  if (identical(lang, "es")) {
+    return(c(
+      "# Nota final de auditoria",
+      "",
+      if (all_yes) {
+        "El proyecto refleja fielmente el diseno autoritativo en su rama productiva: `judgement` es el outcome, el archivo long se mantiene como fuente unica, una fila sigue siendo una observacion real, se usan definiciones de grupo especificas por rol, `decision_target` y `decision_other` se modelan donde corresponde, y las mediciones repetidas se manejan con inferencia robusta por cluster de participante y `factor(session)`."
+      } else {
+        "El proyecto esta sustancialmente alineado con el diseno autoritativo, pero la lista de verificacion muestra brechas de cumplimiento que aun requieren correccion."
+      },
+      "",
+      if (rank_deficient_models > 0L) {
+        sprintf("Desajuste parcial restante: %s modelo(s) ajustado(s) aun reportaron columnas descartadas porque algunas celdas de interaccion por rol son escasas, por lo que ciertos contrastes no son estimables en todos los subconjuntos.", rank_deficient_models)
+      } else {
+        "No quedo advertencia de deficiencia de rango en el resumen de ajuste guardado para esta corrida."
+      },
+      "",
+      "Limitacion del estimador: el estimador productivo sigue siendo un Tobit de dos lados con `factor(session)` y errores estandar robustos por cluster en `id`, no un Tobit de efectos mixtos completo con interceptos aleatorios de participante y sesion.",
+      ""
+    ))
   }
 
   note_lines <- c(
@@ -1355,7 +1398,17 @@ build_final_audit_note <- function(compliance_report, fit_summary) {
   note_lines
 }
 
-get_hypothesis_semantic_reminder <- function(hypothesis_id) {
+get_hypothesis_semantic_reminder <- function(hypothesis_id, lang = "en") {
+  if (identical(lang, "es")) {
+    return(switch(
+      hypothesis_id,
+      H2 = "Recordatorio H2: `N1`/`N2` son slots estructurales reconstruidos dentro de cada fila, no aliases fijos de `target`/`other`; `group_target` y `group_other` son campos legacy de fuente/auditoria, mientras que los modelos activos de H2 usan predictores relacionales reconstruidos.",
+      H4 = "Recordatorio H4: el termino legacy `accept_target` corresponde al nombre operativo activo `decision_target`, y `accept_other` corresponde a `decision_other`; ambos se refieren a roles dinamicos `target`/`other` por fila, no a identidades fijas N1/N2.",
+      H5 = "Recordatorio H5: `N1`/`N2` son slots estructurales reconstruidos (no aliases fijos de `target`/`other`), `group_target`/`group_other` son campos legacy de auditoria, y `accept_target`/`accept_other` se mapean a `decision_target`/`decision_other` para roles dinamicos por fila.",
+      ""
+    ))
+  }
+
   switch(
     hypothesis_id,
     H2 = "H2 reminder: `N1`/`N2` are structural slots reconstructed within each row, not fixed aliases of `target`/`other`; `group_target` and `group_other` are legacy source-audit fields, while active H2 models use reconstructed relational predictors.",
@@ -1365,35 +1418,109 @@ get_hypothesis_semantic_reminder <- function(hypothesis_id) {
   )
 }
 
-get_role_support_text <- function(significance_summary, hypothesis_id, role_label) {
+get_role_support_text <- function(significance_summary, hypothesis_id, role_label, lang = "en") {
   matched <- subset(
     significance_summary,
     hypothesis == hypothesis_id & role == role_label
   )
   if (nrow(matched) == 0L || is.na(matched$support[[1]]) || !nzchar(matched$support[[1]])) {
-    return("no focal support entry was available in the role-specific summary table for this run")
+    return(if (identical(lang, "es")) {
+      "no hubo entrada de soporte focal disponible en la tabla de resumen especifica por rol para esta corrida"
+    } else {
+      "no focal support entry was available in the role-specific summary table for this run"
+    })
   }
   support_text <- matched$support[[1]]
   if (identical(support_text, "None below p < 0.10")) {
-    return("no focal term reached the p < 0.10 threshold in the role-specific summary table")
+    return(if (identical(lang, "es")) {
+      "ningun termino focal alcanzo el umbral p < 0.10 en la tabla de resumen especifica por rol"
+    } else {
+      "no focal term reached the p < 0.10 threshold in the role-specific summary table"
+    })
   }
-  sprintf(
-    "the role-specific support summary highlighted: %s",
-    support_text
-  )
+  if (identical(lang, "es")) {
+    return(sprintf("el resumen de soporte especifico por rol destaco: %s", support_text))
+  }
+  sprintf("the role-specific support summary highlighted: %s", support_text)
 }
 
-build_crossreferenced_conclusion_section <- function(significance_summary) {
-  h1_v <- get_role_support_text(significance_summary, "H1", "Victim")
-  h1_b <- get_role_support_text(significance_summary, "H1", "Bystander")
-  h2_v <- get_role_support_text(significance_summary, "H2", "Victim")
-  h2_b <- get_role_support_text(significance_summary, "H2", "Bystander")
-  h3_v <- get_role_support_text(significance_summary, "H3", "Victim")
-  h3_b <- get_role_support_text(significance_summary, "H3", "Bystander")
-  h4_v <- get_role_support_text(significance_summary, "H4", "Victim")
-  h4_b <- get_role_support_text(significance_summary, "H4", "Bystander")
-  h5_v <- get_role_support_text(significance_summary, "H5", "Victim")
-  h5_b <- get_role_support_text(significance_summary, "H5", "Bystander")
+build_crossreferenced_conclusion_section <- function(significance_summary, lang = "en") {
+  is_es <- identical(lang, "es")
+  h1_v <- get_role_support_text(significance_summary, "H1", "Victim", lang = lang)
+  h1_b <- get_role_support_text(significance_summary, "H1", "Bystander", lang = lang)
+  h2_v <- get_role_support_text(significance_summary, "H2", "Victim", lang = lang)
+  h2_b <- get_role_support_text(significance_summary, "H2", "Bystander", lang = lang)
+  h3_v <- get_role_support_text(significance_summary, "H3", "Victim", lang = lang)
+  h3_b <- get_role_support_text(significance_summary, "H3", "Bystander", lang = lang)
+  h4_v <- get_role_support_text(significance_summary, "H4", "Victim", lang = lang)
+  h4_b <- get_role_support_text(significance_summary, "H4", "Bystander", lang = lang)
+  h5_v <- get_role_support_text(significance_summary, "H5", "Victim", lang = lang)
+  h5_b <- get_role_support_text(significance_summary, "H5", "Bystander", lang = lang)
+
+  if (is_es) {
+    return(c(
+      "# Conclusiones",
+      "",
+      "Las conclusiones de este reporte deben leerse como asociacionales y no causales. En este informe, `judgement` fue estimado con un modelo Tobit de dos lados que maneja censura, observaciones repetidas por participante y ajuste de sesion mediante `factor(session)` con inferencia robusta agrupada por participante.",
+      "",
+      "Esta seccion de cierre referencia la estructura completa del reporte. Debe leerse junto con los resumenes de ecuaciones H1-H5, el resumen de significancia por rol, las tablas completas de coeficientes con interpretacion y las figuras guiadas por significancia.",
+      "",
+      "## Sintesis por hipotesis",
+      "",
+      "### H1",
+      "",
+      "H1 evalua empatia como predictor directo de `judgement` reteniendo controles comunes. Para referencia cruzada, ver el resumen de ecuaciones H1 y las tablas y figuras especificas por rol de H1. En el rol Victim,",
+      sprintf("%s.", h1_v),
+      "En el rol Bystander,",
+      sprintf("%s.", h1_b),
+      "En conjunto, H1 sugiere que la posicion de rol condiciona que tan claramente aparece empatia en el patron ajustado de `judgement`.",
+      "",
+      "### H2",
+      "",
+      get_hypothesis_semantic_reminder("H2", lang = lang),
+      "",
+      "H2 se enfoca en estructura ingroup/outgroup especifica por rol. Para referencia cruzada, ver el resumen de ecuaciones H2 y las tablas y figuras especificas por rol de H2. En el rol Victim,",
+      sprintf("%s.", h2_v),
+      "En el rol Bystander,",
+      sprintf("%s.", h2_b),
+      "Esta comparacion indica que las claves de alineacion relacional no son igual de informativas entre roles y pueden volverse mas visibles cuando participantes evaluan como observadores y no como actores directamente afectados.",
+      "",
+      "### H3",
+      "",
+      "H3 combina empatia, estructura de grupo e interacciones. Para referencia cruzada, ver el resumen de ecuaciones H3, las tablas de coeficientes H3 y las figuras de interaccion H3. En el rol Victim,",
+      sprintf("%s.", h3_v),
+      "En el rol Bystander,",
+      sprintf("%s.", h3_b),
+      "La evidencia de H3 debe leerse como una prueba de moderacion contextual: empatia no necesariamente opera como una pendiente uniforme cuando cambia la distancia social.",
+      "",
+      "### H4",
+      "",
+      get_hypothesis_semantic_reminder("H4", lang = lang),
+      "",
+      "H4 prueba terminos de decision de forma directa mediante `decision_target`, `decision_other` y su interaccion. Para referencia cruzada, ver el resumen de ecuaciones H4 y las tablas y figuras de significancia especificas por rol de H4. En el rol Victim,",
+      sprintf("%s.", h4_v),
+      "En el rol Bystander,",
+      sprintf("%s.", h4_b),
+      "En ambos roles, H4 suele ser donde el mecanismo decisional se ve con mayor claridad, porque el juicio al target esta condicionado explicitamente por resultados conjuntos de negociacion.",
+      "",
+      "### H5",
+      "",
+      get_hypothesis_semantic_reminder("H5", lang = lang),
+      "",
+      "H5 es la especificacion integrada que combina empatia, terminos relacionales, decisiones e interacciones. Para referencia cruzada, ver el resumen de ecuaciones H5, las tablas de coeficientes H5 y las figuras de significancia H5. En el rol Victim,",
+      sprintf("%s.", h5_v),
+      "En el rol Bystander,",
+      sprintf("%s.", h5_b),
+      "H5 debe leerse como sintesis y no como reemplazo de hipotesis previas: muestra como componentes disposicionales, relacionales y decisionales coexisten en un mismo modelo.",
+      "",
+      "## Interpretacion global",
+      "",
+      "Tomadas en conjunto, las cinco hipotesis indican que `judgement` en este experimento es multimecanismo y no unidimensional. Terminos de empatia pueden importar, alineacion relacional puede importar, y terminos de decision pueden importar fuertemente, pero su visibilidad cambia por rol y por contexto de modelo.",
+      "",
+      "En terminos practicos, el reporte respalda una lectura contingente al rol: el juicio en Victim conserva contenido disposicional mas fuerte en algunas especificaciones, mientras el juicio en Bystander suele depender mas del contexto relacional, y ambos roles permanecen sensibles a las decisiones conjuntas de los negociadores.",
+      ""
+    ))
+  }
 
   c(
     "# Conclusion",
@@ -1414,7 +1541,7 @@ build_crossreferenced_conclusion_section <- function(significance_summary) {
     "",
     "### H2",
     "",
-    get_hypothesis_semantic_reminder("H2"),
+    get_hypothesis_semantic_reminder("H2", lang = lang),
     "",
     "H2 focuses on role-specific ingroup/outgroup structure. For cross-reference, see the H2 equation summary and the H2 role-specific coefficient tables and figures. In the victim role,",
     sprintf("%s.", h2_v),
@@ -1432,7 +1559,7 @@ build_crossreferenced_conclusion_section <- function(significance_summary) {
     "",
     "### H4",
     "",
-    get_hypothesis_semantic_reminder("H4"),
+    get_hypothesis_semantic_reminder("H4", lang = lang),
     "",
     "H4 tests decision terms directly through `decision_target`, `decision_other`, and their interaction. For cross-reference, see the H4 equation summary and the H4 role-specific coefficient tables and significance figures. In the victim role,",
     sprintf("%s.", h4_v),
@@ -1442,7 +1569,7 @@ build_crossreferenced_conclusion_section <- function(significance_summary) {
     "",
     "### H5",
     "",
-    get_hypothesis_semantic_reminder("H5"),
+    get_hypothesis_semantic_reminder("H5", lang = lang),
     "",
     "H5 is the integrated specification combining empathy, relational terms, decisions, and interactions. For cross-reference, see the H5 equation summary, H5 coefficient tables, and H5 significance figures. In the victim role,",
     sprintf("%s.", h5_v),
@@ -1457,6 +1584,62 @@ build_crossreferenced_conclusion_section <- function(significance_summary) {
     "In practical terms, the report supports a role-contingent interpretation: victim-side judgement retains stronger dispositional content in some specifications, while bystander-side judgement often shows greater dependence on relational context, and both roles remain sensitive to the joint decisions made by negotiators.",
     ""
   )
+}
+
+localize_figure_manifest_for_language <- function(figure_manifest, lang = "en") {
+  if (!identical(lang, "es") || nrow(figure_manifest) == 0L) {
+    return(figure_manifest)
+  }
+
+  localized <- figure_manifest
+  localized$caption <- ifelse(
+    localized$figure_type == "significance",
+    sprintf(
+      "%s %s: predicciones implicadas por el modelo para %s.",
+      localized$hypothesis,
+      localized$role,
+      vapply(localized$term, label_current_term, character(1))
+    ),
+    localized$caption
+  )
+
+  localized$caption <- vapply(localized$caption, function(cap_line) {
+    if (identical(cap_line, "Mean IRI subscale profile across participants.")) return("Perfil promedio de subescalas IRI en participantes.")
+    if (identical(cap_line, "Participant-level bivariate scatters of IRI subscales against mean judgement.")) return("Dispersogramas bivariados a nivel participante de subescalas IRI frente a `judgement` promedio.")
+    if (identical(cap_line, "Observed judgement distributions split by role.")) return("Distribuciones observadas de `judgement` separadas por rol.")
+    if (identical(cap_line, "Observed judgement distributions by role and target negotiator.")) return("Distribuciones observadas de `judgement` por rol y negociador target.")
+    if (identical(cap_line, "Observed judgement distributions by role and target decision.")) return("Distribuciones observadas de `judgement` por rol y decision del target.")
+    if (identical(cap_line, "Observed judgement distributions by role and counterpart decision.")) return("Distribuciones observadas de `judgement` por rol y decision de la contraparte.")
+    if (identical(cap_line, "Observed judgement distributions by role and joint decision pattern.")) return("Distribuciones observadas de `judgement` por rol y patron conjunto de decision.")
+    if (identical(cap_line, "Observed decision-pattern counts by role.")) return("Conteos observados de patrones de decision por rol.")
+    if (identical(cap_line, "Victim-role judgement distributions across N1 x N2 faculty pairings.")) return("Distribuciones de `judgement` del rol Victim a traves de pareamientos de facultad N1 x N2.")
+    if (identical(cap_line, "Bystander-role judgement distributions across N1 x N2 faculty pairings.")) return("Distribuciones de `judgement` del rol Bystander a traves de pareamientos de facultad N1 x N2.")
+    if (identical(cap_line, "Victim-role judgement distributions across victim-N1 and victim-N2 ingroup/outgroup combinations.")) return("Distribuciones de `judgement` del rol Victim a traves de combinaciones victim-N1 y victim-N2 de ingroup/outgroup.")
+    if (identical(cap_line, "Bystander-role judgement distributions across bystander-N1 and bystander-N2 ingroup/outgroup combinations.")) return("Distribuciones de `judgement` del rol Bystander a traves de combinaciones bystander-N1 y bystander-N2 de ingroup/outgroup.")
+    if (identical(cap_line, "Bystander-role judgement distributions across victim-N1 and victim-N2 ingroup/outgroup combinations.")) return("Distribuciones de `judgement` del rol Bystander a traves de combinaciones victim-N1 y victim-N2 de ingroup/outgroup.")
+    cap_line
+  }, character(1))
+
+  localized$interpretation <- vapply(localized$interpretation, function(text_line) {
+    if (identical(text_line, "This figure summarizes the central empathy profile of the sample before conditioning on hypothesis-specific models.")) return("Esta figura resume el perfil central de empatia de la muestra antes de condicionar en modelos especificos de hipotesis.")
+    if (identical(text_line, "These scatterplots show the participant-level descriptive relationship between empathy dimensions and average judgement.")) return("Estos scatterplots muestran la relacion descriptiva a nivel participante entre dimensiones de empatia y `judgement` promedio.")
+    if (identical(text_line, "This figure shows the raw shape of the bounded judgement outcome in the victim and bystander subsets.")) return("Esta figura muestra la forma bruta del outcome acotado `judgement` en los subconjuntos Victim y Bystander.")
+    if (identical(text_line, "This figure shows whether the raw bounded judgement distribution differs depending on whether the evaluated target is N1 or N2 within victim and bystander settings.")) return("Esta figura muestra si la distribucion bruta y acotada de `judgement` cambia segun si el target evaluado es N1 o N2 dentro de escenarios Victim y Bystander.")
+    if (identical(text_line, "This figure isolates whether the target's own acceptance or rejection is associated with different raw judgement profiles within each role.")) return("Esta figura aisla si la aceptacion o rechazo del propio target se asocia con perfiles brutos distintos de `judgement` dentro de cada rol.")
+    if (identical(text_line, "This figure shows whether judgement of the target varies with the acceptance or rejection of the other negotiator.")) return("Esta figura muestra si `judgement` del target varia con la aceptacion o rechazo del otro negociador.")
+    if (identical(text_line, "This figure shows how the target-focused judgement distribution changes across the four joint negotiation outcomes in victim and bystander settings.")) return("Esta figura muestra como cambia la distribucion de `judgement` enfocada en target a traves de los cuatro resultados conjuntos de negociacion en escenarios Victim y Bystander.")
+    if (identical(text_line, "This figure summarizes how often each joint decision pattern appears in victim and bystander subsets.")) return("Esta figura resume con que frecuencia aparece cada patron conjunto de decision en los subconjuntos Victim y Bystander.")
+    if (identical(text_line, "This figure shows how the raw judgement distribution varies across the full relational space defined by the faculty pairing of N1 and N2.")) return("Esta figura muestra como varia la distribucion bruta de `judgement` a traves del espacio relacional completo definido por el pareamiento de facultad entre N1 y N2.")
+    if (identical(text_line, "This optional figure highlights how raw victim-role judgement varies across victim-centered ingroup/outgroup combinations.")) return("Esta figura opcional destaca como varia el `judgement` bruto del rol Victim a traves de combinaciones ingroup/outgroup centradas en la victima.")
+    if (identical(text_line, "This optional figure emphasizes bystander-side relational combinations directly tied to N1 and N2 group alignment.")) return("Esta figura opcional enfatiza combinaciones relacionales del lado Bystander ligadas directamente a la alineacion de grupo de N1 y N2.")
+    if (identical(text_line, "This optional figure shows how bystander judgement co-varies with victim-centered relational combinations in the same observed rows.")) return("Esta figura opcional muestra como `judgement` del bystander covaria con combinaciones relacionales centradas en la victima dentro de las mismas filas observadas.")
+    if (identical(text_line, "The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.")) return("Las lineas ajustadas y bandas sombreadas de confianza al 95% resumen como cambia `judgement` predicho a lo largo del termino focal, manteniendo las covariables restantes en su perfil de referencia.")
+    if (identical(text_line, "Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.")) return("A lo largo del contraste mostrado, el modelo implica mayor `judgement` predicho hacia el lado derecho del grafico.")
+    if (identical(text_line, "Across the displayed contrast, the model implies lower predicted judgement toward the right-hand side of the plot.")) return("A lo largo del contraste mostrado, el modelo implica menor `judgement` predicho hacia el lado derecho del grafico.")
+    text_line
+  }, character(1))
+
+  localized
 }
 
 report_lines <- c(
@@ -1759,7 +1942,7 @@ for (hypothesis_id in paste0("H", 1:5)) {
         coefficient_tables[[prefix]],
         sprintf("%s %s coefficient estimates", hypothesis_id, role_label)
       ),
-      coefficient_narratives[[prefix]],
+      coefficient_narratives_en[[prefix]],
       ""
     )
   }
@@ -1789,23 +1972,324 @@ report_lines <- c(
   build_crossreferenced_conclusion_section(significance_summary)
 )
 
+replace_fixed_pairs <- function(lines, from, to) {
+  if (length(from) == 0L || length(to) == 0L) return(lines)
+  n <- min(length(from), length(to))
+  for (i in seq_len(n)) {
+    if (!nzchar(from[[i]]) || identical(from[[i]], to[[i]])) next
+    lines <- gsub(from[[i]], to[[i]], lines, fixed = TRUE)
+  }
+  lines
+}
+
+replace_exact_line_pairs <- function(lines, from, to) {
+  if (length(from) == 0L || length(to) == 0L) return(lines)
+  n <- min(length(from), length(to))
+  for (i in seq_len(n)) {
+    if (!nzchar(from[[i]]) || identical(from[[i]], to[[i]])) next
+    lines[lines == from[[i]]] <- to[[i]]
+  }
+  lines
+}
+
+translate_report_lines_to_spanish <- function(
+    lines_en,
+    significance_summary,
+    coefficient_narratives_en,
+    coefficient_narratives_es,
+    figure_manifest) {
+  lines_es <- lines_en
+
+  static_from <- c(
+    'title: "Working Paper Report of Moral Judgement under Two-sided Tobit Models"',
+    "This run uses `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` as the only analytical source and preserves each imported row as one real judgement observation. The production estimator is a two-sided Tobit fitted with `survival::survreg`, using bilateral censoring at `-9` and `9`, participant-cluster robust standard errors through `cluster = id`, and `factor(session)` in every active formula.",
+    "# Semantic naming bridge and row-level mapping",
+    "Legacy/intuitive naming bridge: `accept_target` -> active operational name `decision_target`; `accept_other` -> active operational name `decision_other`.",
+    "Row-level semantics: `target` and `other` are dynamic roles per observation, while `N1` and `N2` are structural slots reconstructed inside each row.",
+    "# Dataset and sample description",
+    "The authoritative interpretation is that each player observes ten scenarios and evaluates two negotiators, so the longitudinal file should contain 20 judgement rows per participant. The clustering diagnostic below is consistent with that design.",
+    "# Datacard and symbol dictionary",
+    "# Predictor glossary",
+    "Note. Group contrasts are interpreted against the ingroup baseline unless explicitly stated otherwise.",
+    "The report keeps compact predictor references in figure captions and narratives, but the glossary above remains the authoritative mapping back to the current pipeline variables.",
+    "# Interaction interpretation rules",
+    "# H1-H5 hypotheses with role-specific equation summaries",
+    "Any earlier repository note that treated negotiator code `0` as anything other than the explicit control category, or that narrowed H3 to additive effects only, should now be treated as outdated. The active formulas below are the authoritative specification.",
+    "# Mathematical foundations",
+    "In this production branch, `factor(session)` is reported instead of `(1|session)` because the fitted estimator is a two-sided Tobit with session fixed effects and participant-cluster robust standard errors. The report does not claim a random session intercept that was not actually estimated.",
+    "# Dependence and effective sample size diagnostic",
+    "The following clustering diagnostic is descriptive. It summarizes within-participant dependence in the observed data and should not be read as evidence that the fitted estimator included participant random intercepts.",
+    "Because the target of inference is repeated judgement within participant, the effective-sample-size table is a descriptive clustering diagnostic only; it does not replace the model-based dependence adjustment through `cluster = id` and `factor(session)`.",
+    "# Descriptive statistics and figures",
+    "The group summary and the formulas above use role-specific ingroup/outgroup coding. Ingroup is defined by faculty coincidence, including `control` with `control`, while outgroup means non-matching faculties.",
+    "# Estimator fit summary",
+    "All production models use the estimator configuration shown below.",
+    "## Model-level fit and censoring summary",
+    "### Bystander models",
+    "### Victim models",
+    "# Hypothesis significance summary by role",
+    "# Significance-driven figures",
+    "No focal term reached the plotting threshold in this run, so no significance-driven figures were generated.",
+    "# Full coefficient tables and interpretation summary",
+    "# Compliance checklist",
+    "# Corrections relative to outdated notes",
+    "The current production branch supersedes earlier notes that used `control_hidden` wording for negotiator code `0`, narrowed H3 to additive-only empathy terms, or implied that the main estimator used `(1|session)`. The repository now documents the implemented estimator and the authoritative role-specific design directly.",
+    "# Limitations",
+    "# Technical appendix: predictor code map",
+    "## Victim",
+    "## Bystander",
+    "## Significance-driven figures"
+  )
+
+  static_to <- c(
+    'title: "Reporte de Trabajo sobre Juicio Moral bajo Modelos Tobit de Dos Lados"',
+    "Esta corrida usa `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` como unica fuente analitica y preserva cada fila importada como una observacion real de judgement. El estimador productivo es un Tobit de dos lados ajustado con `survival::survreg`, usando censura bilateral en `-9` y `9`, errores estandar robustos por cluster de participante via `cluster = id`, y `factor(session)` en cada formula activa.",
+    "# Puente semantico de nombres y mapeo por fila",
+    "Puente legacy/intuitivo de nombres: `accept_target` -> nombre operativo activo `decision_target`; `accept_other` -> nombre operativo activo `decision_other`.",
+    "Semantica por fila: `target` y `other` son roles dinamicos por observacion, mientras `N1` y `N2` son slots estructurales reconstruidos dentro de cada fila.",
+    "# Descripcion del dataset y de la muestra",
+    "La interpretacion autoritativa es que cada jugador observa diez escenarios y evalua dos negociadores, por lo que el archivo longitudinal debe contener 20 filas de judgement por participante. El diagnostico de clustering siguiente es consistente con ese diseno.",
+    "# Datacard y diccionario de simbolos",
+    "# Glosario de predictores",
+    "Nota. Los contrastes de grupo se interpretan contra la linea base ingroup, salvo indicacion explicita en contrario.",
+    "El reporte mantiene referencias compactas de predictores en captions y narrativas de figuras, pero el glosario anterior es el mapeo autoritativo hacia las variables actuales del pipeline.",
+    "# Reglas de interpretacion de interacciones",
+    "# Hipotesis H1-H5 con resumenes de ecuaciones especificas por rol",
+    "Cualquier nota previa del repositorio que tratara el codigo de negociador `0` como algo distinto de la categoria explicita control, o que restringiera H3 a efectos aditivos, debe considerarse desactualizada. Las formulas activas siguientes son la especificacion autoritativa.",
+    "# Fundamentos matematicos",
+    "En esta rama productiva, se reporta `factor(session)` en lugar de `(1|session)` porque el estimador ajustado es un Tobit de dos lados con efectos fijos de sesion y errores estandar robustos por cluster de participante. El reporte no afirma un intercepto aleatorio de sesion que no haya sido estimado.",
+    "# Diagnostico de dependencia y tamano efectivo de muestra",
+    "El siguiente diagnostico de clustering es descriptivo. Resume la dependencia intra-participante en los datos observados y no debe leerse como evidencia de que el estimador ajustado incluyo interceptos aleatorios por participante.",
+    "Como el objetivo de inferencia es el judgement repetido dentro de participante, la tabla de tamano efectivo de muestra es solo un diagnostico descriptivo de clustering; no reemplaza el ajuste de dependencia basado en modelo mediante `cluster = id` y `factor(session)`.",
+    "# Estadisticas descriptivas y figuras",
+    "El resumen de grupos y las formulas anteriores usan codificacion ingroup/outgroup especifica por rol. Ingroup se define por coincidencia de facultad, incluyendo `control` con `control`, mientras outgroup significa facultades no coincidentes.",
+    "# Resumen de ajuste del estimador",
+    "Todos los modelos productivos usan la configuracion del estimador mostrada abajo.",
+    "## Resumen de ajuste y censura a nivel de modelo",
+    "### Modelos Bystander",
+    "### Modelos Victim",
+    "# Resumen de significancia de hipotesis por rol",
+    "# Figuras guiadas por significancia",
+    "Ningun termino focal alcanzo el umbral para graficar en esta corrida, por lo que no se generaron figuras guiadas por significancia.",
+    "# Tablas completas de coeficientes y resumen de interpretacion",
+    "# Lista de verificacion de cumplimiento",
+    "# Correcciones frente a notas desactualizadas",
+    "La rama productiva actual reemplaza notas previas que usaban `control_hidden` para el codigo de negociador `0`, restringian H3 a terminos de empatia solo aditivos, o implicaban que el estimador principal usaba `(1|session)`. El repositorio ahora documenta de forma directa el estimador implementado y el diseno autoritativo especifico por rol.",
+    "# Limitaciones",
+    "# Apendice tecnico: mapa de codigos de predictores",
+    "## Victim",
+    "## Bystander",
+    "## Figuras guiadas por significancia"
+  )
+  lines_es <- replace_fixed_pairs(lines_es, static_from, static_to)
+
+  helper_maps <- list(
+    list(from = build_introductory_theoretical_chapter(lang = "en"), to = build_introductory_theoretical_chapter(lang = "es")),
+    list(from = get_dataset_sample_description(lang = "en"), to = get_dataset_sample_description(lang = "es")),
+    list(from = get_interaction_interpretation_rules(lang = "en"), to = get_interaction_interpretation_rules(lang = "es")),
+    list(from = get_current_tobit_math_foundations(lang = "en"), to = get_current_tobit_math_foundations(lang = "es")),
+    list(from = get_current_limitations(lang = "en"), to = get_current_limitations(lang = "es")),
+    list(from = build_discussion_section(lang = "en"), to = build_discussion_section(lang = "es")),
+    list(from = build_final_audit_note(compliance_report, fit_summary, lang = "en"), to = build_final_audit_note(compliance_report, fit_summary, lang = "es")),
+    list(from = build_crossreferenced_conclusion_section(significance_summary, lang = "en"), to = build_crossreferenced_conclusion_section(significance_summary, lang = "es"))
+  )
+  for (entry in helper_maps) {
+    long_idx <- nchar(entry$from) >= 20L
+    lines_es <- replace_exact_line_pairs(lines_es, entry$from[!long_idx], entry$to[!long_idx])
+    lines_es <- replace_fixed_pairs(lines_es, entry$from[long_idx], entry$to[long_idx])
+  }
+
+  reminder_en <- vapply(c("H2", "H4", "H5"), get_hypothesis_semantic_reminder, character(1), lang = "en")
+  reminder_es <- vapply(c("H2", "H4", "H5"), get_hypothesis_semantic_reminder, character(1), lang = "es")
+  lines_es <- replace_exact_line_pairs(lines_es, reminder_en, reminder_es)
+
+  common_prefixes <- intersect(names(coefficient_narratives_en), names(coefficient_narratives_es))
+  if (length(common_prefixes) > 0L) {
+    lines_es <- replace_exact_line_pairs(
+      lines_es,
+      unname(unlist(coefficient_narratives_en[common_prefixes], use.names = FALSE)),
+      unname(unlist(coefficient_narratives_es[common_prefixes], use.names = FALSE))
+    )
+  }
+
+  figure_manifest_es <- localize_figure_manifest_for_language(figure_manifest, lang = "es")
+  lines_es <- replace_exact_line_pairs(lines_es, figure_manifest$interpretation, figure_manifest_es$interpretation)
+
+  image_line_en <- paste0("![", figure_manifest$caption, "](", relative_report_path(figure_manifest$figure_file), ")")
+  image_line_es <- paste0("![", figure_manifest_es$caption, "](", relative_report_path(figure_manifest_es$figure_file), ")")
+  lines_es <- replace_exact_line_pairs(lines_es, image_line_en, image_line_es)
+
+  symbol_en <- get_current_symbol_dictionary(lang = "en")
+  symbol_es <- get_current_symbol_dictionary(lang = "es")
+  lines_es <- replace_fixed_pairs(lines_es, symbol_en$definition, symbol_es$definition)
+
+  glossary_en <- get_current_predictor_glossary(lang = "en")
+  glossary_es <- get_current_predictor_glossary(lang = "es")
+  lines_es <- replace_fixed_pairs(lines_es, glossary_en$meaning, glossary_es$meaning)
+
+  table_phrase_from <- c(
+    "Row-level decision mapping from dynamic target/other to structural N1/N2 slots",
+    "Participant summary",
+    "Judgement summary",
+    "Datacard symbol dictionary",
+    "Observation audit",
+    "Predictor glossary (reader version)",
+    "Descriptive clustering diagnostic",
+    "Decision summary by role",
+    "Role-specific ingroup/outgroup summary",
+    "Participant-level empathy and mean judgement correlation matrix",
+    "Estimator configuration",
+    "Bystander model fit and censoring summary",
+    "Victim model fit and censoring summary",
+    "Victim focal support terms (p < 0.10)",
+    "Bystander focal support terms (p < 0.10)",
+    "Pipeline compliance checklist",
+    "Predictor-to-code map (technical appendix)",
+    "H1-H5 role-specific formulas and theoretical focus."
+  )
+  table_phrase_to <- c(
+    "Mapeo de decision por fila desde target/other dinamicos hacia slots estructurales N1/N2",
+    "Resumen de participantes",
+    "Resumen de judgement",
+    "Diccionario de simbolos del datacard",
+    "Auditoria de observaciones",
+    "Glosario de predictores (version de lectura)",
+    "Diagnostico descriptivo de clustering",
+    "Resumen de decisiones por rol",
+    "Resumen ingroup/outgroup especifico por rol",
+    "Matriz de correlacion entre empatia y judgement promedio a nivel participante",
+    "Configuracion del estimador",
+    "Resumen de ajuste y censura para modelos Bystander",
+    "Resumen de ajuste y censura para modelos Victim",
+    "Terminos de soporte focal Victim (p < 0.10)",
+    "Terminos de soporte focal Bystander (p < 0.10)",
+    "Lista de verificacion de cumplimiento del pipeline",
+    "Mapa predictor-a-codigo (apendice tecnico)",
+    "Formulas especificas por rol H1-H5 y enfoque teorico."
+  )
+  lines_es <- replace_fixed_pairs(lines_es, table_phrase_from, table_phrase_to)
+
+  formula_focus_from <- c(
+    "Empathy dimensions only, always adjusted by sociodemographics.",
+    "Victim-side ingroup/outgroup structure with the allowed N1 x N2 relational interaction.",
+    "Bystander-side relational structure with explicit bystander-victim, bystander-negotiator, victim-negotiator, and N1/N2 context terms.",
+    "Empathy plus victim-side relational structure, including empathy x victim-N1 and empathy x victim-N2 interactions because empathy may depend on negotiator closeness.",
+    "Empathy plus bystander-side relational structure, including empathy x bystander-victim and empathy x bystander-negotiator interactions because empathy may depend on group closeness in the bystander role.",
+    "Target and other negotiator decisions with their interaction, plus sociodemographics.",
+    "Integrated model with empathy, victim-side relations, empathy x group interactions, decisions, and the victim-side relational interaction.",
+    "Integrated model with empathy, bystander-side relations, empathy x group interactions, decisions, and the role-specific relational interactions."
+  )
+  formula_focus_to <- c(
+    "Solo dimensiones de empatia, siempre ajustadas por sociodemograficos.",
+    "Estructura ingroup/outgroup del lado Victim con la interaccion relacional permitida N1 x N2.",
+    "Estructura relacional del lado Bystander con terminos explicitos bystander-victim, bystander-negotiator, victim-negotiator y contexto N1/N2.",
+    "Empatia mas estructura relacional del lado Victim, incluyendo interacciones empatia x victim-N1 y empatia x victim-N2 porque la empatia puede depender de cercania al negociador.",
+    "Empatia mas estructura relacional del lado Bystander, incluyendo interacciones empatia x bystander-victim y empatia x bystander-negotiator porque la empatia puede depender de cercania de grupo en el rol Bystander.",
+    "Decisiones de target y del otro negociador con su interaccion, mas sociodemograficos.",
+    "Modelo integrado con empatia, relaciones del lado Victim, interacciones empatia x grupo, decisiones y la interaccion relacional del lado Victim.",
+    "Modelo integrado con empatia, relaciones del lado Bystander, interacciones empatia x grupo, decisiones e interacciones relacionales especificas por rol."
+  )
+  lines_es <- replace_fixed_pairs(lines_es, formula_focus_from, formula_focus_to)
+
+  compliance_from <- c(
+    "a) uses judgement",
+    "b) repeated structure by id",
+    "c) session grouping",
+    "d) no double count introduced by the pipeline",
+    "e) victim and bystander treated differently",
+    "f) decision_target and decision_other included where required",
+    "g) sociodemographics included in every hypothesis model",
+    "All formulas model judgement directly.",
+    "All fitted Tobit models use participant-cluster robust standard errors through cluster = id.",
+    "The active Tobit branch uses factor(session) in every formula and documents that choice explicitly instead of claiming a random session intercept.",
+    "Role-specific formulas are estimated separately and H2/H3/H5 use different relational blocks for victim and bystander.",
+    "H4 and H5 both include decision_target, decision_other, and their interaction.",
+    "Every H1-H5 formula retains age, ses, sex_female, and faculty_player_factor."
+  )
+  compliance_to <- c(
+    "a) usa judgement",
+    "b) estructura repetida por id",
+    "c) agrupacion por sesion",
+    "d) el pipeline no introduce doble conteo",
+    "e) Victim y Bystander tratados de forma diferente",
+    "f) decision_target y decision_other incluidos donde corresponde",
+    "g) sociodemograficos incluidos en cada modelo de hipotesis",
+    "Todas las formulas modelan judgement de forma directa.",
+    "Todos los modelos Tobit ajustados usan errores estandar robustos por cluster de participante mediante cluster = id.",
+    "La rama Tobit activa usa factor(session) en cada formula y documenta esa eleccion de forma explicita en lugar de afirmar un intercepto aleatorio de sesion.",
+    "Las formulas especificas por rol se estiman por separado y H2/H3/H5 usan bloques relacionales diferentes para Victim y Bystander.",
+    "H4 y H5 incluyen decision_target, decision_other y su interaccion.",
+    "Cada formula H1-H5 retiene age, ses, sex_female y faculty_player_factor."
+  )
+  lines_es <- replace_fixed_pairs(lines_es, compliance_from, compliance_to)
+
+  lines_es <- replace_fixed_pairs(lines_es, c("H & Role & Formula & Focus"), c("H & Rol & Formula & Enfoque"))
+  lines_es <- replace_fixed_pairs(lines_es, c("Code | Interpretation"), c("Codigo | Interpretacion"))
+
+  lines_es <- gsub(
+    "^Victim models use ([0-9,]+) observations from ([0-9,]+) participants\\.$",
+    "Los modelos Victim usan \\1 observaciones de \\2 participantes.",
+    lines_es
+  )
+  lines_es <- gsub(
+    "^Bystander models use ([0-9,]+) observations from ([0-9,]+) participants\\.$",
+    "Los modelos Bystander usan \\1 observaciones de \\2 participantes.",
+    lines_es
+  )
+  lines_es <- gsub(
+    "^Victim models vary in their observation and participant counts; see the tables below\\.$",
+    "Los modelos Victim varian en sus conteos de observaciones y participantes; ver tablas abajo.",
+    lines_es
+  )
+  lines_es <- gsub(
+    "^Bystander models vary in their observation and participant counts; see the tables below\\.$",
+    "Los modelos Bystander varian en sus conteos de observaciones y participantes; ver tablas abajo.",
+    lines_es
+  )
+
+  lines_es
+}
+
+report_lines_es <- translate_report_lines_to_spanish(
+  lines_en = report_lines,
+  significance_summary = significance_summary,
+  coefficient_narratives_en = coefficient_narratives_en,
+  coefficient_narratives_es = coefficient_narratives_es,
+  figure_manifest = figure_manifest
+)
+
 main_report_md <- file.path(paths$report_dir, "tobit_analysis_report.md")
 log_report_md <- file.path(paths$logs_dir, "dynamic_report.md")
 report_data_md <- file.path(paths$reports_data_dir, "tobit_analysis_report.md")
 compatibility_report_md <- file.path(paths$reports_data_dir, "longitudinal_mixed_model_analysis_report.md")
+main_report_md_es <- file.path(paths$report_dir, "tobit_analysis_report_es.md")
+log_report_md_es <- file.path(paths$logs_dir, "dynamic_report_es.md")
+report_data_md_es <- file.path(paths$reports_data_dir, "tobit_analysis_report_es.md")
+compatibility_report_md_es <- file.path(paths$reports_data_dir, "longitudinal_mixed_model_analysis_report_es.md")
 
 writeLines(report_lines, main_report_md)
 writeLines(report_lines, log_report_md)
 writeLines(report_lines, report_data_md)
 writeLines(report_lines, compatibility_report_md)
+writeLines(report_lines_es, main_report_md_es)
+writeLines(report_lines_es, log_report_md_es)
+writeLines(report_lines_es, report_data_md_es)
+writeLines(report_lines_es, compatibility_report_md_es)
 
 render_dynamic_report_outputs(main_report_md, paths)
+render_dynamic_report_outputs(main_report_md_es, paths, artifact_tag = "es")
 
 if (file.exists(file.path(paths$report_dir, "tobit_analysis_report.docx"))) {
   file.copy(file.path(paths$report_dir, "tobit_analysis_report.docx"), file.path(paths$reports_data_dir, "tobit_analysis_report.docx"), overwrite = TRUE)
 }
 if (file.exists(file.path(paths$report_dir, "tobit_analysis_report.pdf"))) {
   file.copy(file.path(paths$report_dir, "tobit_analysis_report.pdf"), file.path(paths$reports_data_dir, "tobit_analysis_report.pdf"), overwrite = TRUE)
+}
+if (file.exists(file.path(paths$report_dir, "tobit_analysis_report_es.docx"))) {
+  file.copy(file.path(paths$report_dir, "tobit_analysis_report_es.docx"), file.path(paths$reports_data_dir, "tobit_analysis_report_es.docx"), overwrite = TRUE)
+}
+if (file.exists(file.path(paths$report_dir, "tobit_analysis_report_es.pdf"))) {
+  file.copy(file.path(paths$report_dir, "tobit_analysis_report_es.pdf"), file.path(paths$reports_data_dir, "tobit_analysis_report_es.pdf"), overwrite = TRUE)
 }
 
 table_caption_counter <- 0L
@@ -1820,3 +2304,19 @@ compliance_lines <- c(
 )
 writeLines(compliance_lines, file.path(paths$report_dir, "pipeline_compliance_report.md"))
 writeLines(compliance_lines, file.path(paths$reports_data_dir, "pipeline_compliance_report.md"))
+
+compliance_lines_es <- replace_fixed_pairs(
+  compliance_lines,
+  c(
+    "# Pipeline Compliance Report",
+    "By Leonardo H. Talero-Sarmiento; Date  ",
+    "Pipeline compliance checklist"
+  ),
+  c(
+    "# Reporte de Cumplimiento del Pipeline",
+    "Por Leonardo H. Talero-Sarmiento; Fecha  ",
+    "Lista de verificacion de cumplimiento del pipeline"
+  )
+)
+writeLines(compliance_lines_es, file.path(paths$report_dir, "pipeline_compliance_report_es.md"))
+writeLines(compliance_lines_es, file.path(paths$reports_data_dir, "pipeline_compliance_report_es.md"))

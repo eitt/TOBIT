@@ -1,0 +1,46 @@
+# Operating system / file explorer
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editors / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# R session / project-local state
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# Python env/cache (local tooling)
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Notebook / temporary artifacts
+.ipynb_checkpoints/
+
+# Office temporary lock files
+~$*.xlsx
+~$*.xls
+~$*.docx
+~$*.pptx
+
+# LaTeX / Pandoc temporary artifacts
+*.aux
+*.toc
+*.out
+*.fls
+*.fdb_latexmk
+
+# Local temporary folders
+tmp/
+temp/
+
+# Playground local env
+playground/streamlit_local/.venv/
