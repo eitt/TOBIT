@@ -1,4 +1,4 @@
-﻿# TOBIT: Longitudinal Moral Judgement Pipeline
+# TOBIT: Longitudinal Moral Judgement Pipeline
 
 This repository implements a reproducible analytical pipeline for moral judgement modeling in a structured negotiation experiment.
 
@@ -9,6 +9,7 @@ The active production workflow uses a two-sided Tobit strategy on longitudinal j
 The project studies how participants assign moral judgement to a focal negotiator under repeated observations.
 
 Core design points:
+
 - Outcome: `judgement` (bounded scale, modeled as two-sided censored outcome).
 - Observational structure: one imported row remains one real target-judgement observation.
 - Role-specific logic: Victim and Bystander models are estimated separately.
@@ -18,6 +19,7 @@ Core design points:
 ## Active Pipeline Status
 
 The current active branch is defined by:
+
 - `judgement` as the modeled outcome in all hypothesis models.
 - Active operational decision names: `decision_target`, `decision_other`.
 - Row-dynamic role semantics: `target` and `other` are dynamic per observation.
@@ -28,37 +30,37 @@ The current active branch is defined by:
 
 ```text
 TOBIT/
-|- R/
-|  |- 00_config.R
-|  |- 01_import_data.R ... 06_generate_report.R
-|  |- 08_generate_plain_language_report.R
-|  |- 09_generate_behavioral_economics_report.R
-|  |- hypotheses/
-|  |  |- H1_test.R ... H5_test.R (active)
-|  |  |- H2a_test.R, H2b_test.R (legacy/non-default)
-|  |  `- H_formulas.R
-|  `- utils/
-|     |- build_role_relational_variables.R
-|     |- prepare_consolidated_dataset.R
-|     `- report/table/model helper modules
-|- data/
-|  `- processed/ (pipeline-generated analytical datasets)
-|- outputs/
-|  |- figures/
-|  |- models/
-|  |- tables/
-|  |- logs/
-|  `- report/ (dynamic reports)
-|- docs/
-|  |- repository_map.md
-|  |- pipeline_overview.md
-|  |- semantic_conventions.md
-|  |- final_release_checklist.md
-|  `- existing methodological docs
-|- run_pipeline.R
-|- run_pipeline.ps1
-|- run_pipeline.bat
-`- Version 2.0/ (source dataset directory)
++- R/
+  +- 00_config.R
+  +- 01_import_data.R ... 06_generate_report.R
+  +- 08_generate_plain_language_report.R
+  +- 09_generate_behavioral_economics_report.R
+  +- hypotheses/
+  +- H1_test.R ... H5_test.R (active)
+  +- H2a_test.R, H2b_test.R (legacy/non-default)
+  +- H_formulas.R
+  +- utils/
+  +- build_role_relational_variables.R
+  +- prepare_consolidated_dataset.R
+  +- report/table/model helper modules
++- data/
+  +- processed/ (pipeline-generated analytical datasets)
++- outputs/
+  +- figures/
+  +- models/
+  +- tables/
+  +- logs/
+  +- report/ (dynamic reports)
++- docs/
+  +- repository_map.md
+  +- pipeline_overview.md
+  +- semantic_conventions.md
+  +- final_release_checklist.md
+  +- existing methodological docs
++- run_pipeline.R
++- run_pipeline.ps1
++- run_pipeline.bat
++- Version 2.0/ (source dataset directory)
 ```
 
 ## How To Run
@@ -70,6 +72,7 @@ source("run_pipeline.R", encoding = "UTF-8")
 ```
 
 Default active order (from `run_pipeline.R`):
+
 1. `R/01_import_data.R`
 2. `R/02_clean_data.R`
 3. `R/03_transform_data.R`
@@ -97,25 +100,30 @@ Default active order (from `run_pipeline.R`):
 ## Main Outputs
 
 Core analytical datasets:
+
 - `data/processed/judgments_analysis.csv`
 - `data/processed/judgments_victim.csv`
 - `data/processed/judgments_bystander.csv`
 
 Core analytical reporting outputs (English):
+
 - `outputs/report/tobit_analysis_report.md`
 - `outputs/report/tobit_analysis_report.docx`
 - `outputs/report/tobit_analysis_report.pdf`
 
 Parallel Spanish dynamic reporting outputs:
+
 - `outputs/report/tobit_analysis_report_es.md`
 - `outputs/report/tobit_analysis_report_es.docx`
 - `outputs/report/tobit_analysis_report_es.pdf`
 
 Additional report families:
+
 - `outputs/report/tobit_plain_language_guide.md`
 - `outputs/report/tobit_behavioral_economics_report.md`
 
 Audit-oriented outputs:
+
 - `outputs/tables/hypothesis_formula_catalog.csv`
 - `outputs/tables/hypothesis_summary.csv`
 - `outputs/tables/model_fit_summary.csv`
@@ -135,6 +143,7 @@ Audit-oriented outputs:
 Active/default path is the orchestrator `run_pipeline.R` and its script list.
 
 Legacy or non-default elements that remain in repository for traceability:
+
 - `R/hypotheses/H2a_test.R`
 - `R/hypotheses/H2b_test.R`
 - `R/07_run_nonparametric_bootstrap_phase.R` (not part of default run order)
@@ -145,6 +154,7 @@ These are retained to avoid breaking local historical workflows but are not part
 ## Documentation Index
 
 See:
+
 - `docs/repository_map.md`
 - `docs/pipeline_overview.md`
 - `docs/semantic_conventions.md`
