@@ -2,6 +2,13 @@
 # Purpose: Translation of terms and implementation of the primary mixed-effects
 # model plus cluster-aware non-parametric censored robustness behavior.
 # Dependencies: survival, ctqr
+#
+# LEGACY STATUS NOTE (semantic hygiene):
+# This file is retained for backward compatibility and historical tooling, but it
+# is not in the active execution path of `run_pipeline.R` for the current
+# two-sided Tobit production branch (`R/utils/mixed_model_functions.R` is active).
+# Some labels here reflect older terminology and should not override the active
+# target/other row-dynamic semantics documented in the current datacard/report.
 
 source("R/utils/case_configuration_functions.R")
 source("R/utils/table_functions.R")

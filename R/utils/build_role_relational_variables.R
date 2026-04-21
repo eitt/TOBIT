@@ -1,7 +1,8 @@
 # Role-specific relational-variable construction for the longitudinal judgment dataset.
-# One row remains one observed judgement on the target negotiator. The code below
-# only enriches that row with contextual relations; it never duplicates rows for N1
-# or N2, which is how the pipeline avoids double counting.
+# One row remains one observed judgement on the row-dynamic target negotiator.
+# The code below only enriches each existing row with contextual N1/N2 slot
+# attributes; it never duplicates rows for N1 or N2, which is how the pipeline
+# avoids double counting.
 
 faculty_code_to_label <- function(x) {
   ifelse(
@@ -53,6 +54,7 @@ derive_decision_pattern <- function(decision_target, decision_other) {
 
 add_negotiator_context_columns <- function(data) {
   data$role_label <- ifelse(data$role == 1, "victim", "bystander")
+  # target is row-dynamic: each observation can judge N1 or N2.
   data$target_label <- ifelse(data$target == 1, "N1", "N2")
   data$faculty_victim <- ifelse(
     data$role == 1 & is.na(data$faculty_victim),
@@ -60,6 +62,8 @@ add_negotiator_context_columns <- function(data) {
     data$faculty_victim
   )
 
+  # Reconstruct structural slots N1/N2 inside each row from target/other fields.
+  # If target == 1, target already corresponds to N1; otherwise target corresponds to N2.
   data$N1_faculty <- ifelse(data$target == 1, data$faculty_target, data$faculty_other)
   data$N2_faculty <- ifelse(data$target == 1, data$faculty_other, data$faculty_target)
   data$N1_decision <- ifelse(data$target == 1, data$decision_target, data$decision_other)
@@ -82,6 +86,8 @@ add_negotiator_context_columns <- function(data) {
     "accept",
     ifelse(data$decision_target == 0, "reject", NA_character_)
   )
+  # Historical naming note: accept_target/accept_other (legacy wording) map to
+  # decision_target/decision_other (active operational names).
   data$decision_other_label <- ifelse(
     data$decision_other == 1,
     "accept",

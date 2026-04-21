@@ -7,6 +7,7 @@
 - The pipeline preserves that row count one-to-one
 - Each participant contributes 20 rows in principle: ten scenarios x two target-negotiator evaluations
 - `judgement` is directed toward the target negotiator named in the row, but some hypotheses also use the other negotiator's decision to explain that target-directed evaluation
+- `target`/`other` are row-dynamic roles; `N1`/`N2` are structural slots reconstructed per row for relational terms
 
 ## Core covariates in every model
 
@@ -172,6 +173,7 @@ survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
 
 - `decision_target`: `0 = reject`, `1 = accept`
 - `decision_other`: `0 = reject`, `1 = accept`
+- Historical alias note: legacy wording `accept_target` / `accept_other` maps to active names `decision_target` / `decision_other`
 - `victim_N1_group`, `victim_N2_group`, `bystander_N1_group`, `bystander_N2_group`:
   - `ingroup`
   - `outgroup`
@@ -182,6 +184,7 @@ survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
 - `N1_N2_same_faculty`:
   - `same`
   - `different`
+- `group_target` / `group_other` remain legacy source fields for audit/provenance and are not used directly in active H2/H3/H5 formulas
 
 ## Documentation note
 

@@ -138,6 +138,7 @@ predictor_glossary_appendix <- predictor_glossary[, c("predictor", "compact_labe
 names(predictor_glossary_appendix) <- c("Predictor", "Code")
 correlation_table <- build_participant_correlation_table(participants, judgments_analysis)
 clustering_diagnostic <- compute_descriptive_clustering_diagnostic(judgments_analysis)
+target_slot_mapping_audit <- build_target_slot_mapping_audit(judgments_analysis)
 
 write.csv(symbol_dictionary, file.path(paths$tables_dir, "report_symbol_dictionary.csv"), row.names = FALSE)
 write.csv(predictor_glossary, file.path(paths$tables_dir, "report_predictor_glossary.csv"), row.names = FALSE)
@@ -145,6 +146,8 @@ write.csv(predictor_glossary_main, file.path(paths$tables_dir, "report_predictor
 write.csv(predictor_glossary_appendix, file.path(paths$tables_dir, "report_predictor_glossary_appendix.csv"), row.names = FALSE)
 write.csv(correlation_table, file.path(paths$tables_dir, "report_correlation_matrix.csv"), row.names = FALSE)
 write.csv(clustering_diagnostic, file.path(paths$tables_dir, "report_clustering_diagnostic.csv"), row.names = FALSE)
+write.csv(target_slot_mapping_audit, file.path(paths$tables_dir, "report_target_slot_mapping_audit.csv"), row.names = FALSE)
+write.csv(target_slot_mapping_audit, file.path(paths$reports_data_dir, "report_target_slot_mapping_audit.csv"), row.names = FALSE)
 
 primary_coef_files <- list.files(paths$models_dir, pattern = "_primary_coefficients\\.csv$", full.names = TRUE)
 primary_fit_files <- list.files(paths$models_dir, pattern = "_primary_fit_stats\\.csv$", full.names = TRUE)
@@ -1352,6 +1355,16 @@ build_final_audit_note <- function(compliance_report, fit_summary) {
   note_lines
 }
 
+get_hypothesis_semantic_reminder <- function(hypothesis_id) {
+  switch(
+    hypothesis_id,
+    H2 = "H2 reminder: `N1`/`N2` are structural slots reconstructed within each row, not fixed aliases of `target`/`other`; `group_target` and `group_other` are legacy source-audit fields, while active H2 models use reconstructed relational predictors.",
+    H4 = "H4 reminder: legacy `accept_target` corresponds to active `decision_target`, and legacy `accept_other` corresponds to active `decision_other`; both refer to row-dynamic `target`/`other` roles, not fixed N1/N2 identities.",
+    H5 = "H5 reminder: `N1`/`N2` are reconstructed structural slots (not fixed aliases of `target`/`other`), `group_target`/`group_other` are legacy audit fields, and legacy `accept_target`/`accept_other` map to active `decision_target`/`decision_other` for row-dynamic roles.",
+    ""
+  )
+}
+
 get_role_support_text <- function(significance_summary, hypothesis_id, role_label) {
   matched <- subset(
     significance_summary,
@@ -1401,6 +1414,8 @@ build_crossreferenced_conclusion_section <- function(significance_summary) {
     "",
     "### H2",
     "",
+    get_hypothesis_semantic_reminder("H2"),
+    "",
     "H2 focuses on role-specific ingroup/outgroup structure. For cross-reference, see the H2 equation summary and the H2 role-specific coefficient tables and figures. In the victim role,",
     sprintf("%s.", h2_v),
     "In the bystander role,",
@@ -1417,6 +1432,8 @@ build_crossreferenced_conclusion_section <- function(significance_summary) {
     "",
     "### H4",
     "",
+    get_hypothesis_semantic_reminder("H4"),
+    "",
     "H4 tests decision terms directly through `decision_target`, `decision_other`, and their interaction. For cross-reference, see the H4 equation summary and the H4 role-specific coefficient tables and significance figures. In the victim role,",
     sprintf("%s.", h4_v),
     "In the bystander role,",
@@ -1424,6 +1441,8 @@ build_crossreferenced_conclusion_section <- function(significance_summary) {
     "Across both roles, H4 is typically where the decisional mechanism is most clearly visible, because the target judgement is explicitly conditioned by joint negotiation outcomes.",
     "",
     "### H5",
+    "",
+    get_hypothesis_semantic_reminder("H5"),
     "",
     "H5 is the integrated specification combining empathy, relational terms, decisions, and interactions. For cross-reference, see the H5 equation summary, H5 coefficient tables, and H5 significance figures. In the victim role,",
     sprintf("%s.", h5_v),
@@ -1451,6 +1470,14 @@ report_lines <- c(
   "This run uses `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` as the only analytical source and preserves each imported row as one real judgement observation. The production estimator is a two-sided Tobit fitted with `survival::survreg`, using bilateral censoring at `-9` and `9`, participant-cluster robust standard errors through `cluster = id`, and `factor(session)` in every active formula.",
   "",
   build_introductory_theoretical_chapter(),
+  "",
+  "# Semantic naming bridge and row-level mapping",
+  "",
+  "Legacy/intuitive naming bridge: `accept_target` -> active operational name `decision_target`; `accept_other` -> active operational name `decision_other`.",
+  "",
+  "Row-level semantics: `target` and `other` are dynamic roles per observation, while `N1` and `N2` are structural slots reconstructed inside each row.",
+  "",
+  build_numbered_table_block(target_slot_mapping_audit, "Row-level decision mapping from dynamic target/other to structural N1/N2 slots"),
   "",
   "# Dataset and sample description",
   "",
@@ -1486,7 +1513,7 @@ report_lines <- c(
     "tbl-formula-catalog"
   ),
   "",
-  "Any earlier repository note that described negotiator code `0` as a hidden label or that narrowed H3 to additive effects only should now be treated as outdated. The active formulas below are the authoritative specification.",
+  "Any earlier repository note that treated negotiator code `0` as anything other than the explicit control category, or that narrowed H3 to additive effects only, should now be treated as outdated. The active formulas below are the authoritative specification.",
   ""
 )
 
@@ -1712,6 +1739,14 @@ report_lines <- c(
 )
 
 for (hypothesis_id in paste0("H", 1:5)) {
+  hypothesis_reminder <- get_hypothesis_semantic_reminder(hypothesis_id)
+  if (nzchar(hypothesis_reminder)) {
+    report_lines <- c(
+      report_lines,
+      hypothesis_reminder,
+      ""
+    )
+  }
   for (role_label in c("Victim", "Bystander")) {
     prefix <- get_model_prefix(hypothesis_id, role_label)
     if (!(prefix %in% names(coefficient_tables))) next
@@ -1739,7 +1774,7 @@ report_lines <- c(
   "",
   "# Corrections relative to outdated notes",
   "",
-  "The current production branch supersedes earlier notes that treated the negotiator `0` code as `control_hidden`, narrowed H3 to additive-only empathy terms, or implied that the main estimator used `(1|session)`. The repository now documents the implemented estimator and the authoritative role-specific design directly.",
+  "The current production branch supersedes earlier notes that used `control_hidden` wording for negotiator code `0`, narrowed H3 to additive-only empathy terms, or implied that the main estimator used `(1|session)`. The repository now documents the implemented estimator and the authoritative role-specific design directly.",
   "",
   "# Limitations",
   "",

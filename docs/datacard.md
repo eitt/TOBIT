@@ -40,6 +40,8 @@ Each row is one observed moral judgment recorded in the experiment.
 
 - `role = 1` is interpreted as `victim`
 - `role = 0` is interpreted as `bystander`
+- `target` is row-dynamic (`1 = N1`, `2 = N2`) and defines who is judged in that row
+- `other` is the counterpart negotiator in that same row context
 - In victim rows, when `faculty_victim` is empty in the source file, the pipeline uses `faculty_player` as the victim reference because the participant is the victim in that subset
 - `N1_faculty` and `N2_faculty` are reconstructed from `faculty_target` and `faculty_other` without expanding the dataset again
 - `N1_decision` and `N2_decision` are reconstructed from `decision_target` and `decision_other` without expanding the dataset again
@@ -86,6 +88,13 @@ Each row is one observed moral judgment recorded in the experiment.
 
 - `decision_target`: `0 = reject`, `1 = accept`
 - `decision_other`: `0 = reject`, `1 = accept`
+- Historical alias note: legacy wording `accept_target` / `accept_other` corresponds to active operational names `decision_target` / `decision_other`
+
+### Dynamic vs structural semantics
+
+- `target` / `other` are row-dynamic roles
+- `N1` / `N2` are structural scenario slots reconstructed per row for relational modeling
+- active H2/H3/H5 formulas use reconstructed role-specific relational variables, not `group_target` / `group_other` directly
 
 ### Faculty labels
 

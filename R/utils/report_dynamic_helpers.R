@@ -15,10 +15,14 @@ get_current_symbol_dictionary <- function() {
       "judgement",
       "y*",
       "iri_fs / iri_ec / iri_pt / iri_pd",
+      "target (row-dynamic)",
+      "other (row-dynamic counterpart)",
+      "N1 / N2 (structural slots)",
       "decision_target",
       "decision_other",
       "victim_N1_group / victim_N2_group",
       "bystander_victim_group / bystander_N1_group / bystander_N2_group",
+      "group_target / group_other (legacy audit)",
       "N1_N2_same_faculty",
       "factor(session)",
       "cluster = id",
@@ -28,10 +32,14 @@ get_current_symbol_dictionary <- function() {
       "Observed moral judgement on the bounded scale from -9 to 9.",
       "Latent judgement tendency underlying the censored Tobit observation.",
       "IRI empathy dimensions: fantasy, empathic concern, perspective taking, and personal distress.",
-      "Indicator for whether the target negotiator accepted the harmful deal; judgement is directed toward this actor.",
-      "Indicator for whether the other negotiator accepted the harmful deal and may shift judgement of the target through the joint outcome context.",
+      "Judged negotiator in that row; this role is dynamic and can be N1 or N2 depending on the observation.",
+      "Counterpart negotiator in that same row context (the non-target actor).",
+      "Structural negotiator identities reconstructed within each row for relational modeling; they are not fixed aliases of target/other.",
+      "Indicator for whether the row-dynamic target negotiator accepted the harmful deal; active operational name for legacy wording accept_target.",
+      "Indicator for whether the row-dynamic other negotiator accepted the harmful deal; active operational name for legacy wording accept_other.",
       "Victim-specific relations to negotiator 1 and negotiator 2, with ingroup defined by faculty coincidence including control-control matches.",
       "Bystander-side relational factors for the victim and both negotiators, again using faculty coincidence as ingroup.",
+      "Legacy source grouping fields retained for provenance checks; not used directly in active H2/H3/H5 formulas.",
       "Context term indicating whether N1 and N2 share faculty membership.",
       "Session fixed effects included directly in every fitted formula.",
       "Participant-level clustering used for robust standard errors and repeated-measures adjustment.",
@@ -116,8 +124,8 @@ get_current_predictor_glossary <- function() {
       "Empathic-concern slope difference when victim-N2 is outgroup rather than ingroup.",
       "Perspective-taking slope difference when the bystander-victim relation is outgroup rather than ingroup.",
       "Personal-distress slope difference when the bystander-N1 relation is outgroup rather than ingroup.",
-      "Target negotiator accepted the harmful deal.",
-      "Other negotiator accepted the harmful deal.",
+      "Row-dynamic target negotiator accepted the harmful deal (legacy wording: accept_target).",
+      "Row-dynamic counterpart negotiator accepted the harmful deal (legacy wording: accept_other).",
       "Joint decision effect when both negotiator decisions are considered together.",
       "Participant belongs to Engineering, relative to Humanities.",
       "Participant is a woman.",
@@ -188,6 +196,52 @@ get_dataset_sample_description <- function() {
     "Each imported row remains one real judgement observation on the target negotiator, enriched with relational context for N1, N2, victim, and bystander without duplicating rows.",
     "Double counting is prevented because N1 and N2 are reconstructed as contextual attributes inside each existing row rather than by expanding the file into duplicated negotiator-specific observations.",
     "Victim and bystander analyses are estimated separately so that relational coding follows the role-specific logic of the experiment."
+  )
+}
+
+build_target_slot_mapping_audit <- function(data) {
+  required_cols <- c("target", "decision_target", "decision_other", "N1_decision", "N2_decision")
+  missing_cols <- setdiff(required_cols, names(data))
+  if (length(missing_cols) > 0L) {
+    return(data.frame(
+      rule = "mapping_check_not_available",
+      expected_mapping = sprintf("Missing columns: %s", paste(missing_cols, collapse = ", ")),
+      rows_in_scope = NA_integer_,
+      rows_following_rule = NA_integer_,
+      status = "NOT_RUN",
+      stringsAsFactors = FALSE
+    ))
+  }
+
+  target_numeric <- suppressWarnings(as.numeric(as.character(data$target)))
+  rule_one_scope <- target_numeric == 1
+  rule_two_scope <- target_numeric == 2
+
+  row_one_valid <- rule_one_scope &
+    as.character(data$N1_decision) == as.character(data$decision_target) &
+    as.character(data$N2_decision) == as.character(data$decision_other)
+  row_two_valid <- rule_two_scope &
+    as.character(data$N1_decision) == as.character(data$decision_other) &
+    as.character(data$N2_decision) == as.character(data$decision_target)
+
+  rule_one_n <- sum(rule_one_scope, na.rm = TRUE)
+  rule_two_n <- sum(rule_two_scope, na.rm = TRUE)
+  rule_one_ok <- sum(row_one_valid, na.rm = TRUE)
+  rule_two_ok <- sum(row_two_valid, na.rm = TRUE)
+
+  data.frame(
+    rule = c("target == 1", "target == 2"),
+    expected_mapping = c(
+      "N1_decision = decision_target; N2_decision = decision_other",
+      "N1_decision = decision_other; N2_decision = decision_target"
+    ),
+    rows_in_scope = c(rule_one_n, rule_two_n),
+    rows_following_rule = c(rule_one_ok, rule_two_ok),
+    status = c(
+      ifelse(rule_one_ok == rule_one_n, "PASS", "CHECK"),
+      ifelse(rule_two_ok == rule_two_n, "PASS", "CHECK")
+    ),
+    stringsAsFactors = FALSE
   )
 }
 

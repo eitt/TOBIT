@@ -1,0 +1,3 @@
+"rule","expected_mapping","rows_in_scope","rows_following_rule","status"
+"target == 1","N1_decision = decision_target; N2_decision = decision_other",2430,2430,"PASS"
+"target == 2","N1_decision = decision_other; N2_decision = decision_target",2430,2430,"PASS"
