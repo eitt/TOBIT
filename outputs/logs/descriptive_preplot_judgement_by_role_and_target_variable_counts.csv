@@ -1,5 +1,5 @@
 "variable","value","n","in_requested_levels"
 "role_panel","Bystander",2430,"yes"
 "role_panel","Victim",2430,"yes"
-"target_identity","N1",2430,"yes"
-"target_identity","N2",2430,"yes"
+"target_identity","target_code_1",2430,"yes"
+"target_identity","target_code_2",2430,"yes"

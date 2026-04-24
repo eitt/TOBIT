@@ -69,24 +69,24 @@ get_term_definition <- function(term) {
     "iri_ec" = "the tendency to feel sympathy and compassion for others (Empathic Concern subscale)",
     "iri_pt" = "the tendency to look at things from another's point of view (Perspective Taking subscale)",
     "iri_pd" = "the tendency to feel distress in uncomfortable social situations (Personal Distress subscale)",
-    "N1_N2_same_faculty" = "whether N1 and N2 belong to the same faculty",
-    "victim_N1_groupIn" = "whether N1 is ingroup to the victim (relative to the control-labeled baseline)",
-    "victim_N1_groupOut" = "whether N1 is outgroup to the victim (relative to the control-labeled baseline)",
-    "victim_N2_groupIn" = "whether N2 is ingroup to the victim (relative to the control-labeled baseline)",
-    "victim_N2_groupOut" = "whether N2 is outgroup to the victim (relative to the control-labeled baseline)",
-    "bystander_N1_groupIn" = "whether N1 is ingroup to the bystander (relative to the control-labeled baseline)",
-    "bystander_N1_groupOut" = "whether N1 is outgroup to the bystander (relative to the control-labeled baseline)",
-    "bystander_N2_groupIn" = "whether N2 is ingroup to the bystander (relative to the control-labeled baseline)",
-    "bystander_N2_groupOut" = "whether N2 is outgroup to the bystander (relative to the control-labeled baseline)",
+    "target_other_same_faculty" = "whether target and other belong to the same faculty",
+    "victim_target_groupIn" = "whether target is ingroup to the victim (relative to the control-labeled baseline)",
+    "victim_target_groupOut" = "whether target is outgroup to the victim (relative to the control-labeled baseline)",
+    "victim_other_groupIn" = "whether other is ingroup to the victim (relative to the control-labeled baseline)",
+    "victim_other_groupOut" = "whether other is outgroup to the victim (relative to the control-labeled baseline)",
+    "bystander_target_groupIn" = "whether target is ingroup to the bystander (relative to the control-labeled baseline)",
+    "bystander_target_groupOut" = "whether target is outgroup to the bystander (relative to the control-labeled baseline)",
+    "bystander_other_groupIn" = "whether other is ingroup to the bystander (relative to the control-labeled baseline)",
+    "bystander_other_groupOut" = "whether other is outgroup to the bystander (relative to the control-labeled baseline)",
     "bystander_victim_groupOut" = "whether the victim is outgroup to the bystander (reference = ingroup)",
     "case_configuration" = "the relational configuration of victim and negotiator groups",
-    "decision_accept" = "whether N1 accepted the harmful deal",
-    "judged_ingroup" = "whether N1 was ingroup rather than in the control-labeled baseline",
-    "judged_outgroup" = "whether N1 belonged to a different faculty than the reference participant (Outgroup)",
-    "judged_control" = "whether N1's group affiliation was hidden from the participant (Control)",
-    "counterpart_ingroup" = "whether N2 was ingroup rather than in the control-labeled baseline",
-    "counterpart_outgroup" = "whether N2 belonged to a different faculty than the reference participant (Outgroup)",
-    "counterpart_control" = "whether N2's group affiliation was hidden from the participant (Control)",
+    "decision_accept" = "whether the judged target accepted the harmful deal",
+    "judged_ingroup" = "whether target was ingroup rather than in the control-labeled baseline",
+    "judged_outgroup" = "whether target belonged to a different faculty than the reference participant (Outgroup)",
+    "judged_control" = "whether target's group affiliation was hidden from the participant (Control)",
+    "counterpart_ingroup" = "whether other was ingroup rather than in the control-labeled baseline",
+    "counterpart_outgroup" = "whether other belonged to a different faculty than the reference participant (Outgroup)",
+    "counterpart_control" = "whether other's group affiliation was hidden from the participant (Control)",
     "observer_victim_outgroup" = "whether the victim belonged to a different faculty than the observer (Outgroup)",
     "player_victim_outgroup" = "whether the player and victim belonged to different groups",
     "perp_outgroup" = "whether the perpetrator was from a different group",
@@ -113,7 +113,7 @@ get_term_definition <- function(term) {
   }
   h2_structure_term <- label_h2_negotiator_structure_term(term_key)
   if (!identical(h2_structure_term, term_key)) {
-    return(paste("the N1-N2 group structure comparing", sub("^Negotiator-side structure: ", "", h2_structure_term)))
+    return(paste("the target-other group structure comparing", sub("^Negotiator-side structure: ", "", h2_structure_term)))
   }
   if (grepl(":", term_key, fixed = TRUE)) {
     term_parts <- strsplit(term_key, ":", fixed = TRUE)[[1]]
@@ -191,3 +191,4 @@ generate_coefficient_narrative <- function(coef_df, model_family = "Tobit") {
 
   paste(lines, collapse = " ")
 }
+

@@ -6,31 +6,31 @@ build_hypothesis_formula_catalog <- function() {
   empathy_terms <- paste(get_empathy_terms(), collapse = " + ")
   empathy_group_terms_victim <- paste(
     c(
-      "iri_fs:victim_N1_group",
-      "iri_fs:victim_N2_group",
-      "iri_ec:victim_N1_group",
-      "iri_ec:victim_N2_group",
-      "iri_pt:victim_N1_group",
-      "iri_pt:victim_N2_group",
-      "iri_pd:victim_N1_group",
-      "iri_pd:victim_N2_group"
+      "iri_fs:victim_target_group",
+      "iri_fs:victim_other_group",
+      "iri_ec:victim_target_group",
+      "iri_ec:victim_other_group",
+      "iri_pt:victim_target_group",
+      "iri_pt:victim_other_group",
+      "iri_pd:victim_target_group",
+      "iri_pd:victim_other_group"
     ),
     collapse = " + "
   )
   empathy_group_terms_bystander <- paste(
     c(
       "iri_fs:bystander_victim_group",
-      "iri_fs:bystander_N1_group",
-      "iri_fs:bystander_N2_group",
+      "iri_fs:bystander_target_group",
+      "iri_fs:bystander_other_group",
       "iri_ec:bystander_victim_group",
-      "iri_ec:bystander_N1_group",
-      "iri_ec:bystander_N2_group",
+      "iri_ec:bystander_target_group",
+      "iri_ec:bystander_other_group",
       "iri_pt:bystander_victim_group",
-      "iri_pt:bystander_N1_group",
-      "iri_pt:bystander_N2_group",
+      "iri_pt:bystander_target_group",
+      "iri_pt:bystander_other_group",
       "iri_pd:bystander_victim_group",
-      "iri_pd:bystander_N1_group",
-      "iri_pd:bystander_N2_group"
+      "iri_pd:bystander_target_group",
+      "iri_pd:bystander_other_group"
     ),
     collapse = " + "
   )
@@ -41,10 +41,10 @@ build_hypothesis_formula_catalog <- function() {
 
   victim_group_block <- paste(
     c(
-      "victim_N1_group",
-      "victim_N2_group",
-      "victim_N1_group:victim_N2_group",
-      "N1_N2_same_faculty"
+      "victim_target_group",
+      "victim_other_group",
+      "victim_target_group:victim_other_group",
+      "target_other_same_faculty"
     ),
     collapse = " + "
   )
@@ -52,13 +52,13 @@ build_hypothesis_formula_catalog <- function() {
   bystander_group_block <- paste(
     c(
       "bystander_victim_group",
-      "bystander_N1_group",
-      "bystander_N2_group",
-      "victim_N1_group",
-      "victim_N2_group",
-      "bystander_N1_group:bystander_N2_group",
-      "victim_N1_group:victim_N2_group",
-      "N1_N2_same_faculty"
+      "bystander_target_group",
+      "bystander_other_group",
+      "victim_target_group",
+      "victim_other_group",
+      "bystander_target_group:bystander_other_group",
+      "victim_target_group:victim_other_group",
+      "target_other_same_faculty"
     ),
     collapse = " + "
   )
@@ -89,14 +89,14 @@ build_hypothesis_formula_catalog <- function() {
     theoretical_focus = c(
       "Empathy dimensions only, always adjusted by sociodemographics.",
       "Empathy dimensions only, always adjusted by sociodemographics.",
-      "Victim-side ingroup/outgroup structure with the allowed N1 x N2 relational interaction.",
-      "Bystander-side relational structure with explicit bystander-victim, bystander-negotiator, victim-negotiator, and N1/N2 context terms.",
-      "Empathy plus victim-side relational structure, including empathy x victim-N1 and empathy x victim-N2 interactions because empathy may depend on negotiator closeness.",
-      "Empathy plus bystander-side relational structure, including empathy x bystander-victim and empathy x bystander-negotiator interactions because empathy may depend on group closeness in the bystander role.",
+      "Victim-side ingroup/outgroup structure with the allowed target x other relational interaction.",
+      "Bystander-side relational structure with explicit bystander-victim, bystander-target, bystander-other, and target/other context terms.",
+      "Empathy plus victim-side relational structure, including empathy x victim-target and empathy x victim-other interactions because empathy may depend on negotiator closeness.",
+      "Empathy plus bystander-side relational structure, including empathy x bystander-victim and empathy x bystander-target/other interactions because empathy may depend on group closeness in the bystander role.",
       "Target and other negotiator decisions with their interaction, plus sociodemographics.",
       "Target and other negotiator decisions with their interaction, plus sociodemographics.",
-      "Integrated model with empathy, victim-side relations, empathy x group interactions, decisions, and the victim-side relational interaction.",
-      "Integrated model with empathy, bystander-side relations, empathy x group interactions, decisions, and the role-specific relational interactions."
+      "Integrated model with empathy, victim-side relations, empathy x group interactions, decisions, and the victim-side target/other interaction.",
+      "Integrated model with empathy, bystander-side relations, empathy x group interactions, decisions, and role-specific target/other relational interactions."
     ),
     random_effects_primary = "Two-sided Tobit with factor(session) and cluster-robust standard errors by participant id.",
     random_effects_sensitivity = "The production branch keeps factor(session) plus participant-cluster robust inference; a fully mixed Tobit with random participant and session intercepts is documented as a methodological limitation rather than silently substituted.",

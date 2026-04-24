@@ -1,10 +1,10 @@
 # Guia sencilla del pipeline TOBIT longitudinal
 
-Generado el 2026-04-20 20:35:17.
+Generado el 2026-04-23 20:54:19.
 
 ## Que representa una fila
 
-Cada fila del archivo base `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` representa un juicio moral realmente registrado en el experimento sobre el negociador objetivo. Como cada participante evalua 10 escenarios y en cada uno juzga a dos negociadores, la estructura esperada es de 20 filas por `id`. El pipeline nuevo no vuelve a expandir esas filas. Solo agrega columnas de contexto para N1, N2, victima, bystander, decisiones y sesion.
+Cada fila del archivo base `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` representa un juicio moral realmente registrado en el experimento sobre el negociador objetivo. Como cada participante evalua 10 escenarios y en cada uno juzga a dos negociadores, la estructura esperada es de 20 filas por `id`. El pipeline nuevo no vuelve a expandir esas filas. Solo agrega columnas de contexto para target, other, victima, bystander, decisiones y sesion.
 
 ## Como se evita el doble conteo
 
@@ -19,8 +19,8 @@ Se copia `source_row_number` desde la importacion y se conserva hasta `judgments
 
 ## Variables relacionales por rol
 
-- Victima: `victim_N1_group`, `victim_N2_group`, `N1_N2_same_faculty`.
-- Bystander: `bystander_victim_group`, `bystander_N1_group`, `bystander_N2_group`, `victim_N1_group`, `victim_N2_group`, `N1_N2_same_faculty`.
+- Victima: `victim_target_group`, `victim_other_group`, `target_other_same_faculty`.
+- Bystander: `bystander_victim_group`, `bystander_target_group`, `bystander_other_group`, `victim_target_group`, `victim_other_group`, `target_other_same_faculty`.
 - Ingroup significa coincidencia de facultad, incluyendo `control` con `control`; outgroup significa facultades distintas.
 - Las variables de rol no son intercambiables: victima y bystander usan mapas relacionales distintos porque la cercania social cambia segun el rol.
 
@@ -36,14 +36,14 @@ Se copia `source_row_number` desde la importacion y se conserva hasta `judgments
 | --- | --- | --- |
 | H1 | Victim | iri_fs + iri_ec + iri_pt + iri_pd + age + ses + sex_female + faculty_player_factor + factor(session) |
 | H1 | Bystander | iri_fs + iri_ec + iri_pt + iri_pd + age + ses + sex_female + faculty_player_factor + factor(session) |
-| H2 | Victim | victim_N1_group + victim_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + age + ses + sex_female + faculty_player_factor + factor(session) |
-| H2 | Bystander | bystander_victim_group + bystander_N1_group + bystander_N2_group + victim_N1_group + victim_N2_group + bystander_N1_group:bystander_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + age + ses + sex_female + faculty_player_factor + factor(session) |
-| H3 | Victim | iri_fs + iri_ec + iri_pt + iri_pd + victim_N1_group + victim_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:victim_N1_group + iri_fs:victim_N2_group + iri_ec:victim_N1_group + iri_ec:victim_N2_group + iri_pt:victim_N1_group + iri_pt:victim_N2_group + iri_pd:victim_N1_group + iri_pd:victim_N2_group + age + ses + sex_female + faculty_player_factor + factor(session) |
-| H3 | Bystander | iri_fs + iri_ec + iri_pt + iri_pd + bystander_victim_group + bystander_N1_group + bystander_N2_group + victim_N1_group + victim_N2_group + bystander_N1_group:bystander_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:bystander_victim_group + iri_fs:bystander_N1_group + iri_fs:bystander_N2_group + iri_ec:bystander_victim_group + iri_ec:bystander_N1_group + iri_ec:bystander_N2_group + iri_pt:bystander_victim_group + iri_pt:bystander_N1_group + iri_pt:bystander_N2_group + iri_pd:bystander_victim_group + iri_pd:bystander_N1_group + iri_pd:bystander_N2_group + age + ses + sex_female + faculty_player_factor + factor(session) |
+| H2 | Victim | victim_target_group + victim_other_group + victim_target_group:victim_other_group + target_other_same_faculty + age + ses + sex_female + faculty_player_factor + factor(session) |
+| H2 | Bystander | bystander_victim_group + bystander_target_group + bystander_other_group + victim_target_group + victim_other_group + bystander_target_group:bystander_other_group + victim_target_group:victim_other_group + target_other_same_faculty + age + ses + sex_female + faculty_player_factor + factor(session) |
+| H3 | Victim | iri_fs + iri_ec + iri_pt + iri_pd + victim_target_group + victim_other_group + victim_target_group:victim_other_group + target_other_same_faculty + iri_fs:victim_target_group + iri_fs:victim_other_group + iri_ec:victim_target_group + iri_ec:victim_other_group + iri_pt:victim_target_group + iri_pt:victim_other_group + iri_pd:victim_target_group + iri_pd:victim_other_group + age + ses + sex_female + faculty_player_factor + factor(session) |
+| H3 | Bystander | iri_fs + iri_ec + iri_pt + iri_pd + bystander_victim_group + bystander_target_group + bystander_other_group + victim_target_group + victim_other_group + bystander_target_group:bystander_other_group + victim_target_group:victim_other_group + target_other_same_faculty + iri_fs:bystander_victim_group + iri_fs:bystander_target_group + iri_fs:bystander_other_group + iri_ec:bystander_victim_group + iri_ec:bystander_target_group + iri_ec:bystander_other_group + iri_pt:bystander_victim_group + iri_pt:bystander_target_group + iri_pt:bystander_other_group + iri_pd:bystander_victim_group + iri_pd:bystander_target_group + iri_pd:bystander_other_group + age + ses + sex_female + faculty_player_factor + factor(session) |
 | H4 | Victim | decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) |
 | H4 | Bystander | decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) |
-| H5 | Victim | iri_fs + iri_ec + iri_pt + iri_pd + victim_N1_group + victim_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:victim_N1_group + iri_fs:victim_N2_group + iri_ec:victim_N1_group + iri_ec:victim_N2_group + iri_pt:victim_N1_group + iri_pt:victim_N2_group + iri_pd:victim_N1_group + iri_pd:victim_N2_group + decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) |
-| H5 | Bystander | iri_fs + iri_ec + iri_pt + iri_pd + bystander_victim_group + bystander_N1_group + bystander_N2_group + victim_N1_group + victim_N2_group + bystander_N1_group:bystander_N2_group + victim_N1_group:victim_N2_group + N1_N2_same_faculty + iri_fs:bystander_victim_group + iri_fs:bystander_N1_group + iri_fs:bystander_N2_group + iri_ec:bystander_victim_group + iri_ec:bystander_N1_group + iri_ec:bystander_N2_group + iri_pt:bystander_victim_group + iri_pt:bystander_N1_group + iri_pt:bystander_N2_group + iri_pd:bystander_victim_group + iri_pd:bystander_N1_group + iri_pd:bystander_N2_group + decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) |
+| H5 | Victim | iri_fs + iri_ec + iri_pt + iri_pd + victim_target_group + victim_other_group + victim_target_group:victim_other_group + target_other_same_faculty + iri_fs:victim_target_group + iri_fs:victim_other_group + iri_ec:victim_target_group + iri_ec:victim_other_group + iri_pt:victim_target_group + iri_pt:victim_other_group + iri_pd:victim_target_group + iri_pd:victim_other_group + decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) |
+| H5 | Bystander | iri_fs + iri_ec + iri_pt + iri_pd + bystander_victim_group + bystander_target_group + bystander_other_group + victim_target_group + victim_other_group + bystander_target_group:bystander_other_group + victim_target_group:victim_other_group + target_other_same_faculty + iri_fs:bystander_victim_group + iri_fs:bystander_target_group + iri_fs:bystander_other_group + iri_ec:bystander_victim_group + iri_ec:bystander_target_group + iri_ec:bystander_other_group + iri_pt:bystander_victim_group + iri_pt:bystander_target_group + iri_pt:bystander_other_group + iri_pd:bystander_victim_group + iri_pd:bystander_target_group + iri_pd:bystander_other_group + decision_target * decision_other + age + ses + sex_female + faculty_player_factor + factor(session) |
 
 En H3 y H5, el pipeline actual ya no restringe la teoria a efectos aditivos puros. Tambien incluye interacciones dirigidas entre empatia y cercania grupal para comprobar si el efecto de la empatia cambia segun la estructura de ingroup/outgroup.
 

@@ -2,6 +2,11 @@
 # Purpose: Centralize theoretical narratives, statistical foundations, 
 # and dictionary definitions for the automated scientific report.
 # Dependencies: None
+#
+# LEGACY NOTE:
+# This file is not part of the default `run_pipeline.R` production chain after
+# the target/other semantic refactor. Legacy wording is retained only for
+# backward compatibility in non-default paths.
 
 source("R/utils/case_configuration_functions.R")
 

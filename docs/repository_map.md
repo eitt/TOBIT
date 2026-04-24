@@ -1,4 +1,4 @@
-# Repository Map
+﻿# Repository Map
 
 This map identifies active, auxiliary, and legacy/non-default paths for the final public repository state.
 
@@ -60,3 +60,4 @@ These files are not executed by the default `run_pipeline.R` flow.
 - `docs/semantic_conventions.md`
 - `docs/hypotheses.md`
 - `docs/datacard.md`
+

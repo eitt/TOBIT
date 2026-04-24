@@ -1,4 +1,4 @@
-# Data Card
+﻿# Data Card
 
 ## Base file
 
@@ -40,11 +40,11 @@ Each row is one observed moral judgment recorded in the experiment.
 
 - `role = 1` is interpreted as `victim`
 - `role = 0` is interpreted as `bystander`
-- `target` is row-dynamic (`1 = N1`, `2 = N2`) and defines who is judged in that row
+- `target` is row-dynamic (`1` or `2`) and defines who is judged in that row
 - `other` is the counterpart negotiator in that same row context
 - In victim rows, when `faculty_victim` is empty in the source file, the pipeline uses `faculty_player` as the victim reference because the participant is the victim in that subset
-- `N1_faculty` and `N2_faculty` are reconstructed from `faculty_target` and `faculty_other` without expanding the dataset again
-- `N1_decision` and `N2_decision` are reconstructed from `decision_target` and `decision_other` without expanding the dataset again
+- `target_faculty` and `other_faculty` are reconstructed from `faculty_target` and `faculty_other` without expanding the dataset again
+- `decision_target` and `decision_other` are the active row-dynamic decision fields used directly in modeling
 
 ## Derived variables for the redesign
 
@@ -58,24 +58,22 @@ Each row is one observed moral judgment recorded in the experiment.
 - `role_label`
   `victim` or `bystander`
 
-- `target_label`
-  `N1` or `N2`
+- `target_code_label`
+  `target_code_1` or `target_code_2`
 
 ### Negotiator context
 
-- `N1_faculty`
-- `N2_faculty`
-- `N1_decision`
-- `N2_decision`
+- `target_faculty`
+- `other_faculty`
 
 ### Role-specific relational variables
 
-- `victim_N1_group`
-- `victim_N2_group`
+- `victim_target_group`
+- `victim_other_group`
 - `bystander_victim_group`
-- `bystander_N1_group`
-- `bystander_N2_group`
-- `N1_N2_same_faculty`
+- `bystander_target_group`
+- `bystander_other_group`
+- `target_other_same_faculty`
 
 ### Decision context
 
@@ -90,10 +88,9 @@ Each row is one observed moral judgment recorded in the experiment.
 - `decision_other`: `0 = reject`, `1 = accept`
 - Historical alias note: legacy wording `accept_target` / `accept_other` corresponds to active operational names `decision_target` / `decision_other`
 
-### Dynamic vs structural semantics
+### Dynamic semantics
 
 - `target` / `other` are row-dynamic roles
-- `N1` / `N2` are structural scenario slots reconstructed per row for relational modeling
 - active H2/H3/H5 formulas use reconstructed role-specific relational variables, not `group_target` / `group_other` directly
 
 ### Faculty labels
@@ -110,17 +107,17 @@ Each row is one observed moral judgment recorded in the experiment.
 
 This applies to:
 
-- `victim_N1_group`
-- `victim_N2_group`
-- `bystander_N1_group`
-- `bystander_N2_group`
-- `N1_N2_same_faculty`
+- `victim_target_group`
+- `victim_other_group`
+- `bystander_target_group`
+- `bystander_other_group`
+- `target_other_same_faculty`
 
 `bystander_victim_group` still uses the same ingroup/outgroup rule, but the victim faculty is explicit in bystander rows, so no additional negotiation-side reconstruction is needed there.
 
 ## Double-counting note
 
-`N1_faculty`, `N2_faculty`, `N1_decision`, and `N2_decision` are reconstructed inside each existing row. The pipeline does not create extra N1 rows or N2 rows, so one row remains one observed judgement throughout preparation and modeling.
+`target_faculty` and `other_faculty` are kept inside each existing row. The pipeline does not create extra negotiator rows, so one row remains one observed judgement throughout preparation and modeling.
 
 ## Sociodemographics included in all models
 
@@ -135,3 +132,4 @@ This applies to:
 - `data/processed/judgments_victim.csv`
 - `data/processed/judgments_bystander.csv`
 - `data/processed/variable_dictionary.csv`
+

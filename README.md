@@ -1,4 +1,4 @@
-# TOBIT: Longitudinal Moral Judgement Pipeline
+﻿# TOBIT: Longitudinal Moral Judgement Pipeline
 
 This repository implements a reproducible analytical pipeline for moral judgement modeling in a structured negotiation experiment.
 
@@ -14,7 +14,7 @@ Core design points:
 - Observational structure: one imported row remains one real target-judgement observation.
 - Role-specific logic: Victim and Bystander models are estimated separately.
 - Hypothesis architecture: H1-H5, from empathy and group alignment to decision and integrated models.
-- Relational terms: reconstructed per row from dynamic target/other roles and structural N1/N2 context.
+- Relational terms: reconstructed per row from dynamic target/other roles.
 
 ## Active Pipeline Status
 
@@ -23,7 +23,7 @@ The current active branch is defined by:
 - `judgement` as the modeled outcome in all hypothesis models.
 - Active operational decision names: `decision_target`, `decision_other`.
 - Row-dynamic role semantics: `target` and `other` are dynamic per observation.
-- Structural slot semantics: `N1` and `N2` are reconstructed contextual slots inside each row.
+- Dynamic-role semantics: `target` and `other` are the analytical pair inside each row.
 - `group_target` and `group_other` are retained as legacy/audit source fields and are **not** the active H2/H3/H5 relational predictors.
 
 ## Repository Structure
@@ -135,7 +135,7 @@ Audit-oriented outputs:
 - Legacy wording `accept_target` -> active name `decision_target`.
 - Legacy wording `accept_other` -> active name `decision_other`.
 - `target`/`other`: row-dynamic actor roles.
-- `N1`/`N2`: reconstructed structural slots used for relational context.
+- `target`/`other`: row-dynamic analytical roles used for relational context.
 - `group_target`/`group_other`: retained for source audit/provenance, not active relational predictors in H2/H3/H5.
 
 ## Active vs Legacy Paths
@@ -169,3 +169,4 @@ Official project language is English. Some audit/report artifacts are intentiona
 - License: see `LICENSE`.
 - Citation metadata: see `CITATION.cff`.
 - Project maintainer/contact should be maintained in `CITATION.cff` and release notes.
+

@@ -31,7 +31,7 @@ parse_relational_contrast_term <- function(term_name) {
 
   matched <- regmatches(
     term_name,
-    regexec("^(victim_N1_group|victim_N2_group|bystander_N1_group|bystander_N2_group)(In|Out)$", term_name)
+    regexec("^(victim_target_group|victim_other_group|bystander_target_group|bystander_other_group)(In|Out)$", term_name)
   )[[1]]
   if (length(matched) == 3L) {
     return(list(
@@ -56,7 +56,7 @@ get_binary_value_labels <- function(var_name) {
   if (grepl("^h2_negstruct_", var_name)) {
     structure_label <- compact_h2_negotiator_structure_term(var_name)
     return(c(
-      "0" = "Ref: N1 Ctl, N2 Ctl",
+      "0" = "Ref: target Ctl, other Ctl",
       "1" = structure_label
     ))
   }
@@ -93,12 +93,12 @@ get_binary_value_labels <- function(var_name) {
     same_group_harm = c("0" = "Cross-faculty harm", "1" = "Same-faculty harm"),
     victim_outgroup = c("0" = "Victim ingroup", "1" = "Victim outgroup"),
     decision_accept = c("0" = "Rej", "1" = "Acc"),
-    judged_ingroup = c("0" = "N1 Ctl", "1" = "N1 In"),
-    judged_outgroup = c("0" = "N1 Ctl", "1" = "N1 Out"),
-    judged_control = c("0" = "Not N1 Ctl", "1" = "N1 Ctl"),
-    counterpart_ingroup = c("0" = "N2 Ctl", "1" = "N2 In"),
-    counterpart_outgroup = c("0" = "N2 Ctl", "1" = "N2 Out"),
-    counterpart_control = c("0" = "Not N2 Ctl", "1" = "N2 Ctl"),
+    judged_ingroup = c("0" = "Target Ctl", "1" = "Target In"),
+    judged_outgroup = c("0" = "Target Ctl", "1" = "Target Out"),
+    judged_control = c("0" = "Not Target Ctl", "1" = "Target Ctl"),
+    counterpart_ingroup = c("0" = "Other Ctl", "1" = "Other In"),
+    counterpart_outgroup = c("0" = "Other Ctl", "1" = "Other Out"),
+    counterpart_control = c("0" = "Not Other Ctl", "1" = "Other Ctl"),
     observer_victim_outgroup = c("0" = "V In", "1" = "V Out"),
     player_victim_outgroup = c("0" = "V In", "1" = "V Out"),
     role_observer = c("0" = "Vic", "1" = "Obs"),
@@ -111,7 +111,7 @@ get_binary_value_labels <- function(var_name) {
 
 get_plot_axis_label <- function(var_name) {
   if (grepl("^h2_negstruct_", var_name)) {
-    return("N1 / N2 structure")
+    return("Target / other structure")
   }
 
   if (grepl("^case_[a-z]+_x_[a-z]+$", var_name)) {
@@ -219,17 +219,17 @@ format_discrete_value_label <- function(var_name, value) {
     return(paste("Socioeconomic status", value_chr))
   }
 
-  if (identical(var_name, "victim_N1_group")) {
-    return(switch(value_chr, Cont = "V-N1 Ctl", In = "V-N1 In", Out = "V-N1 Out", value_chr))
+  if (identical(var_name, "victim_target_group")) {
+    return(switch(value_chr, Cont = "V-Tgt Ctl", In = "V-Tgt In", Out = "V-Tgt Out", value_chr))
   }
-  if (identical(var_name, "victim_N2_group")) {
-    return(switch(value_chr, Cont = "V-N2 Ctl", In = "V-N2 In", Out = "V-N2 Out", value_chr))
+  if (identical(var_name, "victim_other_group")) {
+    return(switch(value_chr, Cont = "V-Oth Ctl", In = "V-Oth In", Out = "V-Oth Out", value_chr))
   }
-  if (identical(var_name, "bystander_N1_group")) {
-    return(switch(value_chr, Cont = "B-N1 Ctl", In = "B-N1 In", Out = "B-N1 Out", value_chr))
+  if (identical(var_name, "bystander_target_group")) {
+    return(switch(value_chr, Cont = "B-Tgt Ctl", In = "B-Tgt In", Out = "B-Tgt Out", value_chr))
   }
-  if (identical(var_name, "bystander_N2_group")) {
-    return(switch(value_chr, Cont = "B-N2 Ctl", In = "B-N2 In", Out = "B-N2 Out", value_chr))
+  if (identical(var_name, "bystander_other_group")) {
+    return(switch(value_chr, Cont = "B-Oth Ctl", In = "B-Oth In", Out = "B-Oth Out", value_chr))
   }
   if (identical(var_name, "bystander_victim_group")) {
     return(switch(value_chr, In = "B-V In", Out = "B-V Out", value_chr))
@@ -1102,3 +1102,4 @@ write_significance_figure <- function(file_path, plot_payloads, figure_title) {
 
   invisible(TRUE)
 }
+

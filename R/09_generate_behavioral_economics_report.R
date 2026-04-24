@@ -15,7 +15,7 @@ behavioral_lines <- c(
   "",
   "## Materials and Methods",
   "",
-  "The active workflow analyzes the Version 2.0 consolidated long dataset as repeated moral judgments. The dependent variable is `judgement`. Each source row remains one analytical observation, and the pipeline reconstructs the N1/N2 context, role-specific ingroup/outgroup relations, and joint decision structure without reshaping the data again.",
+  "The active workflow analyzes the Version 2.0 consolidated long dataset as repeated moral judgments. The dependent variable is `judgement`. Each source row remains one analytical observation, and the pipeline encodes role-specific target/other relations and joint decision structure without reshaping the data again.",
   "",
   "Primary estimation now uses a two-sided Tobit fitted with `survival::survreg`. The lower and upper observed limits of `judgement` are treated as bilateral censoring points, participant dependence is handled with `cluster = id` and `robust = TRUE`, and session differences are represented with `factor(session)` rather than a claimed random session intercept. Victim and bystander models are estimated separately.",
   "",
@@ -48,3 +48,4 @@ behavioral_lines <- c(
 writeLines(behavioral_lines, file.path(paths$report_dir, "tobit_behavioral_economics_report.md"))
 writeLines(behavioral_lines, file.path(paths$logs_dir, "behavioral_economics_report.md"))
 writeLines(behavioral_lines, file.path(paths$reports_data_dir, "behavioral_economics_report.md"))
+

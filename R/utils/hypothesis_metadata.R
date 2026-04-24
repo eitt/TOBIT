@@ -1,6 +1,12 @@
 # R/utils/hypothesis_metadata.R
 # Purpose: Centralize hypothesis metadata so model runners, tables, and
 # reports stay aligned with the active Option 2 formulas.
+#
+# LEGACY NOTE:
+# This module is not sourced by the default `run_pipeline.R` production path
+# after the target/other semantic refactor. It is retained for backward
+# compatibility with historical tooling and may still contain older N1/N2
+# wording that does not define the active analytical branch.
 
 source("R/utils/case_configuration_functions.R")
 

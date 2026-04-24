@@ -3,6 +3,11 @@
 # pipeline, report, and local playground all refer to the same relational
 # scenario structure.
 # Dependencies: None
+#
+# LEGACY NOTE:
+# This module remains available for backward compatibility utilities. The
+# active production branch now expresses analytical predictors directly in
+# target/other semantics.
 
 get_case_configuration_option_label <- function() {
   "Option 2: judgment-level relational modeling"

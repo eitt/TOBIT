@@ -1,10 +1,10 @@
 # Behavioral-Economics Style Dynamic Report
 
-By Leonardo H. Talero-Sarmiento; Date  2026-04-20 20:35:18.
+By Leonardo H. Talero-Sarmiento; Date  2026-04-23 20:54:19.
 
 ## Materials and Methods
 
-The active workflow analyzes the Version 2.0 consolidated long dataset as repeated moral judgments. The dependent variable is `judgement`. Each source row remains one analytical observation, and the pipeline reconstructs the N1/N2 context, role-specific ingroup/outgroup relations, and joint decision structure without reshaping the data again.
+The active workflow analyzes the Version 2.0 consolidated long dataset as repeated moral judgments. The dependent variable is `judgement`. Each source row remains one analytical observation, and the pipeline encodes role-specific target/other relations and joint decision structure without reshaping the data again.
 
 Primary estimation now uses a two-sided Tobit fitted with `survival::survreg`. The lower and upper observed limits of `judgement` are treated as bilateral censoring points, participant dependence is handled with `cluster = id` and `robust = TRUE`, and session differences are represented with `factor(session)` rather than a claimed random session intercept. Victim and bystander models are estimated separately.
 
@@ -22,14 +22,14 @@ The table below lists the terms that reached at least `p < 0.10` in the primary 
 | --- | --- | --- |
 | H1 | Bystander | None below p < 0.10 |
 | H1 | Victim | Empathy: Perspective taking** |
-| H2 | Bystander | Bystander-N2 outgroup vs ingroup+; Victim-N1 outgroup vs ingroup+; Victim-N2 outgroup vs ingroup+; Bystander-N1 outgroup vs ingroup x Bystander-N2 outgroup vs ingroup+; Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup+ |
+| H2 | Bystander | Bystander-target outgroup vs ingroup+; Victim-target outgroup vs ingroup*; Victim-other outgroup vs ingroup+; Bystander-target outgroup vs ingroup x Bystander-other outgroup vs ingroup+; Victim-target outgroup vs ingroup x Victim-other outgroup vs ingroup+ |
 | H2 | Victim | None below p < 0.10 |
-| H3 | Bystander | Empathy: Empathic concern+; Empathy: Personal distress+; Victim-N1 outgroup vs ingroup+; Victim-N2 outgroup vs ingroup+; Bystander-N1 outgroup vs ingroup x Bystander-N2 outgroup vs ingroup+; Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup+; Empathy: Fantasy x Bystander-victim outgroup vs ingroup+; Empathy: Personal distress x Bystander-victim outgroup vs ingroup* |
+| H3 | Bystander | Empathy: Empathic concern+; Empathy: Personal distress+; Victim-target outgroup vs ingroup*; Victim-other outgroup vs ingroup+; Bystander-target outgroup vs ingroup x Bystander-other outgroup vs ingroup+; Victim-target outgroup vs ingroup x Victim-other outgroup vs ingroup+; Empathy: Fantasy x Bystander-victim outgroup vs ingroup+; Empathy: Personal distress x Bystander-victim outgroup vs ingroup* |
 | H3 | Victim | Empathy: Fantasy*; Empathy: Perspective taking+ |
 | H4 | Bystander | Target accepted***; Other negotiator accepted***; Target accepted x Other accepted*** |
 | H4 | Victim | Target accepted***; Other negotiator accepted***; Target accepted x Other accepted*** |
-| H5 | Bystander | Victim-N1 outgroup vs ingroup*; Victim-N2 outgroup vs ingroup*; Target accepted***; Other negotiator accepted***; Victim-N1 outgroup vs ingroup x Victim-N2 outgroup vs ingroup*; Empathy: Fantasy x Bystander-victim outgroup vs ingroup*; Target accepted x Other accepted*** |
-| H5 | Victim | Empathy: Fantasy*; Victim-N2 outgroup vs ingroup+; Target accepted***; Other negotiator accepted***; Empathy: Fantasy x Victim-N1 outgroup vs ingroup+; Target accepted x Other accepted*** |
+| H5 | Bystander | Victim-target outgroup vs ingroup*; Victim-other outgroup vs ingroup+; Target accepted***; Other negotiator accepted***; Victim-target outgroup vs ingroup x Victim-other outgroup vs ingroup*; Empathy: Fantasy x Bystander-victim outgroup vs ingroup*; Target accepted x Other accepted*** |
+| H5 | Victim | Empathy: Fantasy*; Victim-target outgroup vs ingroup*; Target accepted***; Other negotiator accepted***; Empathy: Fantasy x Victim-other outgroup vs ingroup+; Target accepted x Other accepted*** |
 
 ## Fit Snapshot
 
@@ -37,14 +37,14 @@ The table below lists the terms that reached at least `p < 0.10` in the primary 
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | H1 | Bystander | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 300 | 723 | 12558.780 | 12703.568 |
 | H1 | Victim | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 377 | 744 | 12280.557 | 12425.345 |
-| H2 | Bystander | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 300 | 723 | 12557.426 | 12725.380 |
-| H2 | Victim | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 377 | 744 | 12297.645 | 12442.433 |
-| H3 | Bystander | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 300 | 723 | 12569.153 | 12829.772 |
-| H3 | Victim | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 377 | 744 | 12296.035 | 12510.321 |
+| H2 | Bystander | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 300 | 723 | 12558.810 | 12726.764 |
+| H2 | Victim | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 377 | 744 | 12297.340 | 12442.128 |
+| H3 | Bystander | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 300 | 723 | 12570.042 | 12830.661 |
+| H3 | Victim | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 377 | 744 | 12294.722 | 12509.008 |
 | H4 | Bystander | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 300 | 723 | 11060.312 | 11199.308 |
 | H4 | Victim | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 377 | 744 | 10747.901 | 10886.898 |
-| H5 | Bystander | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 300 | 723 | 11080.219 | 11358.212 |
-| H5 | Victim | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 377 | 744 | 10749.255 | 10980.916 |
+| H5 | Bystander | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 300 | 723 | 11076.716 | 11354.709 |
+| H5 | Victim | Two-sided Tobit | factor_session_fixed_effect | cluster_robust_id | 377 | 744 | 10748.048 | 10979.709 |
 
 ## Limitations
 

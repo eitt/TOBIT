@@ -1,14 +1,11 @@
-# Semantic Conventions
+﻿# Semantic Conventions
 
 This document defines the active semantic conventions for interpretation and maintenance.
 
-## Dynamic vs Structural Roles
+## Dynamic Roles
 
 - `target`: row-dynamic judged negotiator in that observation.
 - `other`: row-dynamic counterpart negotiator in that same observation.
-- `N1` / `N2`: structural scenario slots reconstructed inside each row for relational modeling.
-
-Important: `target` is not a fixed alias of `N1`, and `other` is not a fixed alias of `N2`.
 
 ## Decision Naming Bridge
 
@@ -18,19 +15,15 @@ Important: `target` is not a fixed alias of `N1`, and `other` is not a fixed ali
 - Legacy/intuitive: `accept_other`
 - Active operational: `decision_other`
 
-## Reconstruction Rules (Per Row)
+## Row Mapping Rules
 
-If `target == 1`:
-- `N1_decision = decision_target`
-- `N2_decision = decision_other`
-- `N1_faculty = faculty_target`
-- `N2_faculty = faculty_other`
+If `target == 1`, the judged actor corresponds to source code `1` and the counterpart to source code `2`.
+If `target == 2`, the judged actor corresponds to source code `2` and the counterpart to source code `1`.
 
-If `target == 2`:
-- `N1_decision = decision_other`
-- `N2_decision = decision_target`
-- `N1_faculty = faculty_other`
-- `N2_faculty = faculty_target`
+In both cases:
+- `decision_target` is the judged actor decision in that row.
+- `decision_other` is the counterpart decision in that row.
+- `target_faculty` and `other_faculty` remain the analytical faculty pair.
 
 ## Group Coding
 
@@ -41,12 +34,12 @@ The active grouping logic is based on faculty equality:
 
 ## Active Relational Predictors for H2/H3/H5
 
-- `victim_N1_group`
-- `victim_N2_group`
+- `victim_target_group`
+- `victim_other_group`
 - `bystander_victim_group`
-- `bystander_N1_group`
-- `bystander_N2_group`
-- `N1_N2_same_faculty`
+- `bystander_target_group`
+- `bystander_other_group`
+- `target_other_same_faculty`
 
 ## Legacy Audit Fields
 
@@ -60,3 +53,4 @@ These are retained for source provenance/audit and are not active relational pre
 - `R/utils/build_role_relational_variables.R`
 - `R/04_generate_variables.R`
 - `R/hypotheses/H_formulas.R`
+

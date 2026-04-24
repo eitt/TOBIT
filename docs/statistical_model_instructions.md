@@ -1,4 +1,4 @@
-# Statistical Model Instructions
+﻿# Statistical Model Instructions
 
 ## Primary estimator
 
@@ -35,7 +35,7 @@ Accordingly:
 
 - ingroup = matching faculties, including `control` with `control`
 - outgroup = different faculties
-- `N1_N2_same_faculty` indicates whether the two negotiators share faculty membership
+- `target_other_same_faculty` indicates whether the two negotiators share faculty membership
 
 ## Rank deficiency
 
@@ -64,3 +64,4 @@ Instead, the pipeline writes an explicit robustness note documenting that tradeo
 - H5: empathy + role-specific structure + targeted empathy x group interactions + decisions
 
 All five hypotheses include the same sociodemographic adjustment block.
+

@@ -57,12 +57,12 @@ names(decision_summary) <- c("role_label", "decision_pattern", "n", "mean_judgem
 
 group_summary <- data.frame(
   variable = c(
-    rep("victim_N1_group", 2),
-    rep("victim_N2_group", 2),
+    rep("victim_target_group", 2),
+    rep("victim_other_group", 2),
     rep("bystander_victim_group", 2),
-    rep("bystander_N1_group", 2),
-    rep("bystander_N2_group", 2),
-    rep("N1_N2_same_faculty", 2)
+    rep("bystander_target_group", 2),
+    rep("bystander_other_group", 2),
+    rep("target_other_same_faculty", 2)
   ),
   level = c(
     "ingroup", "outgroup",
@@ -73,18 +73,18 @@ group_summary <- data.frame(
     "different", "same"
   ),
   n = c(
-    sum(judgments_analysis$victim_N1_group == "ingroup", na.rm = TRUE),
-    sum(judgments_analysis$victim_N1_group == "outgroup", na.rm = TRUE),
-    sum(judgments_analysis$victim_N2_group == "ingroup", na.rm = TRUE),
-    sum(judgments_analysis$victim_N2_group == "outgroup", na.rm = TRUE),
+    sum(judgments_analysis$victim_target_group == "ingroup", na.rm = TRUE),
+    sum(judgments_analysis$victim_target_group == "outgroup", na.rm = TRUE),
+    sum(judgments_analysis$victim_other_group == "ingroup", na.rm = TRUE),
+    sum(judgments_analysis$victim_other_group == "outgroup", na.rm = TRUE),
     sum(judgments_analysis$bystander_victim_group == "ingroup", na.rm = TRUE),
     sum(judgments_analysis$bystander_victim_group == "outgroup", na.rm = TRUE),
-    sum(judgments_analysis$bystander_N1_group == "ingroup", na.rm = TRUE),
-    sum(judgments_analysis$bystander_N1_group == "outgroup", na.rm = TRUE),
-    sum(judgments_analysis$bystander_N2_group == "ingroup", na.rm = TRUE),
-    sum(judgments_analysis$bystander_N2_group == "outgroup", na.rm = TRUE),
-    sum(judgments_analysis$N1_N2_same_faculty == "different", na.rm = TRUE),
-    sum(judgments_analysis$N1_N2_same_faculty == "same", na.rm = TRUE)
+    sum(judgments_analysis$bystander_target_group == "ingroup", na.rm = TRUE),
+    sum(judgments_analysis$bystander_target_group == "outgroup", na.rm = TRUE),
+    sum(judgments_analysis$bystander_other_group == "ingroup", na.rm = TRUE),
+    sum(judgments_analysis$bystander_other_group == "outgroup", na.rm = TRUE),
+    sum(judgments_analysis$target_other_same_faculty == "different", na.rm = TRUE),
+    sum(judgments_analysis$target_other_same_faculty == "same", na.rm = TRUE)
   ),
   stringsAsFactors = FALSE
 )

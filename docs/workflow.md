@@ -1,4 +1,4 @@
-# Workflow Logic
+﻿# Workflow Logic
 
 ## Overview
 
@@ -39,15 +39,15 @@ Each participant is expected to contribute 20 rows in the long file: ten scenari
 
 `R/04_generate_variables.R`
 
-- Reconstructs N1 and N2 faculty and decision context from each existing row
-- Keeps one row as one real target-directed judgement observation, so N1 and N2 remain contextual entities rather than duplicated records
+- Builds target/other faculty and relational context from each existing row
+- Keeps one row as one real target-directed judgement observation, so target/other remain contextual roles rather than duplicated records
 - Builds:
-  - `victim_N1_group`
-  - `victim_N2_group`
+  - `victim_target_group`
+  - `victim_other_group`
   - `bystander_victim_group`
-  - `bystander_N1_group`
-  - `bystander_N2_group`
-  - `N1_N2_same_faculty`
+  - `bystander_target_group`
+  - `bystander_other_group`
+  - `target_other_same_faculty`
   - `decision_pattern`
 - Splits:
   - `judgments_analysis.csv`
@@ -97,3 +97,4 @@ The pipeline writes both the traditional output folders and compatibility subfol
 - `06_reports`
 
 These are used as staging folders for the redesigned artifacts, not as a return to the old analytical logic.
+

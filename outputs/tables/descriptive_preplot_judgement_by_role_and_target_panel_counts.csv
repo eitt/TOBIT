@@ -1,5 +1,5 @@
 "role_panel","target_identity","n"
-"Bystander","N1",1215
-"Victim","N1",1215
-"Bystander","N2",1215
-"Victim","N2",1215
+"Bystander","target_code_1",1215
+"Victim","target_code_1",1215
+"Bystander","target_code_2",1215
+"Victim","target_code_2",1215

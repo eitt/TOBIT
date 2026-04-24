@@ -15,7 +15,7 @@ plain_lines <- c(
   "",
   "## Que representa una fila",
   "",
-  "Cada fila del archivo base `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` representa un juicio moral realmente registrado en el experimento sobre el negociador objetivo. Como cada participante evalua 10 escenarios y en cada uno juzga a dos negociadores, la estructura esperada es de 20 filas por `id`. El pipeline nuevo no vuelve a expandir esas filas. Solo agrega columnas de contexto para N1, N2, victima, bystander, decisiones y sesion.",
+  "Cada fila del archivo base `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` representa un juicio moral realmente registrado en el experimento sobre el negociador objetivo. Como cada participante evalua 10 escenarios y en cada uno juzga a dos negociadores, la estructura esperada es de 20 filas por `id`. El pipeline nuevo no vuelve a expandir esas filas. Solo agrega columnas de contexto para target, other, victima, bystander, decisiones y sesion.",
   "",
   "## Como se evita el doble conteo",
   "",
@@ -30,8 +30,8 @@ plain_lines <- c(
   "",
   "## Variables relacionales por rol",
   "",
-  "- Victima: `victim_N1_group`, `victim_N2_group`, `N1_N2_same_faculty`.",
-  "- Bystander: `bystander_victim_group`, `bystander_N1_group`, `bystander_N2_group`, `victim_N1_group`, `victim_N2_group`, `N1_N2_same_faculty`.",
+  "- Victima: `victim_target_group`, `victim_other_group`, `target_other_same_faculty`.",
+  "- Bystander: `bystander_victim_group`, `bystander_target_group`, `bystander_other_group`, `victim_target_group`, `victim_other_group`, `target_other_same_faculty`.",
   "- Ingroup significa coincidencia de facultad, incluyendo `control` con `control`; outgroup significa facultades distintas.",
   "- Las variables de rol no son intercambiables: victima y bystander usan mapas relacionales distintos porque la cercania social cambia segun el rol.",
   "",
@@ -68,3 +68,4 @@ plain_lines <- c(
 writeLines(plain_lines, file.path(paths$report_dir, "tobit_plain_language_guide.md"))
 writeLines(plain_lines, file.path(paths$logs_dir, "plain_language_report.md"))
 writeLines(plain_lines, file.path(paths$reports_data_dir, "plain_language_guide.md"))
+

@@ -17,16 +17,16 @@ label_term_pretty <- function(term) {
     "decision_other" = "Other negotiator accepted",
     "decision_target:decision_other" = "Target accepted x Other accepted",
     "faculty_player_factorEngineering" = "Participant faculty: Engineering vs Humanities",
-    "victim_N1_groupingroup" = "Victim-N1 ingroup vs ingroup baseline",
-    "victim_N1_groupoutgroup" = "Victim-N1 outgroup vs ingroup",
-    "victim_N2_groupingroup" = "Victim-N2 ingroup vs ingroup baseline",
-    "victim_N2_groupoutgroup" = "Victim-N2 outgroup vs ingroup",
-    "bystander_N1_groupingroup" = "Bystander-N1 ingroup vs ingroup baseline",
-    "bystander_N1_groupoutgroup" = "Bystander-N1 outgroup vs ingroup",
-    "bystander_N2_groupingroup" = "Bystander-N2 ingroup vs ingroup baseline",
-    "bystander_N2_groupoutgroup" = "Bystander-N2 outgroup vs ingroup",
+    "victim_target_groupingroup" = "Victim-target ingroup vs ingroup baseline",
+    "victim_target_groupoutgroup" = "Victim-target outgroup vs ingroup",
+    "victim_other_groupingroup" = "Victim-other ingroup vs ingroup baseline",
+    "victim_other_groupoutgroup" = "Victim-other outgroup vs ingroup",
+    "bystander_target_groupingroup" = "Bystander-target ingroup vs ingroup baseline",
+    "bystander_target_groupoutgroup" = "Bystander-target outgroup vs ingroup",
+    "bystander_other_groupingroup" = "Bystander-other ingroup vs ingroup baseline",
+    "bystander_other_groupoutgroup" = "Bystander-other outgroup vs ingroup",
     "bystander_victim_groupoutgroup" = "Bystander-victim outgroup vs ingroup",
-    "N1_N2_same_facultysame" = "N1/N2 same faculty vs different",
+    "target_other_same_facultysame" = "Target/other same faculty vs different",
     "Log(scale)" = "Tobit log-scale"
   )
 
@@ -255,3 +255,4 @@ run_hypothesis_model <- function(
     )
   )
 }
+

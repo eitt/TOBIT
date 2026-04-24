@@ -1,4 +1,4 @@
-# How To Read The New Models
+﻿# How To Read The New Models
 
 ## Direction of coefficients
 
@@ -13,20 +13,20 @@ Because the model is a two-sided Tobit, the coefficients describe pressure on th
 
 ### Relational factors
 
-- `victim_N1_group`
-- `victim_N2_group`
-- `bystander_N1_group`
-- `bystander_N2_group`
+- `victim_target_group`
+- `victim_other_group`
+- `bystander_target_group`
+- `bystander_other_group`
 
-In the authoritative redesign, ingroup means faculty coincidence, including `control` with `control`. So a coefficient like `victim_N2_groupoutgroup` compares outgroup against the ingroup baseline.
+In the authoritative redesign, ingroup means faculty coincidence, including `control` with `control`. So a coefficient like `victim_other_groupoutgroup` compares outgroup against the ingroup baseline.
 
 ### Bystander-victim relation
 
 `bystander_victim_groupoutgroup` compares outgroup against ingroup.
 
-### N1/N2 context
+### Target/Other context
 
-`N1_N2_same_facultysame` compares same-faculty against different-faculty.
+`target_other_same_facultysame` compares same-faculty against different-faculty.
 
 ## Decision effects
 
@@ -41,17 +41,17 @@ In the authoritative redesign, ingroup means faculty coincidence, including `con
 
 ### Victim models
 
-Read `victim_N1_group` and `victim_N2_group` as the victim's relation to each negotiator separately.
+Read `victim_target_group` and `victim_other_group` as the victim's relation to each negotiator separately.
 
 ### Bystander models
 
 Read:
 
 - `bystander_victim_group`
-- `bystander_N1_group`
-- `bystander_N2_group`
-- `victim_N1_group`
-- `victim_N2_group`
+- `bystander_target_group`
+- `bystander_other_group`
+- `victim_target_group`
+- `victim_other_group`
 
 as separate pieces of the same social context.
 
@@ -61,4 +61,5 @@ The inferential target is not a set of independent rows. The pipeline keeps the 
 
 The dynamic report uses `factor(session)` on purpose. It does not claim `(1|session)` because that is not the model actually estimated in the active Tobit branch.
 
-Each participant contributes 20 judgement rows in principle: ten scenarios times two target-negotiator evaluations. The pipeline preserves those rows and reconstructs N1/N2 as contextual columns instead of duplicating observations.
+Each participant contributes 20 judgement rows in principle: ten scenarios times two target-negotiator evaluations. The pipeline preserves those rows and keeps target/other context inside each existing row instead of duplicating observations.
+

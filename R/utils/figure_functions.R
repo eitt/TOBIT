@@ -74,7 +74,7 @@ get_standard_figure_filename <- function(figure_key) {
     age = build_titled_figure_filename("figure_01", "Age distribution"),
     empathy = build_titled_figure_filename("figure_02", "Empathy composite distribution"),
     radar = build_titled_figure_filename("figure_03", "IRI latent variable averages"),
-    severity_panels = build_titled_figure_filename("figure_04", "Judgment distributions by N1 status"),
+    severity_panels = build_titled_figure_filename("figure_04", "Judgment distributions by target status"),
     bivariate_scatters = build_titled_figure_filename("figure_05", "Bivariate scatters IRI scales vs mean judgment"),
     victim_case_panels = build_titled_figure_filename("figure_06", "Victim subset judgment distributions across six case configurations"),
     bystander_case_panels = build_titled_figure_filename("figure_07", "Bystander subset judgment distributions across six case configurations"),

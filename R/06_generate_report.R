@@ -441,12 +441,12 @@ normalize_role_label <- function(raw_role_label, raw_role_numeric = NULL) {
   normalized
 }
 
-normalize_target_identity <- function(x) {
+normalize_target_code <- function(x) {
   x_chr <- tolower(trimws(as.character(x)))
   out <- ifelse(
-    x_chr %in% c("n1", "1"),
-    "N1",
-    ifelse(x_chr %in% c("n2", "2"), "N2", NA_character_)
+    x_chr %in% c("target_code_1", "1"),
+    "target_code_1",
+    ifelse(x_chr %in% c("target_code_2", "2"), "target_code_2", NA_character_)
   )
   out
 }
@@ -687,13 +687,13 @@ judgments_with_role_panel$role_panel <- normalize_role_label(
 )
 role_panel_levels <- preferred_then_observed_levels(judgments_with_role_panel$role_panel, c("Victim", "Bystander"))
 
-# A) role x target identity
-target_identity_source <- pick_first_existing_column(judgments_with_role_panel, c("target_label", "target"))
+# A) role x target code
+target_identity_source <- pick_first_existing_column(judgments_with_role_panel, c("target_code_label", "target"))
 judgments_for_target <- judgments_with_role_panel
 if (!is.na(target_identity_source)) {
-  judgments_for_target$target_identity <- normalize_target_identity(judgments_for_target[[target_identity_source]])
+  judgments_for_target$target_identity <- normalize_target_code(judgments_for_target[[target_identity_source]])
 }
-target_levels <- preferred_then_observed_levels(judgments_for_target$target_identity, c("N1", "N2"))
+target_levels <- preferred_then_observed_levels(judgments_for_target$target_identity, c("target_code_1", "target_code_2"))
 audit_role_target <- save_preplot_frequency_tables(
   data = judgments_for_target,
   panel_vars = c("role_panel", "target_identity"),
@@ -708,7 +708,7 @@ result_role_target <- write_multi_panel_judgement_histogram(
   panel_vars = c("role_panel", "target_identity"),
   panel_levels = list(role_panel = role_panel_levels, target_identity = target_levels),
   panel_var_labels = list(role_panel = "Role", target_identity = "Target"),
-  plot_title = "Judgement distributions by role and target negotiator identity",
+  plot_title = "Judgement distributions by role and target-code identity",
   nrow = 2,
   ncol = 2
 )
@@ -718,14 +718,14 @@ update_a <- add_generated_descriptive_entry(
   status_df = descriptive_generation_status,
   figure_file_name = "figure_judgement_distribution_by_role_and_target.png",
   role = "All",
-  term = "Judgement by role and target identity",
+  term = "Judgement by role and target code",
   caption = "Observed judgement distributions by role and target negotiator.",
-  interpretation = "This figure shows whether the raw bounded judgement distribution differs depending on whether the evaluated target is N1 or N2 within victim and bystander settings.",
+  interpretation = "This figure shows whether the raw bounded judgement distribution differs depending on whether the target code is 1 or 2 within victim and bystander settings.",
   generation_result = result_role_target,
   panel_vars = c("role_panel", "target_identity"),
   note_prefix = paste0(
     "Role source: ", ifelse(is.na(role_source), "not_found", role_source),
-    "; target identity source: ", ifelse(is.na(target_identity_source), "not_found", target_identity_source),
+    "; target code source: ", ifelse(is.na(target_identity_source), "not_found", target_identity_source),
     "; pre-plot audit: ", basename(audit_role_target$variable_counts_path), " + ", basename(audit_role_target$panel_counts_path), "."
   )
 )
@@ -914,31 +914,31 @@ descriptive_figure_entries <- rbind(
   )
 )
 
-# B) role-specific N1 x N2 faculty grids
+# B) role-specific target x other faculty grids
 faculty_levels <- c("Humanities", "Engineering", "Control")
 faculty_short <- c(Humanities = "Hum", Engineering = "Eng", Control = "Ctl")
 
 victim_faculty_grid <- judgments_victim
-victim_faculty_grid$N1_faculty_panel <- if ("N1_faculty_label" %in% names(victim_faculty_grid)) {
-  normalize_faculty_label(victim_faculty_grid$N1_faculty_label)
+victim_faculty_grid$target_faculty_panel <- if ("target_faculty_label" %in% names(victim_faculty_grid)) {
+  normalize_faculty_label(victim_faculty_grid$target_faculty_label)
 } else {
-  normalize_faculty_label(victim_faculty_grid$N1_faculty)
+  normalize_faculty_label(victim_faculty_grid$target_faculty)
 }
-victim_faculty_grid$N2_faculty_panel <- if ("N2_faculty_label" %in% names(victim_faculty_grid)) {
-  normalize_faculty_label(victim_faculty_grid$N2_faculty_label)
+victim_faculty_grid$other_faculty_panel <- if ("other_faculty_label" %in% names(victim_faculty_grid)) {
+  normalize_faculty_label(victim_faculty_grid$other_faculty_label)
 } else {
-  normalize_faculty_label(victim_faculty_grid$N2_faculty)
+  normalize_faculty_label(victim_faculty_grid$other_faculty)
 }
 
 result_victim_faculty <- write_multi_panel_judgement_histogram(
   data = victim_faculty_grid,
-  file_path = file.path(paths$figures_dir, "figure_judgement_distribution_victim_n1n2_faculty_grid.png"),
-  panel_vars = c("N1_faculty_panel", "N2_faculty_panel"),
-  panel_levels = list(N1_faculty_panel = faculty_levels, N2_faculty_panel = faculty_levels),
-  panel_var_labels = list(N1_faculty_panel = "N1 faculty", N2_faculty_panel = "N2 faculty"),
-  panel_value_labels = list(N1_faculty_panel = faculty_short, N2_faculty_panel = faculty_short),
+  file_path = file.path(paths$figures_dir, "figure_judgement_distribution_victim_target_other_faculty_grid.png"),
+  panel_vars = c("target_faculty_panel", "other_faculty_panel"),
+  panel_levels = list(target_faculty_panel = faculty_levels, other_faculty_panel = faculty_levels),
+  panel_var_labels = list(target_faculty_panel = "Target faculty", other_faculty_panel = "Other faculty"),
+  panel_value_labels = list(target_faculty_panel = faculty_short, other_faculty_panel = faculty_short),
   default_fill = "#7aa6c2",
-  plot_title = "Victim-role judgement distributions across N1 x N2 faculty pairings",
+  plot_title = "Victim-role judgement distributions across target x other faculty pairings",
   nrow = 3,
   ncol = 3
 )
@@ -946,38 +946,38 @@ result_victim_faculty <- write_multi_panel_judgement_histogram(
 update_b1 <- add_generated_descriptive_entry(
   entries_df = descriptive_figure_entries,
   status_df = descriptive_generation_status,
-  figure_file_name = "figure_judgement_distribution_victim_n1n2_faculty_grid.png",
+  figure_file_name = "figure_judgement_distribution_victim_target_other_faculty_grid.png",
   role = "Victim",
-  term = "Victim judgement by N1 x N2 faculty grid",
-  caption = "Victim-role judgement distributions across N1 x N2 faculty pairings.",
-  interpretation = "This figure shows how the raw judgement distribution varies across the full relational space defined by the faculty pairing of N1 and N2.",
+  term = "Victim judgement by target x other faculty grid",
+  caption = "Victim-role judgement distributions across target x other faculty pairings.",
+  interpretation = "This figure shows how the raw judgement distribution varies across the full relational space defined by the faculty pairing of target and other.",
   generation_result = result_victim_faculty,
-  panel_vars = c("N1_faculty_panel", "N2_faculty_panel")
+  panel_vars = c("target_faculty_panel", "other_faculty_panel")
 )
 descriptive_figure_entries <- update_b1$entries
 descriptive_generation_status <- update_b1$status
 
 bystander_faculty_grid <- judgments_bystander
-bystander_faculty_grid$N1_faculty_panel <- if ("N1_faculty_label" %in% names(bystander_faculty_grid)) {
-  normalize_faculty_label(bystander_faculty_grid$N1_faculty_label)
+bystander_faculty_grid$target_faculty_panel <- if ("target_faculty_label" %in% names(bystander_faculty_grid)) {
+  normalize_faculty_label(bystander_faculty_grid$target_faculty_label)
 } else {
-  normalize_faculty_label(bystander_faculty_grid$N1_faculty)
+  normalize_faculty_label(bystander_faculty_grid$target_faculty)
 }
-bystander_faculty_grid$N2_faculty_panel <- if ("N2_faculty_label" %in% names(bystander_faculty_grid)) {
-  normalize_faculty_label(bystander_faculty_grid$N2_faculty_label)
+bystander_faculty_grid$other_faculty_panel <- if ("other_faculty_label" %in% names(bystander_faculty_grid)) {
+  normalize_faculty_label(bystander_faculty_grid$other_faculty_label)
 } else {
-  normalize_faculty_label(bystander_faculty_grid$N2_faculty)
+  normalize_faculty_label(bystander_faculty_grid$other_faculty)
 }
 
 result_bystander_faculty <- write_multi_panel_judgement_histogram(
   data = bystander_faculty_grid,
-  file_path = file.path(paths$figures_dir, "figure_judgement_distribution_bystander_n1n2_faculty_grid.png"),
-  panel_vars = c("N1_faculty_panel", "N2_faculty_panel"),
-  panel_levels = list(N1_faculty_panel = faculty_levels, N2_faculty_panel = faculty_levels),
-  panel_var_labels = list(N1_faculty_panel = "N1 faculty", N2_faculty_panel = "N2 faculty"),
-  panel_value_labels = list(N1_faculty_panel = faculty_short, N2_faculty_panel = faculty_short),
+  file_path = file.path(paths$figures_dir, "figure_judgement_distribution_bystander_target_other_faculty_grid.png"),
+  panel_vars = c("target_faculty_panel", "other_faculty_panel"),
+  panel_levels = list(target_faculty_panel = faculty_levels, other_faculty_panel = faculty_levels),
+  panel_var_labels = list(target_faculty_panel = "Target faculty", other_faculty_panel = "Other faculty"),
+  panel_value_labels = list(target_faculty_panel = faculty_short, other_faculty_panel = faculty_short),
   default_fill = "#e3a857",
-  plot_title = "Bystander-role judgement distributions across N1 x N2 faculty pairings",
+  plot_title = "Bystander-role judgement distributions across target x other faculty pairings",
   nrow = 3,
   ncol = 3
 )
@@ -985,23 +985,23 @@ result_bystander_faculty <- write_multi_panel_judgement_histogram(
 update_b2 <- add_generated_descriptive_entry(
   entries_df = descriptive_figure_entries,
   status_df = descriptive_generation_status,
-  figure_file_name = "figure_judgement_distribution_bystander_n1n2_faculty_grid.png",
+  figure_file_name = "figure_judgement_distribution_bystander_target_other_faculty_grid.png",
   role = "Bystander",
-  term = "Bystander judgement by N1 x N2 faculty grid",
-  caption = "Bystander-role judgement distributions across N1 x N2 faculty pairings.",
-  interpretation = "This figure shows how the raw judgement distribution varies across the full relational space defined by the faculty pairing of N1 and N2.",
+  term = "Bystander judgement by target x other faculty grid",
+  caption = "Bystander-role judgement distributions across target x other faculty pairings.",
+  interpretation = "This figure shows how the raw judgement distribution varies across the full relational space defined by the faculty pairing of target and other.",
   generation_result = result_bystander_faculty,
-  panel_vars = c("N1_faculty_panel", "N2_faculty_panel")
+  panel_vars = c("target_faculty_panel", "other_faculty_panel")
 )
 descriptive_figure_entries <- update_b2$entries
 descriptive_generation_status <- update_b2$status
 
 # F) Optional relational group grids when stable columns are available.
 optional_group_columns_ok <- all(c(
-  "victim_N1_group",
-  "victim_N2_group",
-  "bystander_N1_group",
-  "bystander_N2_group"
+  "victim_target_group",
+  "victim_other_group",
+  "bystander_target_group",
+  "bystander_other_group"
 ) %in% names(judgments_analysis))
 
 if (optional_group_columns_ok) {
@@ -1011,12 +1011,12 @@ if (optional_group_columns_ok) {
   result_victim_group <- write_multi_panel_judgement_histogram(
     data = judgments_victim,
     file_path = file.path(paths$figures_dir, "figure_judgement_distribution_victim_group_grid.png"),
-    panel_vars = c("victim_N1_group", "victim_N2_group"),
-    panel_levels = list(victim_N1_group = group_levels, victim_N2_group = group_levels),
-    panel_var_labels = list(victim_N1_group = "Victim-N1", victim_N2_group = "Victim-N2"),
-    panel_value_labels = list(victim_N1_group = group_labels, victim_N2_group = group_labels),
+    panel_vars = c("victim_target_group", "victim_other_group"),
+    panel_levels = list(victim_target_group = group_levels, victim_other_group = group_levels),
+    panel_var_labels = list(victim_target_group = "Victim-target", victim_other_group = "Victim-other"),
+    panel_value_labels = list(victim_target_group = group_labels, victim_other_group = group_labels),
     default_fill = "#7aa6c2",
-    plot_title = "Victim-role judgement distributions across victim-N1 and victim-N2 group combinations",
+    plot_title = "Victim-role judgement distributions across victim-target and victim-other group combinations",
     nrow = 2,
     ncol = 2
   )
@@ -1026,11 +1026,11 @@ if (optional_group_columns_ok) {
     status_df = descriptive_generation_status,
     figure_file_name = "figure_judgement_distribution_victim_group_grid.png",
     role = "Victim",
-    term = "Victim judgement by victim-N1 x victim-N2 group grid",
-    caption = "Victim-role judgement distributions across victim-N1 and victim-N2 ingroup/outgroup combinations.",
+    term = "Victim judgement by victim-target x victim-other group grid",
+    caption = "Victim-role judgement distributions across victim-target and victim-other ingroup/outgroup combinations.",
     interpretation = "This optional figure highlights how raw victim-role judgement varies across victim-centered ingroup/outgroup combinations.",
     generation_result = result_victim_group,
-    panel_vars = c("victim_N1_group", "victim_N2_group"),
+    panel_vars = c("victim_target_group", "victim_other_group"),
     note_prefix = "Optional block F."
   )
   descriptive_figure_entries <- update_f1$entries
@@ -1038,13 +1038,13 @@ if (optional_group_columns_ok) {
 
   result_bystander_player_grid <- write_multi_panel_judgement_histogram(
     data = judgments_bystander,
-    file_path = file.path(paths$figures_dir, "figure_judgement_distribution_bystander_playerN1_playerN2_grid.png"),
-    panel_vars = c("bystander_N1_group", "bystander_N2_group"),
-    panel_levels = list(bystander_N1_group = group_levels, bystander_N2_group = group_levels),
-    panel_var_labels = list(bystander_N1_group = "Bystander-N1", bystander_N2_group = "Bystander-N2"),
-    panel_value_labels = list(bystander_N1_group = group_labels, bystander_N2_group = group_labels),
+    file_path = file.path(paths$figures_dir, "figure_judgement_distribution_bystander_target_other_group_grid.png"),
+    panel_vars = c("bystander_target_group", "bystander_other_group"),
+    panel_levels = list(bystander_target_group = group_levels, bystander_other_group = group_levels),
+    panel_var_labels = list(bystander_target_group = "Bystander-target", bystander_other_group = "Bystander-other"),
+    panel_value_labels = list(bystander_target_group = group_labels, bystander_other_group = group_labels),
     default_fill = "#e3a857",
-    plot_title = "Bystander-role judgement distributions across bystander-N1 and bystander-N2 group combinations",
+    plot_title = "Bystander-role judgement distributions across bystander-target and bystander-other group combinations",
     nrow = 2,
     ncol = 2
   )
@@ -1052,13 +1052,13 @@ if (optional_group_columns_ok) {
   update_f2 <- add_generated_descriptive_entry(
     entries_df = descriptive_figure_entries,
     status_df = descriptive_generation_status,
-    figure_file_name = "figure_judgement_distribution_bystander_playerN1_playerN2_grid.png",
+    figure_file_name = "figure_judgement_distribution_bystander_target_other_group_grid.png",
     role = "Bystander",
-    term = "Bystander judgement by bystander-N1 x bystander-N2 group grid",
-    caption = "Bystander-role judgement distributions across bystander-N1 and bystander-N2 ingroup/outgroup combinations.",
-    interpretation = "This optional figure emphasizes bystander-side relational combinations directly tied to N1 and N2 group alignment.",
+    term = "Bystander judgement by bystander-target x bystander-other group grid",
+    caption = "Bystander-role judgement distributions across bystander-target and bystander-other ingroup/outgroup combinations.",
+    interpretation = "This optional figure emphasizes bystander-side relational combinations directly tied to target/other group alignment.",
     generation_result = result_bystander_player_grid,
-    panel_vars = c("bystander_N1_group", "bystander_N2_group"),
+    panel_vars = c("bystander_target_group", "bystander_other_group"),
     note_prefix = "Optional block F."
   )
   descriptive_figure_entries <- update_f2$entries
@@ -1066,13 +1066,13 @@ if (optional_group_columns_ok) {
 
   result_bystander_victim_grid <- write_multi_panel_judgement_histogram(
     data = judgments_bystander,
-    file_path = file.path(paths$figures_dir, "figure_judgement_distribution_bystander_victimN1_victimN2_grid.png"),
-    panel_vars = c("victim_N1_group", "victim_N2_group"),
-    panel_levels = list(victim_N1_group = group_levels, victim_N2_group = group_levels),
-    panel_var_labels = list(victim_N1_group = "Victim-N1", victim_N2_group = "Victim-N2"),
-    panel_value_labels = list(victim_N1_group = group_labels, victim_N2_group = group_labels),
+    file_path = file.path(paths$figures_dir, "figure_judgement_distribution_bystander_victim_target_other_group_grid.png"),
+    panel_vars = c("victim_target_group", "victim_other_group"),
+    panel_levels = list(victim_target_group = group_levels, victim_other_group = group_levels),
+    panel_var_labels = list(victim_target_group = "Victim-target", victim_other_group = "Victim-other"),
+    panel_value_labels = list(victim_target_group = group_labels, victim_other_group = group_labels),
     default_fill = "#e3a857",
-    plot_title = "Bystander-role judgement distributions across victim-N1 and victim-N2 group combinations",
+    plot_title = "Bystander-role judgement distributions across victim-target and victim-other group combinations",
     nrow = 2,
     ncol = 2
   )
@@ -1080,13 +1080,13 @@ if (optional_group_columns_ok) {
   update_f3 <- add_generated_descriptive_entry(
     entries_df = descriptive_figure_entries,
     status_df = descriptive_generation_status,
-    figure_file_name = "figure_judgement_distribution_bystander_victimN1_victimN2_grid.png",
+    figure_file_name = "figure_judgement_distribution_bystander_victim_target_other_group_grid.png",
     role = "Bystander",
-    term = "Bystander judgement by victim-N1 x victim-N2 group grid",
-    caption = "Bystander-role judgement distributions across victim-N1 and victim-N2 ingroup/outgroup combinations.",
+    term = "Bystander judgement by victim-target x victim-other group grid",
+    caption = "Bystander-role judgement distributions across victim-target and victim-other ingroup/outgroup combinations.",
     interpretation = "This optional figure shows how bystander judgement co-varies with victim-centered relational combinations in the same observed rows.",
     generation_result = result_bystander_victim_grid,
-    panel_vars = c("victim_N1_group", "victim_N2_group"),
+    panel_vars = c("victim_target_group", "victim_other_group"),
     note_prefix = "Optional block F."
   )
   descriptive_figure_entries <- update_f3$entries
@@ -1402,18 +1402,18 @@ get_hypothesis_semantic_reminder <- function(hypothesis_id, lang = "en") {
   if (identical(lang, "es")) {
     return(switch(
       hypothesis_id,
-      H2 = "Recordatorio H2: `N1`/`N2` son slots estructurales reconstruidos dentro de cada fila, no aliases fijos de `target`/`other`; `group_target` y `group_other` son campos legacy de fuente/auditoria, mientras que los modelos activos de H2 usan predictores relacionales reconstruidos.",
-      H4 = "Recordatorio H4: el termino legacy `accept_target` corresponde al nombre operativo activo `decision_target`, y `accept_other` corresponde a `decision_other`; ambos se refieren a roles dinamicos `target`/`other` por fila, no a identidades fijas N1/N2.",
-      H5 = "Recordatorio H5: `N1`/`N2` son slots estructurales reconstruidos (no aliases fijos de `target`/`other`), `group_target`/`group_other` son campos legacy de auditoria, y `accept_target`/`accept_other` se mapean a `decision_target`/`decision_other` para roles dinamicos por fila.",
+      H2 = "Recordatorio H2: los predictores relacionales activos usan semantica `target`/`other` por fila; `group_target` y `group_other` permanecen como campos legacy de fuente/auditoria y no como terminos activos de H2.",
+      H4 = "Recordatorio H4: el termino legacy `accept_target` corresponde al nombre operativo activo `decision_target`, y `accept_other` corresponde a `decision_other`; ambos se refieren a roles dinamicos `target`/`other` por fila.",
+      H5 = "Recordatorio H5: la especificacion integrada mantiene semantica `target`/`other` en terminos relacionales y decisionales; `group_target`/`group_other` siguen como campos legacy de auditoria y `accept_target`/`accept_other` se mapean a `decision_target`/`decision_other`.",
       ""
     ))
   }
 
   switch(
     hypothesis_id,
-    H2 = "H2 reminder: `N1`/`N2` are structural slots reconstructed within each row, not fixed aliases of `target`/`other`; `group_target` and `group_other` are legacy source-audit fields, while active H2 models use reconstructed relational predictors.",
-    H4 = "H4 reminder: legacy `accept_target` corresponds to active `decision_target`, and legacy `accept_other` corresponds to active `decision_other`; both refer to row-dynamic `target`/`other` roles, not fixed N1/N2 identities.",
-    H5 = "H5 reminder: `N1`/`N2` are reconstructed structural slots (not fixed aliases of `target`/`other`), `group_target`/`group_other` are legacy audit fields, and legacy `accept_target`/`accept_other` map to active `decision_target`/`decision_other` for row-dynamic roles.",
+    H2 = "H2 reminder: active relational predictors are expressed with row-dynamic `target`/`other` semantics; `group_target` and `group_other` remain legacy source-audit fields and are not active H2 predictors.",
+    H4 = "H4 reminder: legacy `accept_target` corresponds to active `decision_target`, and legacy `accept_other` corresponds to active `decision_other`; both refer to row-dynamic `target`/`other` roles.",
+    H5 = "H5 reminder: the integrated specification keeps `target`/`other` semantics for relational and decision terms; `group_target`/`group_other` remain legacy audit fields, and legacy `accept_target`/`accept_other` map to active `decision_target`/`decision_other`.",
     ""
   )
 }
@@ -1612,11 +1612,11 @@ localize_figure_manifest_for_language <- function(figure_manifest, lang = "en") 
     if (identical(cap_line, "Observed judgement distributions by role and counterpart decision.")) return("Distribuciones observadas de `judgement` por rol y decision de la contraparte.")
     if (identical(cap_line, "Observed judgement distributions by role and joint decision pattern.")) return("Distribuciones observadas de `judgement` por rol y patron conjunto de decision.")
     if (identical(cap_line, "Observed decision-pattern counts by role.")) return("Conteos observados de patrones de decision por rol.")
-    if (identical(cap_line, "Victim-role judgement distributions across N1 x N2 faculty pairings.")) return("Distribuciones de `judgement` del rol Victim a traves de pareamientos de facultad N1 x N2.")
-    if (identical(cap_line, "Bystander-role judgement distributions across N1 x N2 faculty pairings.")) return("Distribuciones de `judgement` del rol Bystander a traves de pareamientos de facultad N1 x N2.")
-    if (identical(cap_line, "Victim-role judgement distributions across victim-N1 and victim-N2 ingroup/outgroup combinations.")) return("Distribuciones de `judgement` del rol Victim a traves de combinaciones victim-N1 y victim-N2 de ingroup/outgroup.")
-    if (identical(cap_line, "Bystander-role judgement distributions across bystander-N1 and bystander-N2 ingroup/outgroup combinations.")) return("Distribuciones de `judgement` del rol Bystander a traves de combinaciones bystander-N1 y bystander-N2 de ingroup/outgroup.")
-    if (identical(cap_line, "Bystander-role judgement distributions across victim-N1 and victim-N2 ingroup/outgroup combinations.")) return("Distribuciones de `judgement` del rol Bystander a traves de combinaciones victim-N1 y victim-N2 de ingroup/outgroup.")
+    if (identical(cap_line, "Victim-role judgement distributions across target x other faculty pairings.")) return("Distribuciones de `judgement` del rol Victim a traves de pareamientos de facultad target x other.")
+    if (identical(cap_line, "Bystander-role judgement distributions across target x other faculty pairings.")) return("Distribuciones de `judgement` del rol Bystander a traves de pareamientos de facultad target x other.")
+    if (identical(cap_line, "Victim-role judgement distributions across victim-target and victim-other ingroup/outgroup combinations.")) return("Distribuciones de `judgement` del rol Victim a traves de combinaciones victim-target y victim-other de ingroup/outgroup.")
+    if (identical(cap_line, "Bystander-role judgement distributions across bystander-target and bystander-other ingroup/outgroup combinations.")) return("Distribuciones de `judgement` del rol Bystander a traves de combinaciones bystander-target y bystander-other de ingroup/outgroup.")
+    if (identical(cap_line, "Bystander-role judgement distributions across victim-target and victim-other ingroup/outgroup combinations.")) return("Distribuciones de `judgement` del rol Bystander a traves de combinaciones victim-target y victim-other de ingroup/outgroup.")
     cap_line
   }, character(1))
 
@@ -1624,14 +1624,14 @@ localize_figure_manifest_for_language <- function(figure_manifest, lang = "en") 
     if (identical(text_line, "This figure summarizes the central empathy profile of the sample before conditioning on hypothesis-specific models.")) return("Esta figura resume el perfil central de empatia de la muestra antes de condicionar en modelos especificos de hipotesis.")
     if (identical(text_line, "These scatterplots show the participant-level descriptive relationship between empathy dimensions and average judgement.")) return("Estos scatterplots muestran la relacion descriptiva a nivel participante entre dimensiones de empatia y `judgement` promedio.")
     if (identical(text_line, "This figure shows the raw shape of the bounded judgement outcome in the victim and bystander subsets.")) return("Esta figura muestra la forma bruta del outcome acotado `judgement` en los subconjuntos Victim y Bystander.")
-    if (identical(text_line, "This figure shows whether the raw bounded judgement distribution differs depending on whether the evaluated target is N1 or N2 within victim and bystander settings.")) return("Esta figura muestra si la distribucion bruta y acotada de `judgement` cambia segun si el target evaluado es N1 o N2 dentro de escenarios Victim y Bystander.")
+    if (identical(text_line, "This figure shows whether the raw bounded judgement distribution differs depending on whether the target code is 1 or 2 within victim and bystander settings.")) return("Esta figura muestra si la distribucion bruta y acotada de `judgement` cambia segun si el codigo de target es 1 o 2 dentro de escenarios Victim y Bystander.")
     if (identical(text_line, "This figure isolates whether the target's own acceptance or rejection is associated with different raw judgement profiles within each role.")) return("Esta figura aisla si la aceptacion o rechazo del propio target se asocia con perfiles brutos distintos de `judgement` dentro de cada rol.")
     if (identical(text_line, "This figure shows whether judgement of the target varies with the acceptance or rejection of the other negotiator.")) return("Esta figura muestra si `judgement` del target varia con la aceptacion o rechazo del otro negociador.")
     if (identical(text_line, "This figure shows how the target-focused judgement distribution changes across the four joint negotiation outcomes in victim and bystander settings.")) return("Esta figura muestra como cambia la distribucion de `judgement` enfocada en target a traves de los cuatro resultados conjuntos de negociacion en escenarios Victim y Bystander.")
     if (identical(text_line, "This figure summarizes how often each joint decision pattern appears in victim and bystander subsets.")) return("Esta figura resume con que frecuencia aparece cada patron conjunto de decision en los subconjuntos Victim y Bystander.")
-    if (identical(text_line, "This figure shows how the raw judgement distribution varies across the full relational space defined by the faculty pairing of N1 and N2.")) return("Esta figura muestra como varia la distribucion bruta de `judgement` a traves del espacio relacional completo definido por el pareamiento de facultad entre N1 y N2.")
+    if (identical(text_line, "This figure shows how the raw judgement distribution varies across the full relational space defined by the faculty pairing of target and other.")) return("Esta figura muestra como varia la distribucion bruta de `judgement` a traves del espacio relacional completo definido por el pareamiento de facultad entre target y other.")
     if (identical(text_line, "This optional figure highlights how raw victim-role judgement varies across victim-centered ingroup/outgroup combinations.")) return("Esta figura opcional destaca como varia el `judgement` bruto del rol Victim a traves de combinaciones ingroup/outgroup centradas en la victima.")
-    if (identical(text_line, "This optional figure emphasizes bystander-side relational combinations directly tied to N1 and N2 group alignment.")) return("Esta figura opcional enfatiza combinaciones relacionales del lado Bystander ligadas directamente a la alineacion de grupo de N1 y N2.")
+    if (identical(text_line, "This optional figure emphasizes bystander-side relational combinations directly tied to target/other group alignment.")) return("Esta figura opcional enfatiza combinaciones relacionales del lado Bystander ligadas directamente a la alineacion de grupo de target y other.")
     if (identical(text_line, "This optional figure shows how bystander judgement co-varies with victim-centered relational combinations in the same observed rows.")) return("Esta figura opcional muestra como `judgement` del bystander covaria con combinaciones relacionales centradas en la victima dentro de las mismas filas observadas.")
     if (identical(text_line, "The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile.")) return("Las lineas ajustadas y bandas sombreadas de confianza al 95% resumen como cambia `judgement` predicho a lo largo del termino focal, manteniendo las covariables restantes en su perfil de referencia.")
     if (identical(text_line, "Across the displayed contrast, the model implies higher predicted judgement toward the right-hand side of the plot.")) return("A lo largo del contraste mostrado, el modelo implica mayor `judgement` predicho hacia el lado derecho del grafico.")
@@ -1658,9 +1658,9 @@ report_lines <- c(
   "",
   "Legacy/intuitive naming bridge: `accept_target` -> active operational name `decision_target`; `accept_other` -> active operational name `decision_other`.",
   "",
-  "Row-level semantics: `target` and `other` are dynamic roles per observation, while `N1` and `N2` are structural slots reconstructed inside each row.",
+  "Row-level semantics: `target` and `other` are dynamic roles per observation; all active analytical terms in this report are expressed directly in that pair.",
   "",
-  build_numbered_table_block(target_slot_mapping_audit, "Row-level decision mapping from dynamic target/other to structural N1/N2 slots"),
+  build_numbered_table_block(target_slot_mapping_audit, "Row-level decision mapping from dynamic target/other to legacy structural-slot mappings"),
   "",
   "# Dataset and sample description",
   "",
@@ -2005,7 +2005,7 @@ translate_report_lines_to_spanish <- function(
     "This run uses `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` as the only analytical source and preserves each imported row as one real judgement observation. The production estimator is a two-sided Tobit fitted with `survival::survreg`, using bilateral censoring at `-9` and `9`, participant-cluster robust standard errors through `cluster = id`, and `factor(session)` in every active formula.",
     "# Semantic naming bridge and row-level mapping",
     "Legacy/intuitive naming bridge: `accept_target` -> active operational name `decision_target`; `accept_other` -> active operational name `decision_other`.",
-    "Row-level semantics: `target` and `other` are dynamic roles per observation, while `N1` and `N2` are structural slots reconstructed inside each row.",
+    "Row-level semantics: `target` and `other` are dynamic roles per observation; all active analytical terms in this report are expressed directly in that pair.",
     "# Dataset and sample description",
     "The authoritative interpretation is that each player observes ten scenarios and evaluates two negotiators, so the longitudinal file should contain 20 judgement rows per participant. The clustering diagnostic below is consistent with that design.",
     "# Datacard and symbol dictionary",
@@ -2046,7 +2046,7 @@ translate_report_lines_to_spanish <- function(
     "Esta corrida usa `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` como unica fuente analitica y preserva cada fila importada como una observacion real de judgement. El estimador productivo es un Tobit de dos lados ajustado con `survival::survreg`, usando censura bilateral en `-9` y `9`, errores estandar robustos por cluster de participante via `cluster = id`, y `factor(session)` en cada formula activa.",
     "# Puente semantico de nombres y mapeo por fila",
     "Puente legacy/intuitivo de nombres: `accept_target` -> nombre operativo activo `decision_target`; `accept_other` -> nombre operativo activo `decision_other`.",
-    "Semantica por fila: `target` y `other` son roles dinamicos por observacion, mientras `N1` y `N2` son slots estructurales reconstruidos dentro de cada fila.",
+    "Semantica por fila: `target` y `other` son roles dinamicos por observacion; todos los terminos analiticos activos del reporte se expresan directamente en ese par.",
     "# Descripcion del dataset y de la muestra",
     "La interpretacion autoritativa es que cada jugador observa diez escenarios y evalua dos negociadores, por lo que el archivo longitudinal debe contener 20 filas de judgement por participante. El diagnostico de clustering siguiente es consistente con ese diseno.",
     "# Datacard y diccionario de simbolos",
@@ -2128,7 +2128,7 @@ translate_report_lines_to_spanish <- function(
   lines_es <- replace_fixed_pairs(lines_es, glossary_en$meaning, glossary_es$meaning)
 
   table_phrase_from <- c(
-    "Row-level decision mapping from dynamic target/other to structural N1/N2 slots",
+    "Row-level decision mapping from dynamic target/other to legacy structural-slot mappings",
     "Participant summary",
     "Judgement summary",
     "Datacard symbol dictionary",
@@ -2148,7 +2148,7 @@ translate_report_lines_to_spanish <- function(
     "H1-H5 role-specific formulas and theoretical focus."
   )
   table_phrase_to <- c(
-    "Mapeo de decision por fila desde target/other dinamicos hacia slots estructurales N1/N2",
+    "Mapeo de decision por fila desde target/other dinamicos hacia mapeos estructurales legacy",
     "Resumen de participantes",
     "Resumen de judgement",
     "Diccionario de simbolos del datacard",
@@ -2171,9 +2171,9 @@ translate_report_lines_to_spanish <- function(
 
   formula_focus_from <- c(
     "Empathy dimensions only, always adjusted by sociodemographics.",
-    "Victim-side ingroup/outgroup structure with the allowed N1 x N2 relational interaction.",
-    "Bystander-side relational structure with explicit bystander-victim, bystander-negotiator, victim-negotiator, and N1/N2 context terms.",
-    "Empathy plus victim-side relational structure, including empathy x victim-N1 and empathy x victim-N2 interactions because empathy may depend on negotiator closeness.",
+    "Victim-side ingroup/outgroup structure with the allowed target x other relational interaction.",
+    "Bystander-side relational structure with explicit bystander-victim, bystander-negotiator, victim-negotiator, and target/other context terms.",
+    "Empathy plus victim-side relational structure, including empathy x victim-target and empathy x victim-other interactions because empathy may depend on negotiator closeness.",
     "Empathy plus bystander-side relational structure, including empathy x bystander-victim and empathy x bystander-negotiator interactions because empathy may depend on group closeness in the bystander role.",
     "Target and other negotiator decisions with their interaction, plus sociodemographics.",
     "Integrated model with empathy, victim-side relations, empathy x group interactions, decisions, and the victim-side relational interaction.",
@@ -2181,9 +2181,9 @@ translate_report_lines_to_spanish <- function(
   )
   formula_focus_to <- c(
     "Solo dimensiones de empatia, siempre ajustadas por sociodemograficos.",
-    "Estructura ingroup/outgroup del lado Victim con la interaccion relacional permitida N1 x N2.",
-    "Estructura relacional del lado Bystander con terminos explicitos bystander-victim, bystander-negotiator, victim-negotiator y contexto N1/N2.",
-    "Empatia mas estructura relacional del lado Victim, incluyendo interacciones empatia x victim-N1 y empatia x victim-N2 porque la empatia puede depender de cercania al negociador.",
+    "Estructura ingroup/outgroup del lado Victim con la interaccion relacional permitida target x other.",
+    "Estructura relacional del lado Bystander con terminos explicitos bystander-victim, bystander-negotiator, victim-negotiator y contexto target/other.",
+    "Empatia mas estructura relacional del lado Victim, incluyendo interacciones empatia x victim-target y empatia x victim-other porque la empatia puede depender de cercania al negociador.",
     "Empatia mas estructura relacional del lado Bystander, incluyendo interacciones empatia x bystander-victim y empatia x bystander-negotiator porque la empatia puede depender de cercania de grupo en el rol Bystander.",
     "Decisiones de target y del otro negociador con su interaccion, mas sociodemograficos.",
     "Modelo integrado con empatia, relaciones del lado Victim, interacciones empatia x grupo, decisiones y la interaccion relacional del lado Victim.",
@@ -2320,3 +2320,5 @@ compliance_lines_es <- replace_fixed_pairs(
 )
 writeLines(compliance_lines_es, file.path(paths$report_dir, "pipeline_compliance_report_es.md"))
 writeLines(compliance_lines_es, file.path(paths$reports_data_dir, "pipeline_compliance_report_es.md"))
+
+
