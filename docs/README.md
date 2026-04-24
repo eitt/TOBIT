@@ -1,4 +1,4 @@
-﻿# Documentation Index
+# Documentation Index
 
 This folder contains the active documentation set for the finalized TOBIT repository.
 

@@ -19,8 +19,9 @@ get_current_symbol_dictionary <- function(lang = "en") {
       "target (row-dynamic)",
       "other (row-dynamic counterpart)",
       "target / other (analytical pair)",
-      "decision_target",
-      "decision_other",
+      "accept_target",
+      "accept_other",
+      "decision_target / decision_other (legacy source)",
       "victim_target_group / victim_other_group",
       "bystander_victim_group / bystander_target_group / bystander_other_group",
       "group_target / group_other (legacy audit)",
@@ -31,20 +32,21 @@ get_current_symbol_dictionary <- function(lang = "en") {
     ),
     definition = if (is_es) c(
       "Juicio moral observado en la escala acotada de -9 a 9.",
-      "Tendencia latente de juicio subyacente a la observaciÃ³n censurada del Tobit.",
-      "Dimensiones de empatÃ­a IRI: fantasy, empathic concern, perspective taking y personal distress.",
-      "Negociador evaluado en esa fila; este rol es dinÃ¡mico y se define por el codigo `target` de esa observacion.",
+      "Tendencia latente de juicio subyacente a la observaciÃƒÂ³n censurada del Tobit.",
+      "Dimensiones de empatÃƒÂ­a IRI: fantasy, empathic concern, perspective taking y personal distress.",
+      "Negociador evaluado en esa fila; este rol es dinÃƒÂ¡mico y se define por el codigo `target` de esa observacion.",
       "Negociador contraparte en ese mismo contexto de fila (actor no target).",
       "Par analitico target/other usado para modelado relacional sin fijar identidades estructurales por negociador.",
-      "Indicador de si el negociador target dinÃ¡mico por fila aceptÃ³ el trato daÃ±ino; nombre operativo activo del tÃ©rmino legacy accept_target.",
-      "Indicador de si el negociador other dinÃ¡mico por fila aceptÃ³ el trato daÃ±ino; nombre operativo activo del tÃ©rmino legacy accept_other.",
+      "Indicador de si el negociador target dinÃƒÂ¡mico por fila aceptÃƒÂ³ el trato daÃƒÂ±ino; nombre operativo activo con puente legacy desde decision_target.",
+      "Indicador de si el negociador other dinÃƒÂ¡mico por fila aceptÃƒÂ³ el trato daÃƒÂ±ino; nombre operativo activo con puente legacy desde decision_other.",
+      "Nombres de columnas en el archivo fuente original; se conservan para compatibilidad y auditoria, pero la capa analitica activa usa `accept_target` y `accept_other`.",
       "Relaciones especificas de victima con target y other, con ingroup definido por coincidencia de facultad incluyendo control-control.",
-      "Factores relacionales del lado bystander para la vÃ­ctima y ambos negociadores, tambiÃ©n con coincidencia de facultad como ingroup.",
-      "Campos de agrupaciÃ³n legacy de la fuente, retenidos para trazabilidad; no se usan directamente en las fÃ³rmulas activas H2/H3/H5.",
+      "Factores relacionales del lado bystander para la vÃƒÂ­ctima y ambos negociadores, tambiÃƒÂ©n con coincidencia de facultad como ingroup.",
+      "Campos de agrupaciÃƒÂ³n legacy de la fuente, retenidos para trazabilidad; no se usan directamente en las fÃƒÂ³rmulas activas H2/H3/H5.",
       "Termino de contexto que indica si target y other comparten facultad.",
-      "Efectos fijos de sesiÃ³n incluidos directamente en cada fÃ³rmula ajustada.",
-      "AgrupaciÃ³n a nivel participante usada para errores estÃ¡ndar robustos y ajuste por medidas repetidas.",
-      "ParÃ¡metro Tobit log-scale estimado que resume la dispersiÃ³n residual latente."
+      "Efectos fijos de sesiÃƒÂ³n incluidos directamente en cada fÃƒÂ³rmula ajustada.",
+      "AgrupaciÃƒÂ³n a nivel participante usada para errores estÃƒÂ¡ndar robustos y ajuste por medidas repetidas.",
+      "ParÃƒÂ¡metro Tobit log-scale estimado que resume la dispersiÃƒÂ³n residual latente."
     ) else c(
       "Observed moral judgement on the bounded scale from -9 to 9.",
       "Latent judgement tendency underlying the censored Tobit observation.",
@@ -52,8 +54,9 @@ get_current_symbol_dictionary <- function(lang = "en") {
       "Judged negotiator in that row; this role is dynamic and determined by the row-level `target` code.",
       "Counterpart negotiator in that same row context (the non-target actor).",
       "Analytical target/other pair used for relational modeling without fixed structural negotiator identities.",
-      "Indicator for whether the row-dynamic target negotiator accepted the harmful deal; active operational name for legacy wording accept_target.",
-      "Indicator for whether the row-dynamic other negotiator accepted the harmful deal; active operational name for legacy wording accept_other.",
+      "Indicator for whether the row-dynamic target negotiator accepted the harmful deal; active operational name with a legacy bridge from decision_target.",
+      "Indicator for whether the row-dynamic other negotiator accepted the harmful deal; active operational name with a legacy bridge from decision_other.",
+      "Original source-file column names retained for compatibility and audit; the active analytical layer uses `accept_target` and `accept_other`.",
       "Victim-specific relations to target and other, with ingroup defined by faculty coincidence including control-control matches.",
       "Bystander-side relational factors for the victim and both negotiators, again using faculty coincidence as ingroup.",
       "Legacy source grouping fields retained for provenance checks; not used directly in active H2/H3/H5 formulas.",
@@ -88,9 +91,9 @@ get_current_predictor_glossary <- function(lang = "en") {
       "iri_ec:victim_other_groupoutgroup",
       "iri_pt:bystander_victim_groupoutgroup",
       "iri_pd:bystander_target_groupoutgroup",
-      "decision_target",
-      "decision_other",
-      "decision_target:decision_other",
+      "accept_target",
+      "accept_other",
+      "accept_target:accept_other",
       "faculty_player_factorEngineering",
       "sex_female",
       "age",
@@ -124,15 +127,15 @@ get_current_predictor_glossary <- function(lang = "en") {
       "SES"
     ),
     meaning = if (is_es) c(
-      "DimensiÃ³n de empatÃ­a fantasy.",
-      "DimensiÃ³n de empatÃ­a empathic concern.",
-      "DimensiÃ³n de empatÃ­a perspective taking.",
-      "DimensiÃ³n de empatÃ­a personal distress.",
+      "DimensiÃƒÂ³n de empatÃƒÂ­a fantasy.",
+      "DimensiÃƒÂ³n de empatÃƒÂ­a empathic concern.",
+      "DimensiÃƒÂ³n de empatÃƒÂ­a perspective taking.",
+      "DimensiÃƒÂ³n de empatÃƒÂ­a personal distress.",
       "La victima y target pertenecen a la misma facultad.",
       "La victima y target pertenecen a facultades diferentes.",
       "La victima y other pertenecen a la misma facultad.",
       "La victima y other pertenecen a facultades diferentes.",
-      "Bystander y vÃ­ctima pertenecen a facultades diferentes.",
+      "Bystander y vÃƒÂ­ctima pertenecen a facultades diferentes.",
       "Bystander y target pertenecen a la misma facultad.",
       "Bystander y target pertenecen a facultades diferentes.",
       "Bystander y other pertenecen a la misma facultad.",
@@ -140,15 +143,15 @@ get_current_predictor_glossary <- function(lang = "en") {
       "target y other comparten pertenencia de facultad.",
       "Diferencia de pendiente de fantasy cuando victim-target es outgroup frente a ingroup.",
       "Diferencia de pendiente de empathic concern cuando victim-other es outgroup frente a ingroup.",
-      "Diferencia de pendiente de perspective taking cuando la relaciÃ³n bystander-victim es outgroup frente a ingroup.",
+      "Diferencia de pendiente de perspective taking cuando la relaciÃƒÂ³n bystander-victim es outgroup frente a ingroup.",
       "Diferencia de pendiente de personal distress cuando la relacion bystander-target es outgroup frente a ingroup.",
-      "El negociador target dinÃ¡mico por fila aceptÃ³ el trato daÃ±ino (tÃ©rmino legacy: accept_target).",
-      "El negociador contraparte dinÃ¡mico por fila aceptÃ³ el trato daÃ±ino (tÃ©rmino legacy: accept_other).",
-      "Efecto conjunto de decisiones cuando se consideran simultÃ¡neamente las decisiones de ambos negociadores.",
+      "El negociador target dinÃƒÂ¡mico por fila aceptÃƒÂ³ el trato daÃƒÂ±ino (nombre fuente legacy: decision_target).",
+      "El negociador contraparte dinÃƒÂ¡mico por fila aceptÃƒÂ³ el trato daÃƒÂ±ino (nombre fuente legacy: decision_other).",
+      "Efecto conjunto de decisiones cuando se consideran simultÃƒÂ¡neamente las decisiones de ambos negociadores.",
       "El participante pertenece a Engineering, relativo a Humanities.",
       "El participante es mujer.",
       "Edad del participante.",
-      "Nivel socioeconÃ³mico del participante."
+      "Nivel socioeconÃƒÂ³mico del participante."
     ) else c(
       "Fantasy empathy dimension.",
       "Empathic concern empathy dimension.",
@@ -168,8 +171,8 @@ get_current_predictor_glossary <- function(lang = "en") {
       "Empathic-concern slope difference when victim-other is outgroup rather than ingroup.",
       "Perspective-taking slope difference when the bystander-victim relation is outgroup rather than ingroup.",
       "Personal-distress slope difference when the bystander-target relation is outgroup rather than ingroup.",
-      "Row-dynamic target negotiator accepted the harmful deal (legacy wording: accept_target).",
-      "Row-dynamic counterpart negotiator accepted the harmful deal (legacy wording: accept_other).",
+      "Row-dynamic target negotiator accepted the harmful deal (legacy source name: decision_target).",
+      "Row-dynamic counterpart negotiator accepted the harmful deal (legacy source name: decision_other).",
       "Joint decision effect when both negotiator decisions are considered together.",
       "Participant belongs to Engineering, relative to Humanities.",
       "Participant is a woman.",
@@ -194,9 +197,9 @@ label_current_term <- function(term) {
     "age" = "Age",
     "ses" = "Socioeconomic status",
     "sex_female" = "Woman participant",
-    "decision_target" = "Target accepted",
-    "decision_other" = "Other negotiator accepted",
-    "decision_target:decision_other" = "Target accepted x Other accepted",
+    "accept_target" = "Target accepted",
+    "accept_other" = "Other negotiator accepted",
+    "accept_target:accept_other" = "Target accepted x Other accepted",
     "faculty_player_factorEngineering" = "Participant faculty: Engineering vs Humanities",
     "victim_target_groupingroup" = "Victim-target ingroup vs ingroup baseline",
     "victim_target_groupoutgroup" = "Victim-target outgroup vs ingroup",
@@ -226,11 +229,11 @@ label_current_term <- function(term) {
 get_interaction_interpretation_rules <- function(lang = "en") {
   if (identical(lang, "es")) {
     return(c(
-      "Cuando una interacciÃ³n es estadÃ­sticamente relevante, los efectos principales deben leerse como el componente de lÃ­nea base de la relaciÃ³n y no como toda la historia sustantiva.",
-      "Las interacciones continuo-por-factor indican que la pendiente de empatÃ­a cambia segÃºn las condiciones relacionales.",
+      "Cuando una interacciÃƒÂ³n es estadÃƒÂ­sticamente relevante, los efectos principales deben leerse como el componente de lÃƒÂ­nea base de la relaciÃƒÂ³n y no como toda la historia sustantiva.",
+      "Las interacciones continuo-por-factor indican que la pendiente de empatÃƒÂ­a cambia segÃƒÂºn las condiciones relacionales.",
       "Las interacciones factor-por-factor indican que el contexto conjunto difiere de lo esperable al sumar de forma independiente los dos contrastes principales.",
-      "La interacciÃ³n target-by-other en decisiones indica que el significado moral de la elecciÃ³n de un negociador depende de lo que hizo su contraparte.",
-      "Los efectos de sesiÃ³n son tÃ©rminos de ajuste y no se interpretan como mecanismos sustantivos del experimento."
+      "La interacciÃƒÂ³n target-by-other en decisiones indica que el significado moral de la elecciÃƒÂ³n de un negociador depende de lo que hizo su contraparte.",
+      "Los efectos de sesiÃƒÂ³n son tÃƒÂ©rminos de ajuste y no se interpretan como mecanismos sustantivos del experimento."
     ))
   }
   c(
@@ -245,11 +248,11 @@ get_interaction_interpretation_rules <- function(lang = "en") {
 get_dataset_sample_description <- function(lang = "en") {
   if (identical(lang, "es")) {
     return(c(
-      "El reporte usa el dataset experimental consolidado en formato long como Ãºnica fuente analÃ­tica.",
+      "El reporte usa el dataset experimental consolidado en formato long como ÃƒÂºnica fuente analÃƒÂ­tica.",
       "Cada participante aporta en principio 20 filas de judgement: diez escenarios multiplicados por dos evaluaciones de negociadores target.",
       "Cada fila importada se mantiene como una observacion real de judgement sobre el negociador target, enriquecida con contexto relacional de target, other, victima y bystander, sin duplicacion de filas.",
       "Se evita doble conteo porque target y other se mantienen dentro de cada fila existente, en lugar de expandir el archivo en observaciones duplicadas por negociador.",
-      "Los anÃ¡lisis de vÃ­ctima y bystander se estiman por separado para que la codificaciÃ³n relacional siga la lÃ³gica especÃ­fica de cada rol."
+      "Los anÃƒÂ¡lisis de vÃƒÂ­ctima y bystander se estiman por separado para que la codificaciÃƒÂ³n relacional siga la lÃƒÂ³gica especÃƒÂ­fica de cada rol."
     ))
   }
   c(
@@ -262,7 +265,7 @@ get_dataset_sample_description <- function(lang = "en") {
 }
 
 build_target_slot_mapping_audit <- function(data) {
-  required_cols <- c("target", "decision_target", "decision_other")
+  required_cols <- c("target", "accept_target", "accept_other")
   missing_cols <- setdiff(required_cols, names(data))
   if (length(missing_cols) > 0L) {
     return(data.frame(
@@ -280,11 +283,11 @@ build_target_slot_mapping_audit <- function(data) {
   rule_two_scope <- target_numeric == 2
 
   row_one_valid <- rule_one_scope &
-    !is.na(data$decision_target) &
-    !is.na(data$decision_other)
+    !is.na(data$accept_target) &
+    !is.na(data$accept_other)
   row_two_valid <- rule_two_scope &
-    !is.na(data$decision_target) &
-    !is.na(data$decision_other)
+    !is.na(data$accept_target) &
+    !is.na(data$accept_other)
 
   rule_one_n <- sum(rule_one_scope, na.rm = TRUE)
   rule_two_n <- sum(rule_two_scope, na.rm = TRUE)
@@ -294,8 +297,8 @@ build_target_slot_mapping_audit <- function(data) {
   data.frame(
     rule = c("target == 1", "target == 2"),
     expected_mapping = c(
-      "Judged actor = target code 1, counterpart = other code 2; judged decision is `decision_target`, counterpart decision is `decision_other`.",
-      "Judged actor = target code 2, counterpart = other code 1; judged decision is `decision_target`, counterpart decision is `decision_other`."
+      "Judged actor = target code 1, counterpart = other code 2; judged decision is `accept_target`, counterpart decision is `accept_other`.",
+      "Judged actor = target code 2, counterpart = other code 1; judged decision is `accept_target`, counterpart decision is `accept_other`."
     ),
     rows_in_scope = c(rule_one_n, rule_two_n),
     rows_following_rule = c(rule_one_ok, rule_two_ok),
@@ -312,9 +315,9 @@ build_introductory_theoretical_chapter <- function(lang = "en") {
     return(c(
       "# Entendiendo la estrategia de modelado",
       "",
-      "El propÃ³sito del pipeline es explicar cÃ³mo los participantes asignan judgement moral a un negociador focal dentro de un entorno experimental estructurado. El objetivo no se limita a describir promedios; busca estimar cÃ³mo cambia `judgement` en funciÃ³n de empatÃ­a, alineaciÃ³n de grupo, decisiones de negociaciÃ³n y estructura relacional especÃ­fica por rol. Como cada participante aporta evaluaciones repetidas en mÃºltiples escenarios y targets, la estrategia debe cumplir tres condiciones: preservar una fila por observaciÃ³n real, respetar el carÃ¡cter acotado del outcome y ajustar la dependencia intra-participante. Por ello, la rama productiva usa un Tobit de dos lados con inferencia robusta por cluster de participante y ajuste por sesiÃ³n.",
+      "El propÃƒÂ³sito del pipeline es explicar cÃƒÂ³mo los participantes asignan judgement moral a un negociador focal dentro de un entorno experimental estructurado. El objetivo no se limita a describir promedios; busca estimar cÃƒÂ³mo cambia `judgement` en funciÃƒÂ³n de empatÃƒÂ­a, alineaciÃƒÂ³n de grupo, decisiones de negociaciÃƒÂ³n y estructura relacional especÃƒÂ­fica por rol. Como cada participante aporta evaluaciones repetidas en mÃƒÂºltiples escenarios y targets, la estrategia debe cumplir tres condiciones: preservar una fila por observaciÃƒÂ³n real, respetar el carÃƒÂ¡cter acotado del outcome y ajustar la dependencia intra-participante. Por ello, la rama productiva usa un Tobit de dos lados con inferencia robusta por cluster de participante y ajuste por sesiÃƒÂ³n.",
       "",
-      "La necesidad del Tobit proviene de la naturaleza de la variable dependiente. `judgement` se interpreta como continua, pero estÃ¡ acotada por diseÃ±o de mediciÃ³n. Los valores extremos son lÃ­mites de la escala, no realizaciones no restringidas. Un modelo lineal estÃ¡ndar asume un outcome potencialmente no acotado, lo cual no es apropiado aquÃ­. El enfoque Tobit modela una evaluaciÃ³n moral latente, denotada como `y_i^*`, observada a travÃ©s de una puntuaciÃ³n acotada:",
+      "La necesidad del Tobit proviene de la naturaleza de la variable dependiente. `judgement` se interpreta como continua, pero estÃƒÂ¡ acotada por diseÃƒÂ±o de mediciÃƒÂ³n. Los valores extremos son lÃƒÂ­mites de la escala, no realizaciones no restringidas. Un modelo lineal estÃƒÂ¡ndar asume un outcome potencialmente no acotado, lo cual no es apropiado aquÃƒÂ­. El enfoque Tobit modela una evaluaciÃƒÂ³n moral latente, denotada como `y_i^*`, observada a travÃƒÂ©s de una puntuaciÃƒÂ³n acotada:",
       "",
       "$$",
       "y_i^* = X_i\\beta + \\varepsilon_i",
@@ -326,21 +329,21 @@ build_introductory_theoretical_chapter <- function(lang = "en") {
       "judgement_i = \\max(-9, \\min(9, y_i^*)).",
       "$$",
       "",
-      "Bajo esta especificaciÃ³n, el modelo representa valores interiores, acumulaciÃ³n en el lÃ­mite inferior y acumulaciÃ³n en el lÃ­mite superior. En este contexto, censura no significa datos faltantes; significa que la observaciÃ³n queda registrada en el lÃ­mite de la escala cuando la evaluaciÃ³n latente excede ese rango.",
+      "Bajo esta especificaciÃƒÂ³n, el modelo representa valores interiores, acumulaciÃƒÂ³n en el lÃƒÂ­mite inferior y acumulaciÃƒÂ³n en el lÃƒÂ­mite superior. En este contexto, censura no significa datos faltantes; significa que la observaciÃƒÂ³n queda registrada en el lÃƒÂ­mite de la escala cuando la evaluaciÃƒÂ³n latente excede ese rango.",
       "",
-      "El segundo reto metodolÃ³gico es la estructura de medidas repetidas. Cada participante contribuye mÃºltiples filas y, por tanto, las observaciones no son independientes. Ignorar esto tenderÃ­a a subestimar errores estÃ¡ndar y sobrerreportar significancia. La rama actual lo aborda con errores estÃ¡ndar robustos agrupados por `id`. AdemÃ¡s, se incorpora sesiÃ³n con `factor(session)` para absorber desplazamientos sistemÃ¡ticos entre sesiones. En esta implementaciÃ³n, sesiÃ³n se modela como ajuste de efectos fijos y no como intercepto aleatorio.",
+      "El segundo reto metodolÃƒÂ³gico es la estructura de medidas repetidas. Cada participante contribuye mÃƒÂºltiples filas y, por tanto, las observaciones no son independientes. Ignorar esto tenderÃƒÂ­a a subestimar errores estÃƒÂ¡ndar y sobrerreportar significancia. La rama actual lo aborda con errores estÃƒÂ¡ndar robustos agrupados por `id`. AdemÃƒÂ¡s, se incorpora sesiÃƒÂ³n con `factor(session)` para absorber desplazamientos sistemÃƒÂ¡ticos entre sesiones. En esta implementaciÃƒÂ³n, sesiÃƒÂ³n se modela como ajuste de efectos fijos y no como intercepto aleatorio.",
       "",
-      "Los predictores se organizan en bloques teÃ³ricos. El primero contiene dimensiones de empatÃ­a (`iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`) y fundamenta H1. El segundo captura estructura relacional de ingroup/outgroup por rol y fundamenta H2. El tercero incorpora decisiones de negociaciÃ³n con `decision_target`, `decision_other` y su interacciÃ³n, nÃºcleo de H4. Todos los modelos incluyen controles sociodemogrÃ¡ficos.",
+      "Los predictores se organizan en bloques teÃƒÂ³ricos. El primero contiene dimensiones de empatÃƒÂ­a (`iri_fs`, `iri_ec`, `iri_pt`, `iri_pd`) y fundamenta H1. El segundo captura estructura relacional de ingroup/outgroup por rol y fundamenta H2. El bloque de aceptaciÃƒÂ³n (`accept_target`, `accept_other` y su interacciÃƒÂ³n) entra como ajuste transversal en H1-H5 y como foco principal de H4. Todos los modelos incluyen controles sociodemogrÃƒÂ¡ficos.",
       "",
-      "Las interacciones son clave porque los efectos aditivos no siempre capturan la lÃ³gica experimental. En H3, interacciones empatÃ­a-por-grupo evalÃºan si el efecto de empatÃ­a depende de la alineaciÃ³n social. En H4 y H5, `decision_target:decision_other` evalÃºa si el significado moral de una decisiÃ³n depende de la decisiÃ³n de la contraparte.",
+      "Las interacciones son clave porque los efectos aditivos no siempre capturan la lÃƒÂ³gica experimental. En H3, interacciones empatÃƒÂ­a-por-grupo evalÃƒÂºan si el efecto de empatÃƒÂ­a depende de la alineaciÃƒÂ³n social. En H4 y H5, `accept_target:accept_other` evalÃƒÂºa si el significado moral de una decisiÃƒÂ³n depende de la decisiÃƒÂ³n de la contraparte.",
       "",
-      "La distinciÃ³n entre vÃ­ctima y bystander es central. Los modelos de vÃ­ctima se enfocan en alineaciÃ³n vÃ­ctima-negociador. Los de bystander requieren un mapa mÃ¡s amplio que incluye relaciones bystander-vÃ­ctima, bystander-negociador y vÃ­ctima-negociador. Por eso las especificaciones por rol no son intercambiables.",
+      "La distinciÃƒÂ³n entre vÃƒÂ­ctima y bystander es central. Los modelos de vÃƒÂ­ctima se enfocan en alineaciÃƒÂ³n vÃƒÂ­ctima-negociador. Los de bystander requieren un mapa mÃƒÂ¡s amplio que incluye relaciones bystander-vÃƒÂ­ctima, bystander-negociador y vÃƒÂ­ctima-negociador. Por eso las especificaciones por rol no son intercambiables.",
       "",
-      "Las cinco familias de hipÃ³tesis siguen esa estructura: H1 (empatÃ­a), H2 (alineaciÃ³n de grupo), H3 (empatÃ­a + grupo + interacciones), H4 (decisiones y su interacciÃ³n), H5 (modelo integrado).",
+      "Las cinco familias de hipÃƒÂ³tesis siguen esa estructura: H1 (empatÃƒÂ­a), H2 (alineaciÃƒÂ³n de grupo), H3 (empatÃƒÂ­a + grupo + interacciones), H4 (decisiones y su interacciÃƒÂ³n), H5 (modelo integrado).",
       "",
       "Un principio clave del flujo es que una fila sigue siendo una observacion real de target-judgement. No se duplican filas para crear pseudo-observaciones por negociador. En su lugar, el contexto relacional de target, other, victima y bystander se conserva dentro de cada fila existente.",
       "",
-      "En conjunto, la estrategia productiva respeta la naturaleza acotada del outcome, preserva el diseÃ±o observacional long, ajusta la dependencia por participante, controla heterogeneidad por sesiÃ³n, separa mecanismos de vÃ­ctima y bystander, y mapea directamente sobre la arquitectura teÃ³rica H1-H5. A la vez, no equivale a un Tobit multinivel completo con interceptos aleatorios de participante y sesiÃ³n."
+      "En conjunto, la estrategia productiva respeta la naturaleza acotada del outcome, preserva el diseÃƒÂ±o observacional long, ajusta la dependencia por participante, controla heterogeneidad por sesiÃƒÂ³n, separa mecanismos de vÃƒÂ­ctima y bystander, y mapea directamente sobre la arquitectura teÃƒÂ³rica H1-H5. A la vez, no equivale a un Tobit multinivel completo con interceptos aleatorios de participante y sesiÃƒÂ³n."
     ))
   }
   c(
@@ -364,13 +367,13 @@ build_introductory_theoretical_chapter <- function(lang = "en") {
     "",
     "A second methodological challenge arises from the repeated-measures structure of the experiment. Each participant contributes multiple rows, so the observations are not independent. Ignoring this dependence would tend to underestimate standard errors and overstate statistical significance. The current pipeline addresses this issue through participant-cluster robust standard errors using `id` as the clustering variable. Session is also incorporated because different experimental sessions may vary in context, timing, or implementation details. This is handled through `factor(session)`, which absorbs systematic session-level shifts. In the active production branch, session is therefore modeled as a fixed-effect adjustment rather than as a random session intercept. The implemented estimator is best described as a two-sided Tobit with participant-cluster robust inference and session fixed effects.",
     "",
-    "The predictors are organized into theoretically meaningful blocks. The first block contains empathy dimensions, represented by `iri_fs`, `iri_ec`, `iri_pt`, and `iri_pd`, and provides the basis for H1. The second block captures role-specific ingroup/outgroup structure and underlies H2. The third block incorporates negotiation decisions through `decision_target`, `decision_other`, and their interaction, forming the core of H4. Finally, all models include sociodemographic controls such as age, SES, sex, and player faculty. This structure allows the pipeline to evaluate distinct explanatory mechanisms while preserving a coherent hypothesis architecture.",
+    "The predictors are organized into theoretically meaningful blocks. The first block contains empathy dimensions, represented by `iri_fs`, `iri_ec`, `iri_pt`, and `iri_pd`, and provides the basis for H1. The second block captures role-specific ingroup/outgroup structure and underlies H2. The acceptance block (`accept_target`, `accept_other`, and their interaction) enters as a common adjustment in H1-H5 and is the primary focus of H4. Finally, all models include sociodemographic controls such as age, SES, sex, and player faculty. This structure allows the pipeline to evaluate distinct explanatory mechanisms while preserving a coherent hypothesis architecture.",
     "",
-    "Interactions are especially important in this design because additive effects alone are unlikely to capture the logic of the experiment. In H3, empathy-by-group interactions test whether the effect of empathy depends on social alignment. In H4 and H5, the interaction between `decision_target` and `decision_other` evaluates whether the moral meaning of one negotiator's decision depends on the counterpart's decision. These interaction terms are theoretically motivated and reflect the fact that moral evaluation is shaped not only by isolated attributes but also by combinations of dispositions, relationships, and actions.",
+    "Interactions are especially important in this design because additive effects alone are unlikely to capture the logic of the experiment. In H3, empathy-by-group interactions test whether the effect of empathy depends on social alignment. In H4 and H5, the interaction between `accept_target` and `accept_other` evaluates whether the moral meaning of one negotiator's decision depends on the counterpart's decision. These interaction terms are theoretically motivated and reflect the fact that moral evaluation is shaped not only by isolated attributes but also by combinations of dispositions, relationships, and actions.",
     "",
     "The distinction between victim and bystander roles is central to the entire modeling strategy. Victim models focus on victim-negotiator alignment and therefore operate with a more direct relational structure. Bystander models, by contrast, require a broader map that includes bystander-victim, bystander-negotiator, and victim-negotiator relations. Because these mechanisms differ substantively, the victim and bystander specifications cannot be treated as interchangeable. Role-specific models are therefore necessary both statistically and theoretically.",
     "",
-    "The five hypothesis families follow naturally from this structure. H1 models `judgement` as a function of empathy and controls. H2 focuses on role-specific group alignment. H3 combines empathy and group structure with theoretically motivated interactions. H4 models judgement as a function of `decision_target`, `decision_other`, and their interaction. H5 integrates all previous components into a single specification. This progression allows the analysis to move from simpler explanations toward a more comprehensive account of moral judgement.",
+    "The five hypothesis families follow naturally from this structure. H1 models `judgement` as a function of empathy with the common acceptance adjustment. H2 focuses on role-specific group alignment with the same acceptance adjustment. H3 combines empathy and group structure with theoretically motivated interactions plus the same acceptance adjustment. H4 models judgement as a function of `accept_target`, `accept_other`, and their interaction as the central block. H5 integrates all previous components into a single specification. This progression allows the analysis to move from simpler explanations toward a more comprehensive account of moral judgement.",
     "",
     "A key principle of the workflow is that one row remains one real target-judgement observation. The pipeline does not duplicate rows into separate pseudo-observations for negotiators, because doing so would artificially inflate the sample size and distort inference. Instead, the relational context involving target, other, victim, and bystander is retained within each existing row. This preserves the integrity of the long-format design while maintaining the proper unit of analysis.",
     "",
@@ -389,8 +392,8 @@ get_current_tobit_math_foundations <- function(lang = "en") {
       "",
       "$$y_i^* = \\beta_0 + X_i\\beta + \\delta_{session(i)} + \\varepsilon_i$$",
       "",
-      "donde `factor(session)` aporta efectos fijos de sesiÃ³n y los errores estÃ¡ndar robustos por cluster se calculan al nivel de participante mediante `cluster = id` con `robust = TRUE`.",
-      "Por tanto, este reporte trata sesiÃ³n como ajuste implementado de efecto fijo y no como intercepto aleatorio."
+      "donde `factor(session)` aporta efectos fijos de sesiÃƒÂ³n y los errores estÃƒÂ¡ndar robustos por cluster se calculan al nivel de participante mediante `cluster = id` con `robust = TRUE`.",
+      "Por tanto, este reporte trata sesiÃƒÂ³n como ajuste implementado de efecto fijo y no como intercepto aleatorio."
     ))
   }
   c(
@@ -408,9 +411,9 @@ get_current_tobit_math_foundations <- function(lang = "en") {
 get_current_limitations <- function(lang = "en") {
   if (identical(lang, "es")) {
     return(c(
-      "La rama productiva no ajusta un Tobit multinivel completo con interceptos aleatorios explÃ­citos de participante y sesiÃ³n dentro del mismo estimador.",
-      "Celdas relacionales escasas pueden producir matrices de diseÃ±o con deficiencia de rango, por lo que algunos contrastes de interacciÃ³n se descartan automÃ¡ticamente y se reportan como tales.",
-      "Las figuras dinÃ¡micas visualizan predicciones implicadas por el modelo a partir de los ajustes Tobit primarios guardados y deben interpretarse junto con las tablas de coeficientes, no como efectos causales autÃ³nomos."
+      "La rama productiva no ajusta un Tobit multinivel completo con interceptos aleatorios explÃƒÂ­citos de participante y sesiÃƒÂ³n dentro del mismo estimador.",
+      "Celdas relacionales escasas pueden producir matrices de diseÃƒÂ±o con deficiencia de rango, por lo que algunos contrastes de interacciÃƒÂ³n se descartan automÃƒÂ¡ticamente y se reportan como tales.",
+      "Las figuras dinÃƒÂ¡micas visualizan predicciones implicadas por el modelo a partir de los ajustes Tobit primarios guardados y deben interpretarse junto con las tablas de coeficientes, no como efectos causales autÃƒÂ³nomos."
     ))
   }
   c(
@@ -482,8 +485,8 @@ is_focal_term_for_hypothesis <- function(hypothesis_id, term_name) {
     H1 = grepl("^iri_", term_name),
     H2 = grepl("victim_|bystander_|target_other_same_faculty", term_name),
     H3 = grepl("^iri_|victim_|bystander_|target_other_same_faculty", term_name),
-    H4 = grepl("^decision_target$|^decision_other$|decision_target:decision_other", term_name),
-    H5 = grepl("^iri_|victim_|bystander_|target_other_same_faculty|decision_target|decision_other", term_name),
+    H4 = grepl("^accept_target$|^accept_other$|accept_target:accept_other", term_name),
+    H5 = grepl("^iri_|victim_|bystander_|target_other_same_faculty|accept_target|accept_other", term_name),
     FALSE
   )
 }
@@ -547,7 +550,7 @@ prepare_report_coefficient_table <- function(coef_df) {
 generate_model_narrative <- function(coef_df, hypothesis_id, role_label, lang = "en") {
   is_es <- identical(lang, "es")
   if (nrow(coef_df) == 0L) {
-    return(if (is_es) "No hubo coeficientes disponibles para interpretaciÃ³n." else "No coefficients were available for interpretation.")
+    return(if (is_es) "No hubo coeficientes disponibles para interpretaciÃƒÂ³n." else "No coefficients were available for interpretation.")
   }
 
   focal_df <- coef_df[
@@ -561,7 +564,7 @@ generate_model_narrative <- function(coef_df, hypothesis_id, role_label, lang = 
   if (nrow(focal_sig) == 0L) {
     return(sprintf(
       if (is_es) {
-        "En el modelo %s %s, ningÃºn tÃ©rmino focal de hipÃ³tesis alcanzÃ³ p < 0.10. Por ello, el reporte conserva la tabla de coeficientes para auditabilidad, pero no aÃ±ade una interpretaciÃ³n sustantiva guiada por significancia mÃ¡s allÃ¡ de los grÃ¡ficos descriptivos de predicciÃ³n."
+        "En el modelo %s %s, ningÃƒÂºn tÃƒÂ©rmino focal de hipÃƒÂ³tesis alcanzÃƒÂ³ p < 0.10. Por ello, el reporte conserva la tabla de coeficientes para auditabilidad, pero no aÃƒÂ±ade una interpretaciÃƒÂ³n sustantiva guiada por significancia mÃƒÂ¡s allÃƒÂ¡ de los grÃƒÂ¡ficos descriptivos de predicciÃƒÂ³n."
       } else {
         "In the %s %s model, no focal hypothesis term reached p < 0.10. The report therefore retains the coefficient table for auditability but does not attach a significance-driven substantive interpretation beyond the descriptive prediction plots."
       },
@@ -594,7 +597,7 @@ generate_model_narrative <- function(coef_df, hypothesis_id, role_label, lang = 
   paste(
     sprintf(
       if (is_es) {
-        "El modelo %s %s muestra evidencia focal para %s tÃ©rminos de hipÃ³tesis."
+        "El modelo %s %s muestra evidencia focal para %s tÃƒÂ©rminos de hipÃƒÂ³tesis."
       } else {
         "The %s %s model shows focal evidence for %s hypothesis terms."
       },
@@ -604,7 +607,7 @@ generate_model_narrative <- function(coef_df, hypothesis_id, role_label, lang = 
     ),
     paste(effect_sentences, collapse = " "),
     if (is_es) {
-      "Los dummies de sesiÃ³n permanecen en el estimador ajustado como ajuste, pero se omiten intencionalmente de la narrativa sustantiva."
+      "Los dummies de sesiÃƒÂ³n permanecen en el estimador ajustado como ajuste, pero se omiten intencionalmente de la narrativa sustantiva."
     } else {
       "Session dummies remain in the fitted estimator for adjustment but are intentionally omitted from the substantive narrative."
     }
@@ -625,7 +628,7 @@ get_term_component_spec <- function(term_piece) {
   if (term_piece %in% c("iri_fs", "iri_ec", "iri_pt", "iri_pd", "age", "ses")) {
     return(list(type = "continuous", var = term_piece, focus = NULL, reference = NULL))
   }
-  if (term_piece %in% c("decision_target", "decision_other", "sex_female")) {
+  if (term_piece %in% c("accept_target", "accept_other", "sex_female")) {
     return(list(type = "binary", var = term_piece, focus = 1, reference = 0))
   }
 
@@ -796,7 +799,7 @@ build_plot_data_for_term <- function(model_fit, data, term_name) {
     }
     moderator_labels <- as.character(moderator_values)
     if (moderator_component$type == "binary") {
-      if (moderator_component$var %in% c("decision_target", "decision_other")) {
+      if (moderator_component$var %in% c("accept_target", "accept_other")) {
         moderator_labels <- ifelse(as.character(moderator_values) == "1", "accept", "reject")
       } else if (moderator_component$var == "sex_female") {
         moderator_labels <- ifelse(as.character(moderator_values) == "1", "woman", "man")
@@ -951,7 +954,7 @@ write_significance_plot_current <- function(file_path, plot_df, term_name) {
 describe_plot_pattern_current <- function(plot_df, lang = "en") {
   is_es <- identical(lang, "es")
   if (is.null(plot_df) || nrow(plot_df) == 0L) {
-    return(if (is_es) "No se pudo resumir un patrÃ³n de predicciÃ³n finito." else "No finite prediction pattern could be summarized.")
+    return(if (is_es) "No se pudo resumir un patrÃƒÂ³n de predicciÃƒÂ³n finito." else "No finite prediction pattern could be summarized.")
   }
   if (all(is.na(plot_df$moderator_label))) {
     ordered_df <- plot_df[order(plot_df$x_value), , drop = FALSE]
@@ -961,7 +964,7 @@ describe_plot_pattern_current <- function(plot_df, lang = "en") {
     direction <- ifelse(tail(ordered_df$predicted, 1) >= ordered_df$predicted[1], if (is_es) "mayor" else "higher", if (is_es) "menor" else "lower")
     return(sprintf(
       if (is_es) {
-        "A lo largo del contraste mostrado, el modelo implica un judgement predicho %s hacia el lado derecho del grÃ¡fico."
+        "A lo largo del contraste mostrado, el modelo implica un judgement predicho %s hacia el lado derecho del grÃƒÂ¡fico."
       } else {
         "Across the displayed contrast, the model implies %s predicted judgement toward the right-hand side of the plot."
       },
@@ -969,9 +972,10 @@ describe_plot_pattern_current <- function(plot_df, lang = "en") {
     ))
   }
   if (is_es) {
-    "Las lÃ­neas ajustadas y las bandas sombreadas de confianza al 95% resumen cÃ³mo cambia el judgement predicho a lo largo del tÃ©rmino focal, manteniendo las covariables restantes en su perfil de referencia."
+    "Las lÃƒÂ­neas ajustadas y las bandas sombreadas de confianza al 95% resumen cÃƒÂ³mo cambia el judgement predicho a lo largo del tÃƒÂ©rmino focal, manteniendo las covariables restantes en su perfil de referencia."
   } else {
     "The plotted fitted lines and shaded 95% confidence bands summarize how predicted judgement changes across the focal term while holding remaining covariates at their reference profile."
   }
 }
+
 

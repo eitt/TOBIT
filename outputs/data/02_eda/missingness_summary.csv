@@ -31,6 +31,10 @@
 "target_faculty_label",0,0
 "other_faculty_label",0,0
 "faculty_player_label",0,0
+"accept_target",0,0
+"accept_other",0,0
+"accept_target_label",0,0
+"accept_other_label",0,0
 "decision_target_label",0,0
 "decision_other_label",0,0
 "decision_pattern",0,0

@@ -1,4 +1,4 @@
-﻿# TOBIT: Longitudinal Moral Judgement Pipeline
+# TOBIT: Longitudinal Moral Judgement Pipeline
 
 This repository implements a reproducible analytical pipeline for moral judgement modeling in a structured negotiation experiment.
 
@@ -21,7 +21,8 @@ Core design points:
 The current active branch is defined by:
 
 - `judgement` as the modeled outcome in all hypothesis models.
-- Active operational decision names: `decision_target`, `decision_other`.
+- Active operational decision names: `accept_target`, `accept_other`.
+- Source compatibility names retained as legacy columns: `decision_target`, `decision_other`.
 - Row-dynamic role semantics: `target` and `other` are dynamic per observation.
 - Dynamic-role semantics: `target` and `other` are the analytical pair inside each row.
 - `group_target` and `group_other` are retained as legacy/audit source fields and are **not** the active H2/H3/H5 relational predictors.
@@ -132,8 +133,8 @@ Audit-oriented outputs:
 
 ## Semantic Notes (Critical)
 
-- Legacy wording `accept_target` -> active name `decision_target`.
-- Legacy wording `accept_other` -> active name `decision_other`.
+- Source/legacy column `decision_target` -> active analytical name `accept_target`.
+- Source/legacy column `decision_other` -> active analytical name `accept_other`.
 - `target`/`other`: row-dynamic actor roles.
 - `target`/`other`: row-dynamic analytical roles used for relational context.
 - `group_target`/`group_other`: retained for source audit/provenance, not active relational predictors in H2/H3/H5.
@@ -169,4 +170,5 @@ Official project language is English. Some audit/report artifacts are intentiona
 - License: see `LICENSE`.
 - Citation metadata: see `CITATION.cff`.
 - Project maintainer/contact should be maintained in `CITATION.cff` and release notes.
+
 

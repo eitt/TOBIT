@@ -1,4 +1,4 @@
-﻿# Statistical Model Instructions
+# Statistical Model Instructions
 
 ## Primary estimator
 
@@ -57,11 +57,12 @@ Instead, the pipeline writes an explicit robustness note documenting that tradeo
 
 ## Hypothesis blocks
 
-- H1: empathy dimensions
-- H2: role-specific ingroup/outgroup structure
-- H3: empathy + role-specific ingroup/outgroup structure + targeted empathy x group interactions
-- H4: `decision_target`, `decision_other`, and their interaction
-- H5: empathy + role-specific structure + targeted empathy x group interactions + decisions
+- H1: empathy dimensions + common acceptance block
+- H2: role-specific ingroup/outgroup structure + common acceptance block
+- H3: empathy + role-specific ingroup/outgroup structure + targeted empathy x group interactions + common acceptance block
+- H4: `accept_target`, `accept_other`, and their interaction (primary acceptance block)
+- H5: empathy + role-specific structure + targeted empathy x group interactions + common acceptance block
 
 All five hypotheses include the same sociodemographic adjustment block.
+
 

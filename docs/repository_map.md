@@ -1,4 +1,4 @@
-﻿# Repository Map
+# Repository Map
 
 This map identifies active, auxiliary, and legacy/non-default paths for the final public repository state.
 

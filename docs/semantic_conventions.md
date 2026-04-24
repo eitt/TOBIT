@@ -1,4 +1,4 @@
-﻿# Semantic Conventions
+# Semantic Conventions
 
 This document defines the active semantic conventions for interpretation and maintenance.
 
@@ -9,11 +9,11 @@ This document defines the active semantic conventions for interpretation and mai
 
 ## Decision Naming Bridge
 
-- Legacy/intuitive: `accept_target`
-- Active operational: `decision_target`
+- Legacy/source: `decision_target`
+- Active operational: `accept_target`
 
-- Legacy/intuitive: `accept_other`
-- Active operational: `decision_other`
+- Legacy/source: `decision_other`
+- Active operational: `accept_other`
 
 ## Row Mapping Rules
 
@@ -21,8 +21,8 @@ If `target == 1`, the judged actor corresponds to source code `1` and the counte
 If `target == 2`, the judged actor corresponds to source code `2` and the counterpart to source code `1`.
 
 In both cases:
-- `decision_target` is the judged actor decision in that row.
-- `decision_other` is the counterpart decision in that row.
+- `accept_target` is the judged actor decision in that row.
+- `accept_other` is the counterpart decision in that row.
 - `target_faculty` and `other_faculty` remain the analytical faculty pair.
 
 ## Group Coding
@@ -53,4 +53,5 @@ These are retained for source provenance/audit and are not active relational pre
 - `R/utils/build_role_relational_variables.R`
 - `R/04_generate_variables.R`
 - `R/hypotheses/H_formulas.R`
+
 

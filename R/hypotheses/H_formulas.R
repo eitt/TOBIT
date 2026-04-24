@@ -63,7 +63,7 @@ build_hypothesis_formula_catalog <- function() {
     collapse = " + "
   )
 
-  decision_block <- "decision_target * decision_other"
+  accept_block <- "accept_target * accept_other"
 
   data.frame(
     hypothesis = c(
@@ -75,28 +75,28 @@ build_hypothesis_formula_catalog <- function() {
     ),
     role = rep(c("Victim", "Bystander"), 5),
     formula_rhs = c(
-      paste(empathy_terms, sociodemographic_terms, sep = " + "),
-      paste(empathy_terms, sociodemographic_terms, sep = " + "),
-      paste(victim_group_block, sociodemographic_terms, sep = " + "),
-      paste(bystander_group_block, sociodemographic_terms, sep = " + "),
-      paste(empathy_terms, victim_group_block, empathy_group_terms_victim, sociodemographic_terms, sep = " + "),
-      paste(empathy_terms, bystander_group_block, empathy_group_terms_bystander, sociodemographic_terms, sep = " + "),
-      paste(decision_block, sociodemographic_terms, sep = " + "),
-      paste(decision_block, sociodemographic_terms, sep = " + "),
-      paste(empathy_terms, victim_group_block, empathy_group_terms_victim, decision_block, sociodemographic_terms, sep = " + "),
-      paste(empathy_terms, bystander_group_block, empathy_group_terms_bystander, decision_block, sociodemographic_terms, sep = " + ")
+      paste(empathy_terms, accept_block, sociodemographic_terms, sep = " + "),
+      paste(empathy_terms, accept_block, sociodemographic_terms, sep = " + "),
+      paste(victim_group_block, accept_block, sociodemographic_terms, sep = " + "),
+      paste(bystander_group_block, accept_block, sociodemographic_terms, sep = " + "),
+      paste(empathy_terms, victim_group_block, empathy_group_terms_victim, accept_block, sociodemographic_terms, sep = " + "),
+      paste(empathy_terms, bystander_group_block, empathy_group_terms_bystander, accept_block, sociodemographic_terms, sep = " + "),
+      paste(accept_block, sociodemographic_terms, sep = " + "),
+      paste(accept_block, sociodemographic_terms, sep = " + "),
+      paste(empathy_terms, victim_group_block, empathy_group_terms_victim, accept_block, sociodemographic_terms, sep = " + "),
+      paste(empathy_terms, bystander_group_block, empathy_group_terms_bystander, accept_block, sociodemographic_terms, sep = " + ")
     ),
     theoretical_focus = c(
-      "Empathy dimensions only, always adjusted by sociodemographics.",
-      "Empathy dimensions only, always adjusted by sociodemographics.",
-      "Victim-side ingroup/outgroup structure with the allowed target x other relational interaction.",
-      "Bystander-side relational structure with explicit bystander-victim, bystander-target, bystander-other, and target/other context terms.",
-      "Empathy plus victim-side relational structure, including empathy x victim-target and empathy x victim-other interactions because empathy may depend on negotiator closeness.",
-      "Empathy plus bystander-side relational structure, including empathy x bystander-victim and empathy x bystander-target/other interactions because empathy may depend on group closeness in the bystander role.",
-      "Target and other negotiator decisions with their interaction, plus sociodemographics.",
-      "Target and other negotiator decisions with their interaction, plus sociodemographics.",
-      "Integrated model with empathy, victim-side relations, empathy x group interactions, decisions, and the victim-side target/other interaction.",
-      "Integrated model with empathy, bystander-side relations, empathy x group interactions, decisions, and role-specific target/other relational interactions."
+      "Empathy dimensions with the common accept_target x accept_other adjustment and sociodemographics.",
+      "Empathy dimensions with the common accept_target x accept_other adjustment and sociodemographics.",
+      "Victim-side ingroup/outgroup structure with the allowed target x other relational interaction and the common accept_target x accept_other adjustment.",
+      "Bystander-side relational structure with explicit bystander-victim, bystander-target, bystander-other, target/other context terms, and the common accept_target x accept_other adjustment.",
+      "Empathy plus victim-side relational structure, including empathy x victim-target and empathy x victim-other interactions, with the common accept_target x accept_other adjustment.",
+      "Empathy plus bystander-side relational structure, including empathy x bystander-victim and empathy x bystander-target/other interactions, with the common accept_target x accept_other adjustment.",
+      "Target and other negotiator acceptance terms with their interaction, plus sociodemographics.",
+      "Target and other negotiator acceptance terms with their interaction, plus sociodemographics.",
+      "Integrated model with empathy, victim-side relations, empathy x group interactions, acceptance terms, and the victim-side target/other interaction.",
+      "Integrated model with empathy, bystander-side relations, empathy x group interactions, acceptance terms, and role-specific target/other relational interactions."
     ),
     random_effects_primary = "Two-sided Tobit with factor(session) and cluster-robust standard errors by participant id.",
     random_effects_sensitivity = "The production branch keeps factor(session) plus participant-cluster robust inference; a fully mixed Tobit with random participant and session intercepts is documented as a methodological limitation rather than silently substituted.",

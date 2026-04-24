@@ -17,6 +17,10 @@ derived_dictionary <- data.frame(
     "target_code_label",
     "target_faculty",
     "other_faculty",
+    "accept_target",
+    "accept_other",
+    "accept_target_label",
+    "accept_other_label",
     "victim_target_group",
     "victim_other_group",
     "bystander_victim_group",
@@ -27,6 +31,10 @@ derived_dictionary <- data.frame(
     "faculty_player_factor"
   ),
   source_role = c(
+    "all rows",
+    "all rows",
+    "all rows",
+    "all rows",
     "all rows",
     "all rows",
     "all rows",
@@ -47,13 +55,17 @@ derived_dictionary <- data.frame(
     "Target slot code from the source file (`target`): `target_code_1` or `target_code_2`.",
     "Faculty of the row-dynamic target negotiator (copied from faculty_target).",
     "Faculty of the row-dynamic counterpart negotiator (copied from faculty_other).",
+    "Active operational target-acceptance column mapped from source decision_target for compatibility.",
+    "Active operational counterpart-acceptance column mapped from source decision_other for compatibility.",
+    "Readable label for accept_target (`accept`/`reject`).",
+    "Readable label for accept_other (`accept`/`reject`).",
     "Victim-to-target relation: ingroup when faculties match, including control-control; outgroup otherwise.",
     "Victim-to-other relation: ingroup when faculties match, including control-control; outgroup otherwise.",
     "Bystander-to-victim relation: ingroup or outgroup.",
     "Bystander-to-target relation: ingroup when faculties match, including control-control; outgroup otherwise.",
     "Bystander-to-other relation: ingroup when faculties match, including control-control; outgroup otherwise.",
     "Contextual target/other faculty relation: same when faculties match, including control-control; different otherwise.",
-    "Observed joint decision configuration from decision_target and decision_other, retaining the four target/other accept-reject combinations.",
+    "Observed joint decision configuration from accept_target and accept_other, retaining the four target/other accept-reject combinations.",
     "Participant faculty factor used in all models."
   ),
   stringsAsFactors = FALSE
@@ -100,3 +112,4 @@ message(sprintf(
   nrow(judgments_analysis),
   nrow(judgments_clean)
 ))
+

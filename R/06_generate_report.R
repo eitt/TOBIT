@@ -473,7 +473,7 @@ normalize_binary_decision <- function(raw_value) {
   )
 }
 
-normalize_decision_pattern <- function(raw_pattern, decision_target, decision_other) {
+normalize_decision_pattern <- function(raw_pattern, accept_target, accept_other) {
   pattern_chr <- tolower(trimws(as.character(raw_pattern)))
   normalized <- ifelse(
     pattern_chr %in% c("both_accept", "accept_accept"),
@@ -495,8 +495,8 @@ normalize_decision_pattern <- function(raw_pattern, decision_target, decision_ot
 
   missing_index <- is.na(normalized)
   if (any(missing_index)) {
-    target_clean <- normalize_binary_decision(decision_target)
-    other_clean <- normalize_binary_decision(decision_other)
+    target_clean <- normalize_binary_decision(accept_target)
+    other_clean <- normalize_binary_decision(accept_other)
     normalized[missing_index & target_clean == "accept" & other_clean == "accept"] <- "both_accept"
     normalized[missing_index & target_clean == "reject" & other_clean == "reject"] <- "both_reject"
     normalized[missing_index & target_clean == "accept" & other_clean == "reject"] <- "target_accept_other_reject"
@@ -733,7 +733,7 @@ descriptive_figure_entries <- update_a$entries
 descriptive_generation_status <- update_a$status
 
 # D) role x target decision
-target_decision_source <- pick_first_existing_column(judgments_with_role_panel, c("decision_target_label", "decision_target"))
+target_decision_source <- pick_first_existing_column(judgments_with_role_panel, c("accept_target_label", "accept_target"))
 judgments_target_decision <- judgments_with_role_panel
 judgments_target_decision$target_decision_only <- if (!is.na(target_decision_source)) {
   normalize_binary_decision(judgments_target_decision[[target_decision_source]])
@@ -781,7 +781,7 @@ descriptive_figure_entries <- update_d$entries
 descriptive_generation_status <- update_d$status
 
 # E) role x counterpart decision
-other_decision_source <- pick_first_existing_column(judgments_with_role_panel, c("decision_other_label", "decision_other"))
+other_decision_source <- pick_first_existing_column(judgments_with_role_panel, c("accept_other_label", "accept_other"))
 judgments_other_decision <- judgments_with_role_panel
 judgments_other_decision$other_decision_only <- if (!is.na(other_decision_source)) {
   normalize_binary_decision(judgments_other_decision[[other_decision_source]])
@@ -844,8 +844,8 @@ pattern_source <- if (!is.na(pattern_source_col)) {
 }
 judgments_decision_pattern$decision_pattern_clean <- normalize_decision_pattern(
   raw_pattern = pattern_source,
-  decision_target = if (!is.na(target_decision_source)) judgments_decision_pattern[[target_decision_source]] else rep(NA_character_, nrow(judgments_decision_pattern)),
-  decision_other = if (!is.na(other_decision_source)) judgments_decision_pattern[[other_decision_source]] else rep(NA_character_, nrow(judgments_decision_pattern))
+  accept_target = if (!is.na(target_decision_source)) judgments_decision_pattern[[target_decision_source]] else rep(NA_character_, nrow(judgments_decision_pattern)),
+  accept_other = if (!is.na(other_decision_source)) judgments_decision_pattern[[other_decision_source]] else rep(NA_character_, nrow(judgments_decision_pattern))
 )
 decision_pattern_levels <- preferred_then_observed_levels(
   judgments_decision_pattern$decision_pattern_clean,
@@ -1223,8 +1223,8 @@ formula_checks <- within(formula_catalog, {
     grepl("sex_female", formula_rhs, fixed = TRUE) &
     grepl("faculty_player_factor", formula_rhs, fixed = TRUE)
   uses_factor_session <- grepl("factor(session)", formula_rhs, fixed = TRUE)
-  uses_decisions <- grepl("decision_target", formula_rhs, fixed = TRUE) &
-    grepl("decision_other", formula_rhs, fixed = TRUE)
+  uses_decisions <- grepl("accept_target", formula_rhs, fixed = TRUE) &
+    grepl("accept_other", formula_rhs, fixed = TRUE)
 })
 
 get_audit_value <- function(checkpoint_name) {
@@ -1253,7 +1253,7 @@ compliance_report <- data.frame(
     "c) session grouping",
     "d) no double count introduced by the pipeline",
     "e) victim and bystander treated differently",
-    "f) decision_target and decision_other included where required",
+    "f) accept_target and accept_other included in H1-H5",
     "g) sociodemographics included in every hypothesis model"
   ),
   status = c(
@@ -1268,7 +1268,7 @@ compliance_report <- data.frame(
     } else {
       "NO"
     },
-    if (all(subset(formula_checks, hypothesis %in% c("H4", "H5"))$uses_decisions)) "YES" else "NO",
+    if (all(formula_checks$uses_decisions)) "YES" else "NO",
     if (all(formula_checks$uses_sociodemographics)) "YES" else "NO"
   ),
   evidence = c(
@@ -1277,7 +1277,7 @@ compliance_report <- data.frame(
     "The active Tobit branch uses factor(session) in every formula and documents that choice explicitly instead of claiming a random session intercept.",
     sprintf("Imported rows = %s; final analytical rows = %s; duplicated source row numbers introduced by the pipeline = %s.", row_count_import, row_count_final, duplicated_source_rows),
     "Role-specific formulas are estimated separately and H2/H3/H5 use different relational blocks for victim and bystander.",
-    "H4 and H5 both include decision_target, decision_other, and their interaction.",
+    "All H1-H5 formulas include accept_target, accept_other, and their interaction as part of the active specification.",
     "Every H1-H5 formula retains age, ses, sex_female, and faculty_player_factor."
   ),
   stringsAsFactors = FALSE
@@ -1318,7 +1318,7 @@ build_discussion_section <- function(lang = "en") {
       "",
       "Los resultados de ingroup/outgroup importan porque el experimento inserta `judgement` en una estructura relacional con dos negociadores y lazos sociales dependientes del rol. Por eso los modelos de Victim y Bystander no son intercambiables. En Victim, la pregunta central es como se relacionan el negociador evaluado y su contraparte con la persona afectada. En Bystander, el participante es externo al evento de dano y la evaluacion puede depender de un mapa mas amplio con relaciones bystander-victim, bystander-negotiator y victim-negotiator.",
       "",
-      "Los terminos de decision afinan la interpretacion moral del outcome enfocado en target. `decision_target` captura que hizo el negociador evaluado, `decision_other` captura la decision de la contraparte y su interaccion prueba si el significado de una decision cambia cuando el otro negociador acepta o rechaza. Esto es sustantivamente relevante porque la evaluacion moral del target puede responder tanto a la accion individual como al resultado conjunto de la negociacion.",
+      "Los terminos de decision afinan la interpretacion moral del outcome enfocado en target. `accept_target` captura que hizo el negociador evaluado, `accept_other` captura la decision de la contraparte y su interaccion prueba si el significado de una decision cambia cuando el otro negociador acepta o rechaza. Esto es sustantivamente relevante porque la evaluacion moral del target puede responder tanto a la accion individual como al resultado conjunto de la negociacion.",
       "",
       "En terminos practicos, los resultados aportan a etica de negociacion y evaluacion de terceros. Si `judgement` cambia con empatia, cercania de facultad y patrones conjuntos de decision, entonces la justicia percibida en negociaciones daninas esta moldeada por contexto disposicional y relacional. Esto tiene implicaciones para como observadores asignan culpa, justifican conducta estrategica o infieren responsabilidad desde accion coordinada.",
       "",
@@ -1336,7 +1336,7 @@ build_discussion_section <- function(lang = "en") {
     "",
     "The ingroup/outgroup results matter because the experiment embeds judgement in a relational structure with two negotiators and role-dependent social ties. Victim and bystander models are therefore not interchangeable. In the victim role, the central question is how the judged negotiator and the counterpart relate to the harmed person. In the bystander role, the participant is socially external to the harm event, so judgement can depend on a broader map that includes bystander-victim, bystander-negotiator, and victim-negotiator alignments.",
     "",
-    "The decision terms sharpen the moral interpretation of the target-focused outcome. `decision_target` captures what the judged negotiator did, `decision_other` captures the counterpart's choice, and their interaction tests whether the meaning of one decision changes when the other negotiator accepts or rejects. This is substantively important because moral evaluations of the target can respond both to individual action and to the joint negotiation outcome.",
+    "The decision terms sharpen the moral interpretation of the target-focused outcome. `accept_target` captures what the judged negotiator did, `accept_other` captures the counterpart's choice, and their interaction tests whether the meaning of one decision changes when the other negotiator accepts or rejects. This is substantively important because moral evaluations of the target can respond both to individual action and to the joint negotiation outcome.",
     "",
     "Practically, the results speak to negotiation ethics and third-party evaluation. If moral judgement shifts with empathy, faculty closeness, and joint decision patterns, then perceived fairness in harmful negotiations is shaped by both dispositional and relational context. That has implications for how observers assign blame, excuse strategic behavior, or infer responsibility from coordinated action.",
     "",
@@ -1360,7 +1360,7 @@ build_final_audit_note <- function(compliance_report, fit_summary, lang = "en") 
       "# Nota final de auditoria",
       "",
       if (all_yes) {
-        "El proyecto refleja fielmente el diseno autoritativo en su rama productiva: `judgement` es el outcome, el archivo long se mantiene como fuente unica, una fila sigue siendo una observacion real, se usan definiciones de grupo especificas por rol, `decision_target` y `decision_other` se modelan donde corresponde, y las mediciones repetidas se manejan con inferencia robusta por cluster de participante y `factor(session)`."
+        "El proyecto refleja fielmente el diseno autoritativo en su rama productiva: `judgement` es el outcome, el archivo long se mantiene como fuente unica, una fila sigue siendo una observacion real, se usan definiciones de grupo especificas por rol, `accept_target` y `accept_other` se modelan en H1-H5, y las mediciones repetidas se manejan con inferencia robusta por cluster de participante y `factor(session)`."
       } else {
         "El proyecto esta sustancialmente alineado con el diseno autoritativo, pero la lista de verificacion muestra brechas de cumplimiento que aun requieren correccion."
       },
@@ -1380,7 +1380,7 @@ build_final_audit_note <- function(compliance_report, fit_summary, lang = "en") 
     "# Final audit note",
     "",
     if (all_yes) {
-      "The project now faithfully reflects the authoritative design in its production branch: `judgement` is the outcome, the long file remains the single source, one row remains one real observation, role-specific group definitions are used, `decision_target` and `decision_other` are modeled where required, and repeated measurements are handled through participant-cluster robust inference with `factor(session)`."
+      "The project now faithfully reflects the authoritative design in its production branch: `judgement` is the outcome, the long file remains the single source, one row remains one real observation, role-specific group definitions are used, `accept_target` and `accept_other` are modeled in H1-H5, and repeated measurements are handled through participant-cluster robust inference with `factor(session)`."
     } else {
       "The project is substantially aligned with the authoritative design, but the checklist below shows remaining compliance gaps that still require correction."
     },
@@ -1403,8 +1403,8 @@ get_hypothesis_semantic_reminder <- function(hypothesis_id, lang = "en") {
     return(switch(
       hypothesis_id,
       H2 = "Recordatorio H2: los predictores relacionales activos usan semantica `target`/`other` por fila; `group_target` y `group_other` permanecen como campos legacy de fuente/auditoria y no como terminos activos de H2.",
-      H4 = "Recordatorio H4: el termino legacy `accept_target` corresponde al nombre operativo activo `decision_target`, y `accept_other` corresponde a `decision_other`; ambos se refieren a roles dinamicos `target`/`other` por fila.",
-      H5 = "Recordatorio H5: la especificacion integrada mantiene semantica `target`/`other` en terminos relacionales y decisionales; `group_target`/`group_other` siguen como campos legacy de auditoria y `accept_target`/`accept_other` se mapean a `decision_target`/`decision_other`.",
+      H4 = "Recordatorio H4: el nombre fuente legacy `decision_target` corresponde al nombre operativo activo `accept_target`, y `decision_other` corresponde a `accept_other`; ambos se refieren a roles dinamicos `target`/`other` por fila.",
+      H5 = "Recordatorio H5: la especificacion integrada mantiene semantica `target`/`other` en terminos relacionales y de aceptacion; `group_target`/`group_other` siguen como campos legacy de auditoria y `decision_target`/`decision_other` se mapean a `accept_target`/`accept_other`.",
       ""
     ))
   }
@@ -1412,8 +1412,8 @@ get_hypothesis_semantic_reminder <- function(hypothesis_id, lang = "en") {
   switch(
     hypothesis_id,
     H2 = "H2 reminder: active relational predictors are expressed with row-dynamic `target`/`other` semantics; `group_target` and `group_other` remain legacy source-audit fields and are not active H2 predictors.",
-    H4 = "H4 reminder: legacy `accept_target` corresponds to active `decision_target`, and legacy `accept_other` corresponds to active `decision_other`; both refer to row-dynamic `target`/`other` roles.",
-    H5 = "H5 reminder: the integrated specification keeps `target`/`other` semantics for relational and decision terms; `group_target`/`group_other` remain legacy audit fields, and legacy `accept_target`/`accept_other` map to active `decision_target`/`decision_other`.",
+    H4 = "H4 reminder: legacy source `decision_target` corresponds to active `accept_target`, and `decision_other` corresponds to active `accept_other`; both refer to row-dynamic `target`/`other` roles.",
+    H5 = "H5 reminder: the integrated specification keeps `target`/`other` semantics for relational and acceptance terms; `group_target`/`group_other` remain legacy audit fields, and legacy source `decision_target`/`decision_other` maps to active `accept_target`/`accept_other`.",
     ""
   )
 }
@@ -1497,7 +1497,7 @@ build_crossreferenced_conclusion_section <- function(significance_summary, lang 
       "",
       get_hypothesis_semantic_reminder("H4", lang = lang),
       "",
-      "H4 prueba terminos de decision de forma directa mediante `decision_target`, `decision_other` y su interaccion. Para referencia cruzada, ver el resumen de ecuaciones H4 y las tablas y figuras de significancia especificas por rol de H4. En el rol Victim,",
+      "H4 prueba terminos de decision de forma directa mediante `accept_target`, `accept_other` y su interaccion. Para referencia cruzada, ver el resumen de ecuaciones H4 y las tablas y figuras de significancia especificas por rol de H4. En el rol Victim,",
       sprintf("%s.", h4_v),
       "En el rol Bystander,",
       sprintf("%s.", h4_b),
@@ -1561,7 +1561,7 @@ build_crossreferenced_conclusion_section <- function(significance_summary, lang 
     "",
     get_hypothesis_semantic_reminder("H4", lang = lang),
     "",
-    "H4 tests decision terms directly through `decision_target`, `decision_other`, and their interaction. For cross-reference, see the H4 equation summary and the H4 role-specific coefficient tables and significance figures. In the victim role,",
+    "H4 tests decision terms directly through `accept_target`, `accept_other`, and their interaction. For cross-reference, see the H4 equation summary and the H4 role-specific coefficient tables and significance figures. In the victim role,",
     sprintf("%s.", h4_v),
     "In the bystander role,",
     sprintf("%s.", h4_b),
@@ -1656,7 +1656,7 @@ report_lines <- c(
   "",
   "# Semantic naming bridge and row-level mapping",
   "",
-  "Legacy/intuitive naming bridge: `accept_target` -> active operational name `decision_target`; `accept_other` -> active operational name `decision_other`.",
+  "Source/legacy naming bridge: `decision_target` -> active operational name `accept_target`; `decision_other` -> active operational name `accept_other`.",
   "",
   "Row-level semantics: `target` and `other` are dynamic roles per observation; all active analytical terms in this report are expressed directly in that pair.",
   "",
@@ -2004,7 +2004,7 @@ translate_report_lines_to_spanish <- function(
     'title: "Working Paper Report of Moral Judgement under Two-sided Tobit Models"',
     "This run uses `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` as the only analytical source and preserves each imported row as one real judgement observation. The production estimator is a two-sided Tobit fitted with `survival::survreg`, using bilateral censoring at `-9` and `9`, participant-cluster robust standard errors through `cluster = id`, and `factor(session)` in every active formula.",
     "# Semantic naming bridge and row-level mapping",
-    "Legacy/intuitive naming bridge: `accept_target` -> active operational name `decision_target`; `accept_other` -> active operational name `decision_other`.",
+    "Source/legacy naming bridge: `decision_target` -> active operational name `accept_target`; `decision_other` -> active operational name `accept_other`.",
     "Row-level semantics: `target` and `other` are dynamic roles per observation; all active analytical terms in this report are expressed directly in that pair.",
     "# Dataset and sample description",
     "The authoritative interpretation is that each player observes ten scenarios and evaluates two negotiators, so the longitudinal file should contain 20 judgement rows per participant. The clustering diagnostic below is consistent with that design.",
@@ -2045,7 +2045,7 @@ translate_report_lines_to_spanish <- function(
     'title: "Reporte de Trabajo sobre Juicio Moral bajo Modelos Tobit de Dos Lados"',
     "Esta corrida usa `Version 2.0/consolidado_ALL_2026_04_09_LONG.xlsx` como unica fuente analitica y preserva cada fila importada como una observacion real de judgement. El estimador productivo es un Tobit de dos lados ajustado con `survival::survreg`, usando censura bilateral en `-9` y `9`, errores estandar robustos por cluster de participante via `cluster = id`, y `factor(session)` en cada formula activa.",
     "# Puente semantico de nombres y mapeo por fila",
-    "Puente legacy/intuitivo de nombres: `accept_target` -> nombre operativo activo `decision_target`; `accept_other` -> nombre operativo activo `decision_other`.",
+    "Puente de nombres fuente/legacy: `decision_target` -> nombre operativo activo `accept_target`; `decision_other` -> nombre operativo activo `accept_other`.",
     "Semantica por fila: `target` y `other` son roles dinamicos por observacion; todos los terminos analiticos activos del reporte se expresan directamente en ese par.",
     "# Descripcion del dataset y de la muestra",
     "La interpretacion autoritativa es que cada jugador observa diez escenarios y evalua dos negociadores, por lo que el archivo longitudinal debe contener 20 filas de judgement por participante. El diagnostico de clustering siguiente es consistente con ese diseno.",
@@ -2170,24 +2170,24 @@ translate_report_lines_to_spanish <- function(
   lines_es <- replace_fixed_pairs(lines_es, table_phrase_from, table_phrase_to)
 
   formula_focus_from <- c(
-    "Empathy dimensions only, always adjusted by sociodemographics.",
-    "Victim-side ingroup/outgroup structure with the allowed target x other relational interaction.",
-    "Bystander-side relational structure with explicit bystander-victim, bystander-negotiator, victim-negotiator, and target/other context terms.",
-    "Empathy plus victim-side relational structure, including empathy x victim-target and empathy x victim-other interactions because empathy may depend on negotiator closeness.",
-    "Empathy plus bystander-side relational structure, including empathy x bystander-victim and empathy x bystander-negotiator interactions because empathy may depend on group closeness in the bystander role.",
-    "Target and other negotiator decisions with their interaction, plus sociodemographics.",
-    "Integrated model with empathy, victim-side relations, empathy x group interactions, decisions, and the victim-side relational interaction.",
-    "Integrated model with empathy, bystander-side relations, empathy x group interactions, decisions, and the role-specific relational interactions."
+    "Empathy dimensions with the common accept_target x accept_other adjustment and sociodemographics.",
+    "Victim-side ingroup/outgroup structure with the allowed target x other relational interaction and the common accept_target x accept_other adjustment.",
+    "Bystander-side relational structure with explicit bystander-victim, bystander-target, bystander-other, target/other context terms, and the common accept_target x accept_other adjustment.",
+    "Empathy plus victim-side relational structure, including empathy x victim-target and empathy x victim-other interactions, with the common accept_target x accept_other adjustment.",
+    "Empathy plus bystander-side relational structure, including empathy x bystander-victim and empathy x bystander-target/other interactions, with the common accept_target x accept_other adjustment.",
+    "Target and other negotiator acceptance terms with their interaction, plus sociodemographics.",
+    "Integrated model with empathy, victim-side relations, empathy x group interactions, acceptance terms, and the victim-side target/other interaction.",
+    "Integrated model with empathy, bystander-side relations, empathy x group interactions, acceptance terms, and role-specific target/other relational interactions."
   )
   formula_focus_to <- c(
-    "Solo dimensiones de empatia, siempre ajustadas por sociodemograficos.",
-    "Estructura ingroup/outgroup del lado Victim con la interaccion relacional permitida target x other.",
-    "Estructura relacional del lado Bystander con terminos explicitos bystander-victim, bystander-negotiator, victim-negotiator y contexto target/other.",
-    "Empatia mas estructura relacional del lado Victim, incluyendo interacciones empatia x victim-target y empatia x victim-other porque la empatia puede depender de cercania al negociador.",
-    "Empatia mas estructura relacional del lado Bystander, incluyendo interacciones empatia x bystander-victim y empatia x bystander-negotiator porque la empatia puede depender de cercania de grupo en el rol Bystander.",
-    "Decisiones de target y del otro negociador con su interaccion, mas sociodemograficos.",
-    "Modelo integrado con empatia, relaciones del lado Victim, interacciones empatia x grupo, decisiones y la interaccion relacional del lado Victim.",
-    "Modelo integrado con empatia, relaciones del lado Bystander, interacciones empatia x grupo, decisiones e interacciones relacionales especificas por rol."
+    "Dimensiones de empatia con el ajuste comun accept_target x accept_other y sociodemograficos.",
+    "Estructura ingroup/outgroup del lado Victim con la interaccion relacional permitida target x other y el ajuste comun accept_target x accept_other.",
+    "Estructura relacional del lado Bystander con terminos explicitos bystander-victim, bystander-target, bystander-other, contexto target/other y el ajuste comun accept_target x accept_other.",
+    "Empatia mas estructura relacional del lado Victim, incluyendo interacciones empatia x victim-target y empatia x victim-other, con el ajuste comun accept_target x accept_other.",
+    "Empatia mas estructura relacional del lado Bystander, incluyendo interacciones empatia x bystander-victim y empatia x bystander-target/other, con el ajuste comun accept_target x accept_other.",
+    "Terminos de aceptacion de target y other con su interaccion, mas sociodemograficos.",
+    "Modelo integrado con empatia, relaciones del lado Victim, interacciones empatia x grupo, terminos de aceptacion y la interaccion target/other del lado Victim.",
+    "Modelo integrado con empatia, relaciones del lado Bystander, interacciones empatia x grupo, terminos de aceptacion e interacciones relacionales target/other especificas por rol."
   )
   lines_es <- replace_fixed_pairs(lines_es, formula_focus_from, formula_focus_to)
 
@@ -2197,13 +2197,13 @@ translate_report_lines_to_spanish <- function(
     "c) session grouping",
     "d) no double count introduced by the pipeline",
     "e) victim and bystander treated differently",
-    "f) decision_target and decision_other included where required",
+    "f) accept_target and accept_other included in H1-H5",
     "g) sociodemographics included in every hypothesis model",
     "All formulas model judgement directly.",
     "All fitted Tobit models use participant-cluster robust standard errors through cluster = id.",
     "The active Tobit branch uses factor(session) in every formula and documents that choice explicitly instead of claiming a random session intercept.",
     "Role-specific formulas are estimated separately and H2/H3/H5 use different relational blocks for victim and bystander.",
-    "H4 and H5 both include decision_target, decision_other, and their interaction.",
+    "All H1-H5 formulas include accept_target, accept_other, and their interaction as part of the active specification.",
     "Every H1-H5 formula retains age, ses, sex_female, and faculty_player_factor."
   )
   compliance_to <- c(
@@ -2212,13 +2212,13 @@ translate_report_lines_to_spanish <- function(
     "c) agrupacion por sesion",
     "d) el pipeline no introduce doble conteo",
     "e) Victim y Bystander tratados de forma diferente",
-    "f) decision_target y decision_other incluidos donde corresponde",
+    "f) accept_target y accept_other incluidos en H1-H5",
     "g) sociodemograficos incluidos en cada modelo de hipotesis",
     "Todas las formulas modelan judgement de forma directa.",
     "Todos los modelos Tobit ajustados usan errores estandar robustos por cluster de participante mediante cluster = id.",
     "La rama Tobit activa usa factor(session) en cada formula y documenta esa eleccion de forma explicita en lugar de afirmar un intercepto aleatorio de sesion.",
     "Las formulas especificas por rol se estiman por separado y H2/H3/H5 usan bloques relacionales diferentes para Victim y Bystander.",
-    "H4 y H5 incluyen decision_target, decision_other y su interaccion.",
+    "Todas las formulas H1-H5 incluyen accept_target, accept_other y su interaccion como parte de la especificacion activa.",
     "Cada formula H1-H5 retiene age, ses, sex_female y faculty_player_factor."
   )
   lines_es <- replace_fixed_pairs(lines_es, compliance_from, compliance_to)
@@ -2320,5 +2320,6 @@ compliance_lines_es <- replace_fixed_pairs(
 )
 writeLines(compliance_lines_es, file.path(paths$report_dir, "pipeline_compliance_report_es.md"))
 writeLines(compliance_lines_es, file.path(paths$reports_data_dir, "pipeline_compliance_report_es.md"))
+
 
 

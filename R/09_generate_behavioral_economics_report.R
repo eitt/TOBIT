@@ -37,7 +37,7 @@ behavioral_lines <- c(
   "",
   "## Conclusion",
   "",
-  "The project now centers the experimental design rather than the old aggregated-IRI workflow. `judgement` is the outcome in all inferential models, the participant-level dependence adjustment is explicit, session handling is audited through `factor(session)`, role-specific relational coding differs between victim and bystander, and `decision_target` / `decision_other` are built directly into H4 and H5.",
+  "The project now centers the experimental design rather than the old aggregated-IRI workflow. `judgement` is the outcome in all inferential models, the participant-level dependence adjustment is explicit, session handling is audited through `factor(session)`, role-specific relational coding differs between victim and bystander, and `accept_target` / `accept_other` are built directly into H4 and H5.",
   "",
   "## Compliance Snapshot",
   "",
@@ -48,4 +48,5 @@ behavioral_lines <- c(
 writeLines(behavioral_lines, file.path(paths$report_dir, "tobit_behavioral_economics_report.md"))
 writeLines(behavioral_lines, file.path(paths$logs_dir, "behavioral_economics_report.md"))
 writeLines(behavioral_lines, file.path(paths$reports_data_dir, "behavioral_economics_report.md"))
+
 

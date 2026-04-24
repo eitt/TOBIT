@@ -1,4 +1,4 @@
-﻿# How To Read The New Models
+# How To Read The New Models
 
 ## Direction of coefficients
 
@@ -30,11 +30,11 @@ In the authoritative redesign, ingroup means faculty coincidence, including `con
 
 ## Decision effects
 
-- `decision_target`
+- `accept_target`
   Effect of the judged negotiator accepting rather than rejecting
-- `decision_other`
+- `accept_other`
   Effect of the other negotiator accepting rather than rejecting
-- `decision_target:decision_other`
+- `accept_target:accept_other`
   Extra effect when both decisions are considered jointly
 
 ## Role-specific interpretation
@@ -62,4 +62,5 @@ The inferential target is not a set of independent rows. The pipeline keeps the 
 The dynamic report uses `factor(session)` on purpose. It does not claim `(1|session)` because that is not the model actually estimated in the active Tobit branch.
 
 Each participant contributes 20 judgement rows in principle: ten scenarios times two target-negotiator evaluations. The pipeline preserves those rows and keeps target/other context inside each existing row instead of duplicating observations.
+
 

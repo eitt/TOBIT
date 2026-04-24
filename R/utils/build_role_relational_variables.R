@@ -30,18 +30,18 @@ derive_same_faculty_context <- function(target_faculty, other_faculty) {
   )
 }
 
-derive_decision_pattern <- function(decision_target, decision_other) {
+derive_decision_pattern <- function(accept_target, accept_other) {
   ifelse(
-    is.na(decision_target) | is.na(decision_other),
+    is.na(accept_target) | is.na(accept_other),
     NA_character_,
     ifelse(
-      decision_target == 1 & decision_other == 1,
+      accept_target == 1 & accept_other == 1,
       "both_accept",
       ifelse(
-        decision_target == 0 & decision_other == 0,
+        accept_target == 0 & accept_other == 0,
         "both_reject",
         ifelse(
-          decision_target == 1 & decision_other == 0,
+          accept_target == 1 & accept_other == 0,
           "target_accept_other_reject",
           "target_reject_other_accept"
         )
@@ -70,21 +70,29 @@ add_negotiator_context_columns <- function(data) {
   data$other_faculty_label <- faculty_code_to_label(data$other_faculty)
   data$faculty_player_label <- faculty_code_to_label(data$faculty_player)
 
-  data$decision_target_label <- ifelse(
-    data$decision_target == 1,
+  # Compatibility bridge: source columns remain decision_target/decision_other.
+  # Active operational columns for modeling are accept_target/accept_other.
+  data$accept_target <- data$decision_target
+  data$accept_other <- data$decision_other
+
+  data$accept_target_label <- ifelse(
+    data$accept_target == 1,
     "accept",
-    ifelse(data$decision_target == 0, "reject", NA_character_)
+    ifelse(data$accept_target == 0, "reject", NA_character_)
   )
-  # Historical naming bridge: accept_target/accept_other (legacy wording)
-  # map to decision_target/decision_other (active operational names).
-  data$decision_other_label <- ifelse(
-    data$decision_other == 1,
+  data$accept_other_label <- ifelse(
+    data$accept_other == 1,
     "accept",
-    ifelse(data$decision_other == 0, "reject", NA_character_)
+    ifelse(data$accept_other == 0, "reject", NA_character_)
   )
+
+  # Keep decision labels as legacy aliases for backward compatibility.
+  data$decision_target_label <- data$accept_target_label
+  data$decision_other_label <- data$accept_other_label
+
   data$decision_pattern <- derive_decision_pattern(
-    data$decision_target,
-    data$decision_other
+    data$accept_target,
+    data$accept_other
   )
 
   data
@@ -95,6 +103,8 @@ coerce_model_factors <- function(data) {
   data$session <- factor(data$session)
   data$id_case <- factor(data$id_case)
   data$role_label <- factor(data$role_label, levels = c("victim", "bystander"))
+  data$accept_target <- suppressWarnings(as.numeric(as.character(data$accept_target)))
+  data$accept_other <- suppressWarnings(as.numeric(as.character(data$accept_other)))
   data$target_code_label <- factor(data$target_code_label, levels = c("target_code_1", "target_code_2"))
   data$faculty_player_factor <- factor(
     data$faculty_player_label,

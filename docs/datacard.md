@@ -1,4 +1,4 @@
-﻿# Data Card
+# Data Card
 
 ## Base file
 
@@ -44,7 +44,7 @@ Each row is one observed moral judgment recorded in the experiment.
 - `other` is the counterpart negotiator in that same row context
 - In victim rows, when `faculty_victim` is empty in the source file, the pipeline uses `faculty_player` as the victim reference because the participant is the victim in that subset
 - `target_faculty` and `other_faculty` are reconstructed from `faculty_target` and `faculty_other` without expanding the dataset again
-- `decision_target` and `decision_other` are the active row-dynamic decision fields used directly in modeling
+- Source-file decision columns `decision_target` and `decision_other` are retained for compatibility, and the active analytical aliases are `accept_target` and `accept_other`
 
 ## Derived variables for the redesign
 
@@ -78,15 +78,15 @@ Each row is one observed moral judgment recorded in the experiment.
 ### Decision context
 
 - `decision_pattern`
-  Four-value label built from `decision_target` and `decision_other`
+  Four-value label built from `accept_target` and `accept_other`
 
 ## Coding rules
 
 ### Decisions
 
-- `decision_target`: `0 = reject`, `1 = accept`
-- `decision_other`: `0 = reject`, `1 = accept`
-- Historical alias note: legacy wording `accept_target` / `accept_other` corresponds to active operational names `decision_target` / `decision_other`
+- `accept_target`: `0 = reject`, `1 = accept`
+- `accept_other`: `0 = reject`, `1 = accept`
+- Source compatibility note: legacy/source columns `decision_target` / `decision_other` map to active operational names `accept_target` / `accept_other`
 
 ### Dynamic semantics
 
@@ -132,4 +132,5 @@ This applies to:
 - `data/processed/judgments_victim.csv`
 - `data/processed/judgments_bystander.csv`
 - `data/processed/variable_dictionary.csv`
+
 

@@ -1,4 +1,4 @@
-﻿# Purpose
+# Purpose
 
 Apply a minimal, controlled, and auditable semantic-alignment refactor so that naming and documentation clearly distinguish row-dynamic target/other roles from reconstructed structural N1/N2 slots, without changing the active statistical logic.
 

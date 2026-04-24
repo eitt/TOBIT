@@ -37,8 +37,8 @@ plain_lines <- c(
   "",
   "## Decisiones",
   "",
-  "- `decision_target`: 0 = reject, 1 = accept.",
-  "- `decision_other`: 0 = reject, 1 = accept.",
+  "- `accept_target`: 0 = reject, 1 = accept.",
+  "- `accept_other`: 0 = reject, 1 = accept.",
   "- Su interaccion distingue cuatro contextos: ambos aceptan, ambos rechazan, target acepta / other rechaza, target rechaza / other acepta.",
   "",
   "## Modelos H1-H5",
@@ -61,11 +61,12 @@ plain_lines <- c(
   "",
   "## Resultado practico del rediseno",
   "",
-  "La logica dominante ya no es un pipeline centrado solo en IRI agregado. El flujo activo usa `judgement` como variable dependiente, separa victima y bystander, incorpora dependencia repetida por participante mediante clustering robusto por `id`, documenta `factor(session)`, usa `decision_target` y `decision_other`, y deja una pista auditable de que no se introdujo nuevo doble conteo.",
+  "La logica dominante ya no es un pipeline centrado solo en IRI agregado. El flujo activo usa `judgement` como variable dependiente, separa victima y bystander, incorpora dependencia repetida por participante mediante clustering robusto por `id`, documenta `factor(session)`, usa `accept_target` y `accept_other`, y deja una pista auditable de que no se introdujo nuevo doble conteo.",
   ""
 )
 
 writeLines(plain_lines, file.path(paths$report_dir, "tobit_plain_language_guide.md"))
 writeLines(plain_lines, file.path(paths$logs_dir, "plain_language_report.md"))
 writeLines(plain_lines, file.path(paths$reports_data_dir, "plain_language_guide.md"))
+
 

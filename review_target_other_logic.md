@@ -1,4 +1,4 @@
-﻿# Executive summary
+# Executive summary
 
 The active pipeline preserves row-level target semantics and does not duplicate observations.
 

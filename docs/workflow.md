@@ -1,4 +1,4 @@
-﻿# Workflow Logic
+# Workflow Logic
 
 ## Overview
 
@@ -69,7 +69,7 @@ Each participant is expected to contribute 20 rows in the long file: ten scenari
 
 - Estimate victim and bystander models separately
 - Use `judgement` as the response in all cases
-- Interpret `judgement` as the moral evaluation of the target negotiator while allowing `decision_target` and `decision_other` to explain that evaluation jointly
+- Interpret `judgement` as the moral evaluation of the target negotiator while allowing `accept_target` and `accept_other` to explain that evaluation jointly
 - Convert `judgement` into bilateral Tobit endpoints through `lower_endpoint` and `upper_endpoint`
 - Fit `survival::survreg` with participant-cluster robust standard errors by `id`
 - Represent session with `factor(session)` in every active formula
@@ -97,4 +97,5 @@ The pipeline writes both the traditional output folders and compatibility subfol
 - `06_reports`
 
 These are used as staging folders for the redesigned artifacts, not as a return to the old analytical logic.
+
 

@@ -1,4 +1,4 @@
-﻿# Pipeline Overview
+# Pipeline Overview
 
 ## Purpose
 
@@ -7,7 +7,8 @@ The TOBIT pipeline produces reproducible longitudinal moral judgement analyses u
 ## Active Analytical Core
 
 - Outcome: `judgement`
-- Dynamic decision predictors: `decision_target`, `decision_other`
+- Dynamic decision predictors: `accept_target`, `accept_other`
+- Source compatibility columns retained: `decision_target`, `decision_other`
 - Dynamic row roles: `target`, `other`
 - Analytical pair: `target`, `other`
 - Role-specific relational predictors for H2/H3/H5
@@ -55,4 +56,5 @@ Spanish dynamic report (parallel):
 - The orchestrator clears generated artifacts before a new run.
 - One imported row remains one real judgement observation.
 - Legacy audit variables are retained for traceability but not used directly as active H2/H3/H5 relational predictors.
+
 

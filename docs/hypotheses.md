@@ -1,4 +1,4 @@
-﻿# Hypotheses Overview
+# Hypotheses Overview
 
 ## Outcome and unit
 
@@ -33,6 +33,7 @@
 ```r
 survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
   iri_fs + iri_ec + iri_pt + iri_pd +
+  accept_target * accept_other +
   age + ses + sex_female + faculty_player_factor +
   factor(session)
 ```
@@ -42,6 +43,7 @@ survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
 ```r
 survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
   iri_fs + iri_ec + iri_pt + iri_pd +
+  accept_target * accept_other +
   age + ses + sex_female + faculty_player_factor +
   factor(session)
 ```
@@ -55,6 +57,7 @@ survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
   victim_target_group + victim_other_group +
   victim_target_group:victim_other_group +
   target_other_same_faculty +
+  accept_target * accept_other +
   age + ses + sex_female + faculty_player_factor +
   factor(session)
 ```
@@ -69,6 +72,7 @@ survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
   bystander_target_group:bystander_other_group +
   victim_target_group:victim_other_group +
   target_other_same_faculty +
+  accept_target * accept_other +
   age + ses + sex_female + faculty_player_factor +
   factor(session)
 ```
@@ -87,6 +91,7 @@ survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
   iri_pt:victim_target_group + iri_pt:victim_other_group +
   iri_pd:victim_target_group + iri_pd:victim_other_group +
   target_other_same_faculty +
+  accept_target * accept_other +
   age + ses + sex_female + faculty_player_factor +
   factor(session)
 ```
@@ -106,6 +111,7 @@ survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
   iri_pt:bystander_victim_group + iri_pt:bystander_target_group + iri_pt:bystander_other_group +
   iri_pd:bystander_victim_group + iri_pd:bystander_target_group + iri_pd:bystander_other_group +
   target_other_same_faculty +
+  accept_target * accept_other +
   age + ses + sex_female + faculty_player_factor +
   factor(session)
 ```
@@ -116,7 +122,7 @@ survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
 
 ```r
 survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
-  decision_target * decision_other +
+  accept_target * accept_other +
   age + ses + sex_female + faculty_player_factor +
   factor(session)
 ```
@@ -125,7 +131,7 @@ survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
 
 ```r
 survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
-  decision_target * decision_other +
+  accept_target * accept_other +
   age + ses + sex_female + faculty_player_factor +
   factor(session)
 ```
@@ -144,7 +150,7 @@ survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
   iri_pt:victim_target_group + iri_pt:victim_other_group +
   iri_pd:victim_target_group + iri_pd:victim_other_group +
   target_other_same_faculty +
-  decision_target * decision_other +
+  accept_target * accept_other +
   age + ses + sex_female + faculty_player_factor +
   factor(session)
 ```
@@ -164,16 +170,16 @@ survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
   iri_pt:bystander_victim_group + iri_pt:bystander_target_group + iri_pt:bystander_other_group +
   iri_pd:bystander_victim_group + iri_pd:bystander_target_group + iri_pd:bystander_other_group +
   target_other_same_faculty +
-  decision_target * decision_other +
+  accept_target * accept_other +
   age + ses + sex_female + faculty_player_factor +
   factor(session)
 ```
 
 ## Coding notes
 
-- `decision_target`: `0 = reject`, `1 = accept`
-- `decision_other`: `0 = reject`, `1 = accept`
-- Historical alias note: legacy wording `accept_target` / `accept_other` maps to active names `decision_target` / `decision_other`
+- `accept_target`: `0 = reject`, `1 = accept`
+- `accept_other`: `0 = reject`, `1 = accept`
+- Source compatibility note: source/legacy columns `decision_target` / `decision_other` are mapped to active analytical names `accept_target` / `accept_other`
 - `victim_target_group`, `victim_other_group`, `bystander_target_group`, `bystander_other_group`:
   - `ingroup`
   - `outgroup`
@@ -189,4 +195,5 @@ survival::Surv(lower_endpoint, upper_endpoint, type = "interval2") ~
 ## Documentation note
 
 Earlier notes that treated negotiator faculty code `0` as `control_hidden` or described H3 as additive-only are outdated. The active specification now treats `0` as the `control` faculty category and uses targeted empathy x group interactions in H3 and H5.
+
 

@@ -1,4 +1,4 @@
-﻿# Final Release Checklist
+# Final Release Checklist
 
 Use this checklist before publishing a tagged public release.
 
@@ -13,7 +13,7 @@ Use this checklist before publishing a tagged public release.
 
 - [ ] Input source path is documented and available.
 - [ ] `target/other` semantics are explicitly documented as the only analytical frame.
-- [ ] Decision naming bridge (`accept_target` -> `decision_target`, `accept_other` -> `decision_other`) is documented.
+- [ ] Decision naming bridge (`decision_target` -> `accept_target`, `decision_other` -> `accept_other`) is documented.
 - [ ] Legacy audit variables (`group_target`, `group_other`) status is clear.
 
 ## Documentation Quality
@@ -38,4 +38,5 @@ Use this checklist before publishing a tagged public release.
 
 - [ ] `repository_finalization_report.md` updated for this release cycle.
 - [ ] No statistical logic/formula changes were introduced by documentation-only updates.
+
 
